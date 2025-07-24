@@ -52,7 +52,22 @@ Supports both runtime and editor workflows, with a focus on performance, safety,
 
 2. Open your `.uproject` and regenerate project files (right-click or use `GenerateProjectFiles.bat`).
 
-3. Build the project (via Visual Studio or `UnrealBuildTool`).
+3. Build the project. See platform-specific instructions below.
+
+### macOS
+
+To build the project on macOS using Xcode, navigate to your project's root directory in the terminal and run:
+
+```bash
+xcodebuild -workspace "UEMCP (Mac).xcworkspace" -scheme UEMCP -configuration Development
+```
+
+Alternatively, you can open `UEMCP (Mac).xcworkspace` in Xcode and build from there.
+
+### Windows
+
+To build the project on Windows, open the generated Visual Studio solution (`.sln`) file and build from within Visual Studio. Alternatively, you can use `UnrealBuildTool` from the command line.
+
 
 4. Enable the **UEMCP** plugin in the Unreal Plugin Browser.
 
