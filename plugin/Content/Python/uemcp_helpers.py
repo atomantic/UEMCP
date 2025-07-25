@@ -11,6 +11,9 @@ import importlib
 def restart_listener():
     """Restart the UEMCP listener to pick up code changes"""
     try:
+        import time
+        import socket
+        
         # First, stop the existing listener if running
         import uemcp_listener_fixed
         if hasattr(uemcp_listener_fixed, 'stop_listener'):
@@ -18,9 +21,29 @@ def restart_listener():
                 unreal.log("UEMCP: Stopping existing listener...")
                 uemcp_listener_fixed.stop_listener()
         
-        # Wait a moment for socket to fully close
-        import time
-        time.sleep(1)
+        # Wait for the port to be freed
+        port_free = False
+        max_attempts = 10
+        for i in range(max_attempts):
+            try:
+                # Try to bind to the port to check if it's free
+                test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                test_socket.bind(('localhost', 8765))
+                test_socket.close()
+                port_free = True
+                break
+            except:
+                # Port still in use, wait a bit more
+                time.sleep(0.5)
+        
+        if not port_free:
+            # Force free the port if needed
+            try:
+                import uemcp_port_utils
+                uemcp_port_utils.force_free_port(8765)
+                time.sleep(0.5)
+            except:
+                unreal.log_warning("UEMCP: Could not force free port 8765")
         
         # Reload the module to pick up changes
         unreal.log("UEMCP: Reloading listener module...")
