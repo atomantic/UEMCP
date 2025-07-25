@@ -532,13 +532,11 @@ def execute_on_main_thread(command):
                         direction = actor_location - camera_location
                         camera_rotation = direction.rotation()
                         
-                        # Set viewport using LevelEditorSubsystem
-                        level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
-                        if level_editor_subsystem:
-                            level_editor_subsystem.set_level_viewport_camera_info(
-                                camera_location,
-                                camera_rotation
-                            )
+                        # Set viewport
+                        unreal.EditorLevelLibrary.set_level_viewport_camera_info(
+                            camera_location,
+                            camera_rotation
+                        )
                         
                         # Also pilot the actor for better framing
                         unreal.EditorLevelLibrary.pilot_level_actor(target_actor)
@@ -571,13 +569,11 @@ def execute_on_main_thread(command):
                         # Default rotation looking forward and slightly down
                         current_rot = unreal.Rotator(-30, 0, 0)
                     
-                    # Set the viewport camera using LevelEditorSubsystem
-                    level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
-                    if level_editor_subsystem:
-                        level_editor_subsystem.set_level_viewport_camera_info(
-                            current_loc,
-                            current_rot
-                        )
+                    # Set the viewport camera
+                    unreal.EditorLevelLibrary.set_level_viewport_camera_info(
+                        current_loc,
+                        current_rot
+                    )
                 
                 return {
                     'success': True,
@@ -630,13 +626,11 @@ def execute_on_main_thread(command):
                     # Get current camera location
                     current_loc = viewport_client[0]
                     
-                    # Set orthographic view with proper orientation using LevelEditorSubsystem
-                    level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
-                    if level_editor_subsystem:
-                        level_editor_subsystem.set_level_viewport_camera_info(
-                            current_loc,
-                            rotation
-                        )
+                    # Set orthographic view with proper orientation
+                    unreal.EditorLevelLibrary.set_level_viewport_camera_info(
+                        current_loc,
+                        rotation
+                    )
                     
                     # Note: UE Python API doesn't directly expose viewport type switching
                     # This sets rotation to match orthographic views
@@ -719,8 +713,21 @@ def process_commands(delta_time):
         # Import and call restart function
         try:
             import uemcp_helpers
-            # Schedule restart on next tick to allow response to be sent
-            unreal.register_slate_post_tick_callback(lambda delta: uemcp_helpers.restart_listener())
+            # Use a one-time callback to restart after response is sent
+            # We need to use a list to store the handle since we can't assign to
+            # a function attribute before the function is defined
+            handle_container = []
+            
+            def restart_once(delta):
+                # Unregister this callback immediately
+                if handle_container:
+                    unreal.unregister_slate_post_tick_callback(handle_container[0])
+                # Now restart the listener
+                uemcp_helpers.restart_listener()
+            
+            # Register the callback and store its handle
+            handle = unreal.register_slate_post_tick_callback(restart_once)
+            handle_container.append(handle)
         except Exception as e:
             unreal.log_error(f"UEMCP: Failed to schedule restart: {e}")
 
