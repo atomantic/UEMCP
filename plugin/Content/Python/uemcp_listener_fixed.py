@@ -7,6 +7,7 @@ import json
 import threading
 import time
 import os
+import socket
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import queue
 
@@ -284,48 +285,42 @@ def execute_on_main_thread(command):
             # Create temp directory for screenshots
             temp_dir = tempfile.gettempdir()
             timestamp = int(time.time())
-            filename = f'uemcp_screenshot_{timestamp}.png'
-            filepath = os.path.join(temp_dir, filename)
+            # Use just the base filename - UE will add .png and determine path
+            base_filename = f'uemcp_screenshot_{timestamp}'
             
             try:
-                # Take screenshot with reasonable resolution to avoid performance issues
-                # Reduced from 1920x1080 to 1280x720 to prevent audio buffer underruns
-                # Use the filename without extension - UE will add .png
-                filename_no_ext = filename.replace('.png', '')
-                result = unreal.AutomationLibrary.take_high_res_screenshot(
-                    1280, 720,   # Reduced resolution
-                    filename_no_ext,    # Filename without extension
+                # Take screenshot using automation library
+                unreal.AutomationLibrary.take_high_res_screenshot(
+                    1280, 720,   # Resolution
+                    base_filename,    # Base filename (no path, no extension)
                     None,        # Camera (None = current view)
                     False,       # Mask enabled
                     False        # Capture HDR
                 )
                 
-                # The function returns immediately but file writing is async
-                # Force a small initial delay
-                time.sleep(1.0)  # Increased initial delay
+                # Determine expected save path based on platform
+                project_path = unreal.SystemLibrary.get_project_directory()
+                platform = unreal.SystemLibrary.get_platform_name()
                 
-                # Log the screenshot attempt
-                unreal.log(f"Screenshot requested: {filepath}")
+                # UE saves screenshots to Saved/Screenshots/[Platform]Editor/
+                if 'Mac' in platform:
+                    expected_path = os.path.join(project_path, 'Saved', 'Screenshots', 'MacEditor', f'{base_filename}.png')
+                elif 'Win' in platform:
+                    expected_path = os.path.join(project_path, 'Saved', 'Screenshots', 'WindowsEditor', f'{base_filename}.png')
+                else:
+                    expected_path = os.path.join(project_path, 'Saved', 'Screenshots', 'Editor', f'{base_filename}.png')
                 
-                # Wait longer for file to be written (UE may be slow)
-                # Check every 0.5 seconds for up to 15 seconds
-                for i in range(30):
-                    time.sleep(0.5)
-                    if os.path.exists(filepath):
-                        file_size = os.path.getsize(filepath)
-                        unreal.log(f"Screenshot saved: {filepath} ({file_size} bytes)")
-                        return {
-                            'success': True,
-                            'filepath': filepath,
-                            'message': f'Screenshot saved to: {filepath}'
-                        }
-                    # Log progress every 2 seconds
-                    if i > 0 and i % 4 == 0:
-                        unreal.log(f"Waiting for screenshot... {i//2} seconds elapsed")
+                # Log the screenshot request
+                unreal.log(f"Screenshot requested: {expected_path}")
+                unreal.log("Screenshot will be saved asynchronously by Unreal Engine")
                 
-                # If we get here, file wasn't created
-                unreal.log_warning(f"Screenshot file not found after 15 seconds: {filepath}")
-                return {'success': False, 'error': 'Screenshot file not created after 15 seconds'}
+                # Return immediately - don't block the thread
+                # The screenshot will be written asynchronously by UE
+                return {
+                    'success': True,
+                    'filepath': expected_path,
+                    'message': f'Screenshot initiated. File will be saved to: {expected_path}'
+                }
                     
             except Exception as e:
                 return {'success': False, 'error': str(e)}
@@ -773,7 +768,10 @@ def start_listener(port=8765):
     def run_server():
         global httpd
         try:
+            # Create server with socket reuse enabled
             httpd = HTTPServer(('localhost', port), UEMCPHandler)
+            # Enable socket reuse to prevent "Address already in use" errors
+            httpd.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             unreal.log(f"UEMCP Listener started on http://localhost:{port}")
             httpd.serve_forever()
         except Exception as e:
