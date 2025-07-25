@@ -39,7 +39,8 @@
       "mcp__uemcp__level_actors",
       "mcp__uemcp__project_info",
       "Bash(\"/Users/Shared/Epic Games/UE_5.6/Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh\" -project=\"/Users/antic/Documents/Unreal Projects/Home/Home.uproject\" -game)",
-      "mcp__uemcp__actor_spawn"
+      "mcp__uemcp__actor_spawn",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

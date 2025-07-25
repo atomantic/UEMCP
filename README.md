@@ -1,3 +1,5 @@
+
+
 # UEMCP - Unreal Engine Model Context Protocol Server
 
 ![Unreal Engine](https://img.shields.io/badge/Unreal%20Engine-5.x-blue?logo=unrealengine)
@@ -7,26 +9,68 @@
 
 A Model Context Protocol (MCP) server that provides AI models with deep integration capabilities for Unreal Engine projects. UEMCP bridges the gap between AI-powered development tools and Unreal Engine's complex ecosystem, enabling intelligent assistance for game development workflows.
 
-## Features
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-### 🎮 Core Engine Integration
-- **Project Management**: Create, load, and configure UE projects
-- **Asset Pipeline**: Import, export, and manipulate game assets
-- **Blueprint System**: Read and modify Blueprint graphs programmatically
-- **Level Editing**: Automated level construction and actor placement
-- **Build System**: Trigger builds, packaging, and deployment
+- [UEMCP - Unreal Engine Model Context Protocol Server](#uemcp---unreal-engine-model-context-protocol-server)
+  - [Architecture](#architecture)
+    - [High-Level Architecture](#high-level-architecture)
+    - [Data Flow](#data-flow)
+    - [Directory Structure](#directory-structure)
+  - [Installation](#installation)
+    - [Prerequisites](#prerequisites)
+    - [🚀 Quick Start (2 minutes)](#-quick-start-2-minutes)
+    - [Alternative Installation Methods](#alternative-installation-methods)
+  - [Configuration](#configuration)
+    - [Environment Variables](#environment-variables)
+    - [Claude Desktop Configuration](#claude-desktop-configuration)
+  - [🔧 Troubleshooting](#-troubleshooting)
+  - [Available Tools](#available-tools)
+    - [AI Client Setup](#ai-client-setup)
+      - [Claude Desktop](#claude-desktop)
+      - [Claude Code (claude.ai/code)](#claude-code-claudeaicode)
+      - [Cursor](#cursor)
+  - [Available Tools](#available-tools-1)
+    - [Current Implementation](#current-implementation)
+      - [Asset Management](#asset-management)
+      - [Blueprint System](#blueprint-system)
+      - [Project Management](#project-management)
+    - [Planned Tools (Coming Soon)](#planned-tools-coming-soon)
+      - [Asset Management](#asset-management-1)
+      - [Blueprint System](#blueprint-system-1)
+      - [Level Editing](#level-editing)
+      - [Code Generation](#code-generation)
+      - [Project Management](#project-management-1)
+  - [Usage Examples](#usage-examples)
+    - [Listing Assets](#listing-assets)
+    - [Creating Blueprints](#creating-blueprints)
+    - [Project Creation (Mock)](#project-creation-mock)
+  - [Development](#development)
+    - [Plugin Architecture](#plugin-architecture)
+      - [Plugin Structure](#plugin-structure)
+    - [Development Workflow](#development-workflow)
+      - [1. Making Changes to the Plugin](#1-making-changes-to-the-plugin)
+      - [2. Helper Functions](#2-helper-functions)
+      - [3. Adding New Commands](#3-adding-new-commands)
+    - [Available MCP Tools](#available-mcp-tools)
+    - [Actor Spawning](#actor-spawning)
+    - [Testing Changes](#testing-changes)
+    - [Debugging](#debugging)
+    - [Best Practices](#best-practices)
+    - [Contributing](#contributing)
+  - [Supported Unreal Engine Versions](#supported-unreal-engine-versions)
+  - [Roadmap](#roadmap)
+    - [Phase 1 - Core Foundation ✅](#phase-1---core-foundation-)
+    - [Phase 2 - Advanced Features 🚧](#phase-2---advanced-features-)
+    - [Phase 3 - Ecosystem Integration 📋](#phase-3---ecosystem-integration-)
+  - [Troubleshooting](#troubleshooting)
+    - [Common Issues](#common-issues)
+    - [Debug Mode](#debug-mode)
+  - [License](#license)
+  - [Acknowledgments](#acknowledgments)
+  - [Support](#support)
 
-### 🛠️ Development Tools
-- **Code Generation**: Generate C++ classes, Blueprint nodes, and interfaces
-- **Refactoring**: Intelligent code restructuring with UE conventions
-- **Testing**: Automated test creation and execution
-- **Documentation**: Generate and maintain project documentation
-
-### 🔌 AI Model Support
-- **Claude**: Full integration with Anthropic's Claude models
-- **Gemini**: Google's Gemini model support
-- **Cursor**: Enhanced IDE integration
-- **Extensible**: Plugin architecture for additional AI models
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Architecture
 
