@@ -170,7 +170,7 @@ def execute_on_main_thread(command):
         
         elif cmd_type == 'level.actors':
             # Use EditorActorUtilities subsystem instead of deprecated EditorLevelLibrary
-            editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
+            editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
             all_actors = editor_actor_utils.get_all_level_actors()
             actor_list = []
             
@@ -418,14 +418,14 @@ def execute_on_main_thread(command):
             try:
                 # Find actor by name
                 # Use EditorActorUtilities subsystem instead of deprecated EditorLevelLibrary
-                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
+                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
                 all_actors = editor_actor_utils.get_all_level_actors()
                 found = False
                 
                 for actor in all_actors:
                     if actor.get_actor_label() == actor_name:
                         # Use EditorActorUtilities for destroying actors
-                        editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
+                        editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
                         editor_actor_utils.destroy_actor(actor)
                         found = True
                         unreal.log(f"UEMCP: Deleted actor {actor_name}")
@@ -454,7 +454,7 @@ def execute_on_main_thread(command):
             try:
                 # Find actor by name
                 # Use EditorActorUtilities subsystem instead of deprecated EditorLevelLibrary
-                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
+                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
                 all_actors = editor_actor_utils.get_all_level_actors()
                 found_actor = None
                 
@@ -528,7 +528,7 @@ def execute_on_main_thread(command):
                 if focus_actor:
                     # Find and focus on specific actor
                     # Use EditorActorUtilities subsystem instead of deprecated EditorLevelLibrary
-                    editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
+                    editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
                     all_actors = editor_actor_utils.get_all_level_actors()
                     target_actor = None
                     
@@ -629,7 +629,7 @@ def execute_on_main_thread(command):
             try:
                 # Find the actor by name
                 # Use EditorActorUtilities subsystem instead of deprecated EditorLevelLibrary
-                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
+                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
                 all_actors = editor_actor_utils.get_all_level_actors()
                 found_actor = None
                 
@@ -646,7 +646,7 @@ def execute_on_main_thread(command):
                 
                 # Select the actor
                 # Use EditorActorUtilities for selection
-                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
+                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
                 editor_actor_utils.set_selected_level_actors([found_actor])
                 
                 # Get level editor subsystem for more control
