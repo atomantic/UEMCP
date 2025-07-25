@@ -59,7 +59,8 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'viewport.camera',
                     'viewport.mode',
                     'viewport.focus',
-                    'viewport.render_mode'
+                    'viewport.render_mode',
+                    'python.execute'
                 ],
                 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
             }
@@ -772,6 +773,89 @@ def execute_on_main_thread(command):
                 
             except Exception as e:
                 return {'success': False, 'error': str(e)}
+        
+        elif cmd_type == 'python.execute':
+            code = params.get('code', '')
+            context = params.get('context', {})
+            
+            try:
+                # Create a safe execution environment with Unreal modules
+                exec_globals = {
+                    'unreal': unreal,
+                    '__builtins__': __builtins__,
+                }
+                
+                # Add any context variables
+                exec_globals.update(context)
+                
+                # Create locals dict to capture results
+                exec_locals = {}
+                
+                # Execute the code
+                exec(code, exec_globals, exec_locals)
+                
+                # Try to get a return value
+                # If the code assigned to 'result', use that
+                # Otherwise try to eval the last line as an expression
+                if 'result' in exec_locals:
+                    result_value = exec_locals['result']
+                else:
+                    # Try to evaluate the last line as an expression
+                    lines = [line.strip() for line in code.strip().split('\n') if line.strip()]
+                    if lines:
+                        try:
+                            result_value = eval(lines[-1], exec_globals, exec_locals)
+                        except:
+                            # Last line wasn't an expression
+                            result_value = None
+                    else:
+                        result_value = None
+                
+                # Convert result to JSON-serializable format
+                def make_serializable(obj):
+                    """Convert UE objects and other non-serializable types to dicts"""
+                    if obj is None:
+                        return None
+                    elif isinstance(obj, (str, int, float, bool)):
+                        return obj
+                    elif isinstance(obj, (list, tuple)):
+                        return [make_serializable(item) for item in obj]
+                    elif isinstance(obj, dict):
+                        return {str(k): make_serializable(v) for k, v in obj.items()}
+                    elif hasattr(obj, '__dict__'):
+                        # Try to get object properties
+                        result = {'__type__': type(obj).__name__}
+                        # Get common UE properties
+                        if hasattr(obj, 'get_name'):
+                            result['name'] = obj.get_name()
+                        if hasattr(obj, 'get_actor_label'):
+                            result['label'] = obj.get_actor_label()
+                        if hasattr(obj, 'get_actor_location'):
+                            loc = obj.get_actor_location()
+                            result['location'] = {'x': loc.x, 'y': loc.y, 'z': loc.z}
+                        if hasattr(obj, 'get_class'):
+                            result['class'] = obj.get_class().get_name()
+                        # Add string representation as fallback
+                        result['__str__'] = str(obj)
+                        return result
+                    else:
+                        # Fallback to string representation
+                        return str(obj)
+                
+                return {
+                    'success': True,
+                    'result': make_serializable(result_value),
+                    'locals': {k: make_serializable(v) for k, v in exec_locals.items() if not k.startswith('_')}
+                }
+                
+            except Exception as e:
+                import traceback
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'error_type': type(e).__name__,
+                    'traceback': traceback.format_exc()
+                }
         
         elif cmd_type == 'system.restart':
             # Handle restart command
