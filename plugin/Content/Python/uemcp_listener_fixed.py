@@ -1,0 +1,331 @@
+"""
+UEMCP Fixed Listener - Properly handles threading and provides status
+"""
+
+import unreal
+import json
+import threading
+import time
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import queue
+
+# Global state
+server_running = False
+server_thread = None
+httpd = None
+tick_handle = None
+
+# Queue for main thread execution
+command_queue = queue.Queue()
+response_queue = {}
+
+class UEMCPHandler(BaseHTTPRequestHandler):
+    """HTTP handler for UEMCP commands"""
+    
+    def do_GET(self):
+        """Provide detailed status information"""
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        
+        # Get project info (safe to call from any thread for basic info)
+        try:
+            project_name = "DemoMaze"
+            status = {
+                'status': 'online',
+                'service': 'UEMCP Listener',
+                'version': '1.0',
+                'project': project_name,
+                'engine_version': '5.6',
+                'ready': True,
+                'endpoints': {
+                    'GET /': 'Status and health check',
+                    'POST /': 'Execute UEMCP commands'
+                },
+                'available_commands': [
+                    'project.info',
+                    'asset.list', 
+                    'level.actors',
+                    'actor.create',
+                    'level.save'
+                ],
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        except:
+            status = {
+                'status': 'online',
+                'service': 'UEMCP Listener',
+                'ready': True,
+                'error': 'Could not get project info'
+            }
+        
+        self.wfile.write(json.dumps(status, indent=2).encode('utf-8'))
+    
+    def do_POST(self):
+        """Handle command execution"""
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            command = json.loads(post_data.decode('utf-8'))
+            
+            # Create unique request ID
+            request_id = f"req_{time.time()}_{threading.get_ident()}"
+            
+            # Queue command for main thread
+            command_queue.put((request_id, command))
+            
+            # Wait for response
+            timeout = 10.0
+            start_time = time.time()
+            
+            while request_id not in response_queue:
+                if time.time() - start_time > timeout:
+                    self.send_error(504, "Command execution timeout")
+                    return
+                time.sleep(0.01)
+            
+            # Get and send response
+            result = response_queue.pop(request_id)
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(result, indent=2).encode('utf-8'))
+            
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            error = {'success': False, 'error': str(e)}
+            self.wfile.write(json.dumps(error).encode('utf-8'))
+    
+    def log_message(self, format, *args):
+        """Suppress default logging"""
+        pass
+
+def execute_on_main_thread(command):
+    """Execute command on main thread"""
+    cmd_type = command.get('type', '')
+    params = command.get('params', {})
+    
+    try:
+        if cmd_type == 'project.info':
+            return {
+                'success': True,
+                'projectName': unreal.Paths.get_project_file_path().split('/')[-1].replace('.uproject', ''),
+                'projectDirectory': unreal.Paths.project_dir(),
+                'engineVersion': unreal.SystemLibrary.get_engine_version(),
+                'currentLevel': unreal.EditorLevelLibrary.get_editor_world().get_name()
+            }
+        
+        elif cmd_type == 'asset.list':
+            path = params.get('path', '/Game')
+            limit = params.get('limit', 20)
+            
+            asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
+            assets = asset_registry.get_assets_by_path(path, recursive=True)
+            
+            asset_list = []
+            for i, asset in enumerate(assets):
+                if i >= limit:
+                    break
+                asset_list.append({
+                    'name': str(asset.asset_name),
+                    'type': str(asset.asset_class),
+                    'path': str(asset.package_name)
+                })
+            
+            return {
+                'success': True,
+                'assets': asset_list,
+                'totalCount': len(assets),
+                'path': path
+            }
+        
+        elif cmd_type == 'level.actors':
+            all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+            actor_list = []
+            
+            limit = params.get('limit', 30)
+            for i, actor in enumerate(all_actors):
+                if i >= limit:
+                    break
+                    
+                location = actor.get_actor_location()
+                actor_list.append({
+                    'name': actor.get_actor_label(),
+                    'class': actor.get_class().get_name(),
+                    'location': {
+                        'x': float(location.x),
+                        'y': float(location.y),
+                        'z': float(location.z)
+                    }
+                })
+            
+            return {
+                'success': True,
+                'actors': actor_list,
+                'totalCount': len(all_actors),
+                'currentLevel': unreal.EditorLevelLibrary.get_editor_world().get_name()
+            }
+        
+        elif cmd_type == 'actor.create':
+            actor_type = params.get('type', 'cube')
+            location = params.get('location', [0, 0, 100])
+            name = params.get('name', f'UEMCP_{actor_type}_{int(time.time())}')
+            
+            # Create location vector
+            ue_location = unreal.Vector(float(location[0]), float(location[1]), float(location[2]))
+            ue_rotation = unreal.Rotator(0, 0, 0)
+            
+            if actor_type == 'cube':
+                # Load cube mesh
+                cube_mesh = unreal.EditorAssetLibrary.load_asset('/Engine/BasicShapes/Cube')
+                if not cube_mesh:
+                    return {'success': False, 'error': 'Could not load cube mesh'}
+                
+                # Spawn actor
+                actor = unreal.EditorLevelLibrary.spawn_actor_from_class(
+                    unreal.StaticMeshActor.static_class(),
+                    ue_location,
+                    ue_rotation
+                )
+                
+                if actor:
+                    # Set mesh
+                    mesh_comp = actor.get_editor_property('static_mesh_component')
+                    mesh_comp.set_static_mesh(cube_mesh)
+                    actor.set_actor_label(name)
+                    
+                    # Make it visible
+                    actor.set_actor_scale3d(unreal.Vector(1, 1, 1))
+                    
+                    return {
+                        'success': True,
+                        'actorName': name,
+                        'location': location,
+                        'type': actor_type,
+                        'message': f'Created {name} at {location}'
+                    }
+            
+            return {'success': False, 'error': f'Unknown actor type: {actor_type}'}
+        
+        elif cmd_type == 'level.save':
+            success = unreal.EditorLevelLibrary.save_current_level()
+            return {
+                'success': success,
+                'message': 'Level saved successfully' if success else 'Failed to save level'
+            }
+        
+        else:
+            return {
+                'success': False,
+                'error': f'Unknown command: {cmd_type}'
+            }
+            
+    except Exception as e:
+        unreal.log_error(f"UEMCP: Command execution error: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e),
+            'command': cmd_type
+        }
+
+def process_commands(delta_time):
+    """Process queued commands on the main thread"""
+    processed = 0
+    max_per_tick = 10  # Process up to 10 commands per tick
+    
+    while not command_queue.empty() and processed < max_per_tick:
+        try:
+            request_id, command = command_queue.get_nowait()
+            result = execute_on_main_thread(command)
+            response_queue[request_id] = result
+            processed += 1
+        except queue.Empty:
+            break
+        except Exception as e:
+            unreal.log_error(f"UEMCP: Error processing command: {e}")
+
+def start_listener(port=8765):
+    """Start the HTTP listener with main thread processing"""
+    global server_running, server_thread, httpd, tick_handle
+    
+    if server_running:
+        unreal.log_warning("UEMCP Listener is already running!")
+        return False
+    
+    # Check if port is already in use
+    import socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind(('localhost', port))
+        sock.close()
+    except OSError:
+        unreal.log_warning(f"Port {port} is already in use - another listener may be running")
+        unreal.log("Try: stop_listener() first, or check for other processes")
+        return False
+    
+    # Start HTTP server
+    def run_server():
+        global httpd
+        try:
+            httpd = HTTPServer(('localhost', port), UEMCPHandler)
+            unreal.log(f"UEMCP Listener started on http://localhost:{port}")
+            httpd.serve_forever()
+        except Exception as e:
+            unreal.log_error(f"Failed to start listener: {e}")
+    
+    server_running = True
+    server_thread = threading.Thread(target=run_server)
+    server_thread.daemon = True
+    server_thread.start()
+    
+    # Register tick callback for main thread processing
+    tick_handle = unreal.register_slate_pre_tick_callback(process_commands)
+    
+    # Wait a moment
+    time.sleep(0.5)
+    
+    unreal.log("UEMCP Listener is running!")
+    unreal.log(f"Status: http://localhost:{port}/")
+    unreal.log("Ready to receive commands from Claude")
+    
+    # Show notification
+    unreal.EditorDialog.show_message(
+        "UEMCP Connected",
+        f"Listener running on http://localhost:{port}\nClaude can now control Unreal Engine!",
+        unreal.AppMsgType.OK
+    )
+    
+    return True
+
+def stop_listener():
+    """Stop the listener and cleanup"""
+    global server_running, httpd, tick_handle
+    
+    if not server_running:
+        unreal.log("UEMCP Listener is not running")
+        return
+    
+    # Shutdown HTTP server
+    if httpd:
+        httpd.shutdown()
+    
+    # Unregister tick callback
+    if tick_handle:
+        unreal.unregister_slate_pre_tick_callback(tick_handle)
+        tick_handle = None
+    
+    server_running = False
+    unreal.log("UEMCP Listener stopped")
+
+# Module info
+print("\n" + "="*50)
+print("UEMCP Fixed Listener - Thread-Safe Version")
+print("="*50)
+print("\nCommands:")
+print("  start_listener() - Start the listener")
+print("  stop_listener()  - Stop the listener")
+print("\nStatus URL: http://localhost:8765/")
+print("="*50)

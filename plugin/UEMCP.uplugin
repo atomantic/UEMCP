@@ -1,0 +1,39 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.1.0",
+  "FriendlyName": "Unreal Engine Model Context Protocol",
+  "Description": "MCP integration for AI-assisted Unreal Engine development",
+  "Category": "Developer Tools",
+  "CreatedBy": "UEMCP Team",
+  "CreatedByURL": "https://github.com/yourusername/UEMCP",
+  "DocsURL": "https://github.com/yourusername/UEMCP/wiki",
+  "MarketplaceURL": "",
+  "SupportURL": "https://github.com/yourusername/UEMCP/issues",
+  "CanContainContent": false,
+  "IsBetaVersion": true,
+  "IsExperimentalVersion": false,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "UEMCP",
+      "Type": "Editor",
+      "LoadingPhase": "Default",
+      "PlatformAllowList": [
+        "Win64",
+        "Mac",
+        "Linux"
+      ]
+    }
+  ],
+  "Plugins": [
+    {
+      "Name": "PythonScriptPlugin",
+      "Enabled": true
+    },
+    {
+      "Name": "EditorScriptingUtilities",
+      "Enabled": true
+    }
+  ]
+}

@@ -30,6 +30,54 @@ A Model Context Protocol (MCP) server that provides AI models with deep integrat
 
 ## Architecture
 
+### High-Level Architecture
+
+```mermaid
+flowchart TB
+    subgraph "AI Assistant Layer"
+        Claude[Claude Desktop/Code]
+        Other[Other AI Models]
+    end
+    
+    subgraph "MCP Server Layer"
+        NodeJS[Node.js MCP Server<br/>:8080]
+        Tools[MCP Tool Definitions]
+        Bridge[Python Bridge]
+    end
+    
+    subgraph "Unreal Engine Layer"
+        PythonListener[Python HTTP Listener<br/>:8765]
+        PythonAPI[Unreal Python API]
+        CPPPlugin[C++ Plugin<br/>UEMCP]
+        UECore[Unreal Engine Core]
+    end
+    
+    Claude -->|MCP Protocol| NodeJS
+    Other -->|MCP Protocol| NodeJS
+    NodeJS --> Tools
+    NodeJS --> Bridge
+    Bridge -->|HTTP POST| PythonListener
+    PythonListener -->|Queue| PythonAPI
+    PythonAPI -->|Native Calls| UECore
+    CPPPlugin -->|Native API| UECore
+    
+    style Claude fill:#e1d5e7
+    style NodeJS fill:#90ee90
+    style PythonListener fill:#87ceeb
+    style UECore fill:#ff6b6b
+```
+
+### Data Flow
+
+1. **AI Assistant** sends MCP commands to Node.js server
+2. **Node.js MCP Server** validates and routes commands through the Python Bridge
+3. **Python Bridge** makes HTTP requests to the Python Listener in Unreal
+4. **Python HTTP Listener** queues commands for main thread execution
+5. **Unreal Python API** executes commands on the main thread
+6. Results flow back through the same chain
+
+### Directory Structure
+
 ```
 UEMCP/
 ├── server/           # MCP server implementation
@@ -50,54 +98,145 @@ UEMCP/
 ## Installation
 
 ### Prerequisites
-- Unreal Engine 5.1+
-- Python 3.8+
-- Node.js 18+ (for MCP server)
+- Node.js 18+ and npm
+- Unreal Engine 5.1+ (for full functionality)
+- Python 3.8+ (optional, for extended features)
 - Git
 
-### Quick Start
+### 🚀 Quick Start (2 minutes)
 
-1. **Clone the repository**:
+1. **Clone and initialize**:
    ```bash
    git clone https://github.com/atomantic/UEMCP.git
    cd UEMCP
+   node init.js
    ```
 
-2. **Install dependencies**:
+   That's it! The init script will:
+   - ✅ Install all dependencies
+   - ✅ Build the MCP server
+   - ✅ Configure Claude Desktop automatically
+   - ✅ Set up your Unreal Engine project path
+   - ✅ Optionally install the UEMCP plugin to your project
+   - ✅ Create test scripts
+
+   **Advanced options**:
    ```bash
-   npm install
-   pip install -r requirements.txt
+   # Install with plugin to specific project
+   node init.js --project "/path/to/project" --install-plugin
+   
+   # Non-interactive installation
+   node init.js --project "/path/to/project" --no-interactive --install-plugin
+   
+   # Server-only setup (no Claude config)
+   node init.js --skip-claude
    ```
 
-3. **Configure your UE project**:
+2. **Restart Claude Desktop** and test:
+   - Say: "List available UEMCP tools"
+   - Or: "Show me the assets in my Unreal project"
+
+### Alternative Installation Methods
+
+<details>
+<summary>Platform-specific scripts</summary>
+
+**macOS/Linux:**
+```bash
+./init.sh
+```
+
+**Windows PowerShell:**
+```powershell
+.\init.ps1
+```
+</details>
+
+<details>
+<summary>Manual installation</summary>
+
+1. Install dependencies:
    ```bash
-   python scripts/setup.py --project-path /path/to/your/ue/project
+   cd server && npm install
+   pip install -r requirements-dev.txt  # optional
    ```
 
-4. **Start the MCP server**:
+2. Build the server:
    ```bash
-   npm start
+   npm run build
    ```
 
-5. **Configure your AI client** (Claude, Cursor, etc.) to connect to the MCP server.
+3. Configure Claude Desktop:
+   - Copy `claude-desktop-config.example.json` to:
+     - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+     - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+     - Linux: `~/.config/claude/claude_desktop_config.json`
+   - Update paths in the config file
+
+4. Set environment variables:
+   ```bash
+   export UE_PROJECT_PATH="/path/to/your/unreal/project"
+   ```
+</details>
 
 ## Configuration
 
-### MCP Server Configuration
-```json
-{
-  "server": {
-    "name": "uemcp",
-    "version": "1.0.0"
-  },
-  "unreal": {
-    "engine_path": "/path/to/UnrealEngine",
-    "project_path": "/path/to/your/project.uproject",
-    "python_enabled": true,
-    "auto_build": false
-  },
-  "tools": {
-    "blueprint_editing": true,
+### Environment Variables
+
+```bash
+# Required
+export UE_PROJECT_PATH="/path/to/your/unreal/project"
+
+# Optional
+export UE_INSTALL_LOCATION="/path/to/unreal/engine"
+export DEBUG="uemcp:*"  # Enable debug logging
+```
+
+See [docs/environment-setup.md](docs/environment-setup.md) for detailed configuration options.
+
+### Claude Desktop Configuration
+
+The init script automatically configures Claude Desktop. For manual setup, see [claude-desktop-config.example.json](claude-desktop-config.example.json).
+
+## 🔧 Troubleshooting
+
+<details>
+<summary>Claude doesn't see UEMCP tools</summary>
+
+1. Ensure Claude Desktop is fully restarted (not just closed)
+2. Check the config file exists:
+   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+3. Verify the server path in the config is correct
+4. Run `node test-connection.js` to test the server locally
+</details>
+
+<details>
+<summary>"Python not found" warning</summary>
+
+Python is optional. Core features work without it. To enable Python features:
+- Install Python 3.8+
+- Run: `pip install -r requirements-dev.txt`
+</details>
+
+<details>
+<summary>Build errors during init</summary>
+
+1. Ensure Node.js 18+ is installed: `node --version`
+2. Clear npm cache: `npm cache clean --force`
+3. Delete `node_modules` and try again
+4. Check for TypeScript errors: `cd server && npm run build`
+</details>
+
+## Available Tools
+
+Once connected, Claude can use these UEMCP tools:
+
+- **project.create** - Create new Unreal Engine projects
+- **project.info** - Get information about the current project
+- **asset.list** - List project assets (coming soon)
+- **blueprint.create** - Create Blueprint classes (coming soon)
+- **level.edit** - Edit levels and place actors (coming soon)
     "asset_management": true,
     "level_editing": true,
     "code_generation": true
@@ -108,16 +247,51 @@ UEMCP/
 ### AI Client Setup
 
 #### Claude Desktop
-Add to your `claude_desktop_config.json`:
+Add to your `claude_desktop_config.json` (located in `~/Library/Application Support/Claude/` on macOS):
 ```json
 {
   "mcpServers": {
     "uemcp": {
       "command": "node",
-      "args": ["/path/to/UEMCP/server/index.js"],
+      "args": ["/path/to/UEMCP/server/dist/index.js"],
       "env": {
         "UE_PROJECT_PATH": "/path/to/your/project.uproject"
       }
+    }
+  }
+}
+```
+
+#### Claude Code (claude.ai/code)
+Use the `claude mcp` CLI or configure manually:
+
+**Option 1: Using claude mcp CLI**
+```bash
+# Install claude-mcp if not already installed
+npm install -g @anthropic/claude-mcp
+
+# Add the UEMCP server
+claude mcp add uemcp \
+  --command "node" \
+  --args "/path/to/UEMCP/server/dist/index.js" \
+  --env "UE_PROJECT_PATH=/path/to/your/project.uproject"
+
+# Verify configuration
+claude mcp list
+```
+
+**Option 2: Manual configuration**
+Add to `~/.config/claude/mcp_servers.json`:
+```json
+{
+  "servers": {
+    "uemcp": {
+      "command": "node",
+      "args": ["/path/to/UEMCP/server/dist/index.js"],
+      "env": {
+        "UE_PROJECT_PATH": "/path/to/your/project.uproject"
+      },
+      "enabled": true
     }
   }
 }
@@ -130,7 +304,7 @@ Configure in your workspace settings:
   "mcp.servers": [
     {
       "name": "uemcp",
-      "command": ["node", "/path/to/UEMCP/server/index.js"]
+      "command": ["node", "/path/to/UEMCP/server/dist/index.js"]
     }
   ]
 }
@@ -138,78 +312,105 @@ Configure in your workspace settings:
 
 ## Available Tools
 
-### Asset Management
-- `ue_import_asset` - Import external assets into the project
-- `ue_export_asset` - Export assets from the project
-- `ue_create_material` - Generate new materials
-- `ue_modify_texture` - Edit texture properties
+### Current Implementation
+The following tools are currently implemented and available:
 
-### Blueprint System
-- `ue_create_blueprint` - Generate new Blueprint classes
-- `ue_modify_blueprint` - Edit existing Blueprint graphs
-- `ue_blueprint_compile` - Compile and validate Blueprints
-- `ue_blueprint_analyze` - Analyze Blueprint complexity and dependencies
+#### Asset Management
+- `asset_list` - List assets in the Unreal Engine project with filtering options
+  - Filter by path (e.g., `/Game/Blueprints`)
+  - Filter by asset type (Blueprint, Material, Texture2D, etc.)
+  - Recursive search support
 
-### Level Editing
-- `ue_create_level` - Generate new levels
-- `ue_place_actor` - Add actors to levels
-- `ue_modify_landscape` - Edit terrain and landscapes
-- `ue_lighting_build` - Build lighting for levels
+#### Blueprint System
+- `blueprint_create` - Create new Blueprint classes
+  - Specify parent class (Actor, Pawn, Character, GameMode)
+  - Set custom blueprint name and path
+  - Automatic compilation
 
-### Code Generation
-- `ue_create_cpp_class` - Generate C++ classes with UE boilerplate
-- `ue_create_interface` - Create UE interfaces
-- `ue_generate_bindings` - Create Python/Blueprint bindings
-- `ue_refactor_code` - Intelligent code refactoring
+#### Project Management
+- `project_create` - Create new Unreal Engine projects (mock implementation)
+  - Choose project template (Blank, FirstPerson, ThirdPerson, VR, TopDown)
+  - Set project name and location
+  - Specify engine version
 
-### Project Management
-- `ue_project_info` - Get comprehensive project information
-- `ue_build_project` - Build the project
-- `ue_package_project` - Package for distribution
-- `ue_run_tests` - Execute automated tests
+### Planned Tools (Coming Soon)
+
+#### Asset Management
+- `asset_import` - Import external assets into the project
+- `asset_export` - Export assets from the project
+- `material_create` - Generate new materials
+- `texture_modify` - Edit texture properties
+
+#### Blueprint System
+- `blueprint_modify` - Edit existing Blueprint graphs
+- `blueprint_compile` - Compile and validate Blueprints
+- `blueprint_analyze` - Analyze Blueprint complexity and dependencies
+
+#### Level Editing
+- `level_create` - Generate new levels
+- `actor_place` - Add actors to levels
+- `landscape_modify` - Edit terrain and landscapes
+- `lighting_build` - Build lighting for levels
+
+#### Code Generation
+- `cpp_class_create` - Generate C++ classes with UE boilerplate
+- `interface_create` - Create UE interfaces
+- `bindings_generate` - Create Python/Blueprint bindings
+- `code_refactor` - Intelligent code refactoring
+
+#### Project Management
+- `project_info` - Get comprehensive project information
+- `project_build` - Build the project
+- `project_package` - Package for distribution
+- `tests_run` - Execute automated tests
 
 ## Usage Examples
 
-### Creating a New Actor Class
-```python
-# AI can use this tool through MCP
+### Listing Assets
+With Claude Desktop or Claude Code, you can use natural language:
+- "Show me all blueprints in my Unreal project"
+- "List assets in /Game/Characters"
+- "What materials are in the project?"
+
+Or use the tool directly:
+```json
 {
-  "tool": "ue_create_cpp_class",
+  "tool": "asset_list",
   "arguments": {
-    "class_name": "MyCustomActor",
-    "parent_class": "AActor",
-    "components": ["UStaticMeshComponent", "UBoxComponent"],
-    "functions": ["BeginPlay", "Tick"],
-    "properties": ["Health:float", "MaxHealth:float"]
+    "path": "/Game/Characters",
+    "assetType": "Blueprint",
+    "recursive": true
   }
 }
 ```
 
-### Blueprint Generation
-```python
+### Creating Blueprints
+Natural language examples:
+- "Create a new Actor blueprint called BP_Platform"
+- "Make a Character blueprint named BP_Enemy in /Game/Enemies"
+- "Create a GameMode blueprint"
+
+Direct tool usage:
+```json
 {
-  "tool": "ue_create_blueprint",
+  "tool": "blueprint_create",
   "arguments": {
-    "blueprint_name": "BP_PlayerCharacter",
-    "parent_class": "ACharacter",
-    "components": ["Camera", "SpringArm"],
-    "events": ["BeginPlay", "InputAction_Jump"]
+    "name": "BP_PlayerCharacter",
+    "path": "/Game/Blueprints",
+    "parentClass": "Character"
   }
 }
 ```
 
-### Asset Import Pipeline
-```python
+### Project Creation (Mock)
+```json
 {
-  "tool": "ue_import_asset",
+  "tool": "project_create",
   "arguments": {
-    "file_path": "/path/to/model.fbx",
-    "destination": "/Game/Characters/",
-    "import_options": {
-      "import_materials": true,
-      "import_textures": true,
-      "skeletal_mesh": true
-    }
+    "projectName": "MyNewGame",
+    "projectPath": "/Users/username/Documents/Unreal Projects",
+    "engineVersion": "5.6",
+    "template": "FirstPerson"
   }
 }
 ```
@@ -313,6 +514,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 - 📖 [Documentation](https://github.com/atomantic/UEMCP/wiki)
+- 🔧 [Claude Code Setup Guide](./docs/claude-code-mcp-setup.md)
 - 🐛 [Issues](https://github.com/atomantic/UEMCP/issues)
 - 💬 [Discussions](https://github.com/atomantic/UEMCP/discussions)
 - 📧 Contact: [Your Email]

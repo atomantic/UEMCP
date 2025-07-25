@@ -1,0 +1,24 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.1.0",
+  "FriendlyName": "UEMCP - minimal",
+  "Description": "Minimal MCP plugin for Unreal Engine",
+  "Category": "Developer",
+  "CreatedBy": "UEMCP Team",
+  "CreatedByURL": "",
+  "DocsURL": "",
+  "MarketplaceURL": "",
+  "SupportURL": "",
+  "CanContainContent": false,
+  "IsBetaVersion": true,
+  "IsExperimentalVersion": false,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "UEMCP",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

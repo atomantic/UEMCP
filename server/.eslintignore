@@ -1,0 +1,8 @@
+node_modules/
+dist/
+build/
+coverage/
+*.config.js
+jest.config.js
+.eslintrc.js
+tests/

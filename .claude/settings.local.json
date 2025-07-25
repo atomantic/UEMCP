@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm test)",
+      "Bash(python -m pytest python/tests/ -v)",
+      "Bash(python3 -m pytest python/tests/ -v)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck:*)",
+      "Bash(chmod:*)",
+      "Bash(npx @modelcontextprotocol/inspector@latest:*)",
+      "Bash(cp:*)",
+      "Bash(ls:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(mv:*)",
+      "Bash(/Users/Shared/Epic Games/UE_5.6/Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh:*)",
+      "Bash(cat:*)",
+      "Bash(rm:*)",
+      "Bash(/usr/local/bin/npm run build)",
+      "Bash(npx tsc:*)",
+      "Bash(/Users/antic/github.com/atomantic/UEMCP_dev/build.sh)",
+      "Bash(/usr/bin/npx tsc)",
+      "Bash(find:*)",
+      "Bash(claude doctor)",
+      "Bash(claude --version)",
+      "Bash(npm search:*)",
+      "Bash(npm:*)",
+      "Bash(node:*)",
+      "Bash(UE_PROJECT_PATH=\"/Users/antic/Documents/Unreal Projects/DemoMaze\" node test-connection.js)",
+      "Bash(\"/Users/Shared/Epic Games/UE_5.6/Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh\" -project=\"/Users/antic/Documents/Unreal Projects/DemoMaze/DemoMaze.uproject\" -game)",
+      "Bash(UE_PROJECT_PATH=\"/Users/antic/Documents/Unreal Projects/DemoMaze\" node server/dist/index.js)",
+      "Bash(python3:*)",
+      "Bash(curl:*)",
+      "Bash(timeout:*)",
+      "Bash(kill:*)",
+      "Bash(sudo lsof:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}

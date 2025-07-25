@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: server/package-lock.json
+    
+    - name: Install and Build
+      run: |
+        cd server
+        npm ci
+        npm run build
+    
+    - name: Package Server
+      run: |
+        cd server
+        tar -czf ../uemcp-server-${{ github.ref_name }}.tar.gz dist/ package.json package-lock.json
+    
+    - name: Package Python Tools
+      run: |
+        tar -czf uemcp-python-${{ github.ref_name }}.tar.gz python/ requirements-dev.txt
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          uemcp-server-${{ github.ref_name }}.tar.gz
+          uemcp-python-${{ github.ref_name }}.tar.gz
+        generate_release_notes: true
+        draft: false
+        prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}
