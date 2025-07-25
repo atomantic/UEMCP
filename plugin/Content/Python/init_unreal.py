@@ -28,13 +28,6 @@ try:
             unreal.log_error("UEMCP: Failed to start listener")
     else:
         unreal.log("UEMCP: Listener already running")
-    
-    # Import helper functions
-    import uemcp_helpers
-    # Make helper functions available globally
-    from uemcp_helpers import restart_listener, reload_uemcp, status
-    
-    unreal.log("UEMCP: Helper functions loaded - use restart_listener() to reload changes")
         
 except ImportError as e:
     unreal.log_error(f"UEMCP: Could not import listener module: {e}")

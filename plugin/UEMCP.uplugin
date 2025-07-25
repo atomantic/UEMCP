@@ -10,22 +10,11 @@
   "DocsURL": "https://github.com/yourusername/UEMCP/wiki",
   "MarketplaceURL": "",
   "SupportURL": "https://github.com/yourusername/UEMCP/issues",
-  "CanContainContent": false,
+  "CanContainContent": true,
   "IsBetaVersion": true,
   "IsExperimentalVersion": false,
   "Installed": false,
-  "Modules": [
-    {
-      "Name": "UEMCP",
-      "Type": "Editor",
-      "LoadingPhase": "Default",
-      "PlatformAllowList": [
-        "Win64",
-        "Mac",
-        "Linux"
-      ]
-    }
-  ],
+  "Modules": [],
   "Plugins": [
     {
       "Name": "PythonScriptPlugin",

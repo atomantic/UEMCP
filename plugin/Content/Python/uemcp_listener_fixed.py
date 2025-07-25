@@ -169,22 +169,37 @@ def execute_on_main_thread(command):
                 'currentLevel': unreal.EditorLevelLibrary.get_editor_world().get_name()
             }
         
-        elif cmd_type == 'actor.create':
-            actor_type = params.get('type', 'cube')
+        elif cmd_type == 'actor.create' or cmd_type == 'actor.spawn':
+            # Support both legacy 'type' parameter and new 'assetPath' parameter
+            actor_type = params.get('type', None)
+            asset_path = params.get('assetPath', None)
             location = params.get('location', [0, 0, 100])
-            name = params.get('name', f'UEMCP_{actor_type}_{int(time.time())}')
+            rotation = params.get('rotation', [0, 0, 0])
+            scale = params.get('scale', [1, 1, 1])
+            name = params.get('name', f'UEMCP_Actor_{int(time.time())}')
             
-            # Create location vector
+            # Create transform
             ue_location = unreal.Vector(float(location[0]), float(location[1]), float(location[2]))
-            ue_rotation = unreal.Rotator(0, 0, 0)
+            ue_rotation = unreal.Rotator(float(rotation[0]), float(rotation[1]), float(rotation[2]))
+            ue_scale = unreal.Vector(float(scale[0]), float(scale[1]), float(scale[2]))
             
-            if actor_type == 'cube':
-                # Load cube mesh
-                cube_mesh = unreal.EditorAssetLibrary.load_asset('/Engine/BasicShapes/Cube')
-                if not cube_mesh:
+            # Handle asset path or type
+            if asset_path:
+                # Load specified asset
+                asset = unreal.EditorAssetLibrary.load_asset(asset_path)
+                if not asset:
+                    return {'success': False, 'error': f'Could not load asset: {asset_path}'}
+            elif actor_type == 'cube':
+                # Legacy cube support
+                asset = unreal.EditorAssetLibrary.load_asset('/Engine/BasicShapes/Cube')
+                if not asset:
                     return {'success': False, 'error': 'Could not load cube mesh'}
-                
-                # Spawn actor
+            else:
+                return {'success': False, 'error': 'No assetPath or valid type provided'}
+            
+            # Spawn actor based on asset type
+            if isinstance(asset, unreal.StaticMesh):
+                # Spawn static mesh actor
                 actor = unreal.EditorLevelLibrary.spawn_actor_from_class(
                     unreal.StaticMeshActor.static_class(),
                     ue_location,
@@ -194,21 +209,42 @@ def execute_on_main_thread(command):
                 if actor:
                     # Set mesh
                     mesh_comp = actor.get_editor_property('static_mesh_component')
-                    mesh_comp.set_static_mesh(cube_mesh)
+                    mesh_comp.set_static_mesh(asset)
                     actor.set_actor_label(name)
-                    
-                    # Make it visible
-                    actor.set_actor_scale3d(unreal.Vector(1, 1, 1))
+                    actor.set_actor_scale3d(ue_scale)
                     
                     return {
                         'success': True,
                         'actorName': name,
                         'location': location,
-                        'type': actor_type,
+                        'rotation': rotation,
+                        'scale': scale,
+                        'assetPath': asset_path or '/Engine/BasicShapes/Cube',
                         'message': f'Created {name} at {location}'
                     }
-            
-            return {'success': False, 'error': f'Unknown actor type: {actor_type}'}
+            elif isinstance(asset, unreal.Blueprint):
+                # Spawn blueprint actor
+                actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
+                    asset,
+                    ue_location,
+                    ue_rotation
+                )
+                
+                if actor:
+                    actor.set_actor_label(name)
+                    actor.set_actor_scale3d(ue_scale)
+                    
+                    return {
+                        'success': True,
+                        'actorName': name,
+                        'location': location,
+                        'rotation': rotation,
+                        'scale': scale,
+                        'assetPath': asset_path,
+                        'message': f'Created blueprint actor {name} at {location}'
+                    }
+            else:
+                return {'success': False, 'error': f'Unsupported asset type: {type(asset).__name__}'}
         
         elif cmd_type == 'level.save':
             success = unreal.EditorLevelLibrary.save_current_level()
