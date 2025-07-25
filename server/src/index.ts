@@ -8,6 +8,9 @@ import {
 import { projectCreateTool } from './tools/project.js';
 import { projectInfoTool } from './tools/project-info.js';
 import { assetListTool } from './tools/asset-list.js';
+import { actorSpawnTool } from './tools/actor-spawn.js';
+import { levelActorsTool } from './tools/level-actors.js';
+import { levelSaveTool } from './tools/level-save.js';
 import { logger } from './utils/logger.js';
 import { PythonBridge } from './services/python-bridge.js';
 import * as os from 'os';
@@ -57,6 +60,9 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       projectCreateTool.definition,
       projectInfoTool.definition,
       assetListTool.definition,
+      actorSpawnTool.definition,
+      levelActorsTool.definition,
+      levelSaveTool.definition,
     ],
   };
 });
@@ -74,10 +80,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         result = await projectCreateTool.handler(args);
         break;
       case 'project_info':
-        result = await projectInfoTool.handler();
+        result = await projectInfoTool.handler(args);
         break;
       case 'asset_list':
         result = await assetListTool.handler(args);
+        break;
+      case 'actor_spawn':
+        result = await actorSpawnTool.handler(args);
+        break;
+      case 'level_actors':
+        result = await levelActorsTool.handler(args);
+        break;
+      case 'level_save':
+        result = await levelSaveTool.handler(args);
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);
@@ -140,7 +155,10 @@ async function main(): Promise<void> {
     logger.info('  Available Tools: ' + [
       'project_create',
       'project_info',
-      'asset_list'
+      'asset_list',
+      'actor_spawn',
+      'level_actors',
+      'level_save'
     ].join(', '));
     logger.info('='.repeat(60));
     

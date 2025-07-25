@@ -124,7 +124,7 @@ export class PythonBridge {
       });
       
       if (response.ok) {
-        const status = await response.json();
+        const status = await response.json() as any;
         return status.ready === true;
       }
       
