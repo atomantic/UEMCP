@@ -558,9 +558,9 @@ def execute_on_main_thread(command):
                         
                         # Set viewport
                         # Use UnrealEditorSubsystem for camera control
-                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
-                viewport_client = editor_subsystem.get_level_viewport_camera_info()
-                editor_subsystem.set_level_viewport_camera_info(
+                        editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+                        viewport_client = editor_subsystem.get_level_viewport_camera_info()
+                        editor_subsystem.set_level_viewport_camera_info(
                             camera_location,
                             camera_rotation
                         )
@@ -706,9 +706,9 @@ def execute_on_main_thread(command):
                     
                     # Set orthographic view with proper orientation
                     # Use UnrealEditorSubsystem for camera control
-                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
-                viewport_client = editor_subsystem.get_level_viewport_camera_info()
-                editor_subsystem.set_level_viewport_camera_info(
+                    editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+                    viewport_client = editor_subsystem.get_level_viewport_camera_info()
+                    editor_subsystem.set_level_viewport_camera_info(
                         current_loc,
                         rotation
                     )
