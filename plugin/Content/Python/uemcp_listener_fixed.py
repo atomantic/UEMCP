@@ -628,11 +628,24 @@ def start_listener(port=8765):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         sock.bind(('localhost', port))
-        sock.close()
     except OSError:
-        unreal.log_warning(f"Port {port} is already in use - another listener may be running")
+        # Port is in use, try to get more info
+        try:
+            import uemcp_port_utils
+            pid, process_name = uemcp_port_utils.find_process_using_port(port)
+            if pid:
+                unreal.log_warning(f"Port {port} is used by {process_name} (PID: {pid})")
+            else:
+                unreal.log_warning(f"Port {port} is already in use")
+        except:
+            unreal.log_warning(f"Port {port} is already in use - another listener may be running")
+        
         unreal.log("Try: stop_listener() first, or check for other processes")
+        unreal.log("Or in Python console: import uemcp_port_utils; uemcp_port_utils.force_free_port(8765)")
         return False
+    finally:
+        # Always close the socket to prevent resource warnings
+        sock.close()
     
     # Start HTTP server
     def run_server():
