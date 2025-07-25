@@ -52,7 +52,8 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'actor.delete',
                     'actor.modify',
                     'level.save',
-                    'viewport.screenshot'
+                    'viewport.screenshot',
+                    'viewport.camera'
                 ],
                 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
             }
@@ -453,6 +454,104 @@ def execute_on_main_thread(command):
                     'rotation': [current_rotation.pitch, current_rotation.yaw, current_rotation.roll],
                     'scale': [current_scale.x, current_scale.y, current_scale.z],
                     'message': f'Modified actor: {actor_name}'
+                }
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+        
+        elif cmd_type == 'viewport.camera':
+            location = params.get('location', None)
+            rotation = params.get('rotation', None)
+            focus_actor = params.get('focusActor', None)
+            distance = params.get('distance', 500)
+            
+            try:
+                # Get the active viewport
+                viewport = unreal.EditorLevelLibrary.get_active_viewport_location_and_rotation()
+                
+                if focus_actor:
+                    # Find and focus on specific actor
+                    all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+                    target_actor = None
+                    
+                    for actor in all_actors:
+                        if actor.get_actor_label() == focus_actor:
+                            target_actor = actor
+                            break
+                    
+                    if target_actor:
+                        # Get actor location and bounds
+                        actor_location = target_actor.get_actor_location()
+                        actor_bounds = target_actor.get_actor_bounds(False)
+                        bounds_extent = actor_bounds[1]  # Box extent
+                        
+                        # Calculate camera position
+                        # Position camera at 45 degree angle looking down at actor
+                        camera_offset = unreal.Vector(
+                            -distance * 0.7,  # Back
+                            0,                # Side
+                            distance * 0.7    # Up
+                        )
+                        camera_location = actor_location + camera_offset
+                        
+                        # Calculate rotation to look at actor
+                        direction = actor_location - camera_location
+                        camera_rotation = direction.rotation()
+                        
+                        # Set viewport
+                        unreal.EditorLevelLibrary.set_level_viewport_camera_info(
+                            camera_location,
+                            camera_rotation
+                        )
+                        
+                        # Also pilot the actor for better framing
+                        unreal.EditorLevelLibrary.pilot_level_actor(target_actor)
+                        unreal.EditorLevelLibrary.eject_pilot_level_actor()
+                        
+                        current_loc = camera_location
+                        current_rot = camera_rotation
+                    else:
+                        return {'success': False, 'error': f'Actor not found: {focus_actor}'}
+                
+                else:
+                    # Manual camera positioning
+                    current_viewport = unreal.EditorLevelLibrary.get_active_viewport_location_and_rotation()
+                    current_loc = current_viewport[0]
+                    current_rot = current_viewport[1]
+                    
+                    if location is not None:
+                        current_loc = unreal.Vector(
+                            float(location[0]),
+                            float(location[1]),
+                            float(location[2])
+                        )
+                    
+                    if rotation is not None:
+                        current_rot = unreal.Rotator(
+                            float(rotation[0]),  # Pitch
+                            float(rotation[1]),  # Yaw
+                            float(rotation[2])   # Roll
+                        )
+                    
+                    # Set the viewport camera
+                    unreal.EditorLevelLibrary.set_level_viewport_camera_info(
+                        current_loc,
+                        current_rot
+                    )
+                
+                return {
+                    'success': True,
+                    'location': {
+                        'x': float(current_loc.x),
+                        'y': float(current_loc.y),
+                        'z': float(current_loc.z)
+                    },
+                    'rotation': {
+                        'pitch': float(current_rot.pitch),
+                        'yaw': float(current_rot.yaw),
+                        'roll': float(current_rot.roll)
+                    },
+                    'message': 'Viewport camera updated'
                 }
                 
             except Exception as e:

@@ -301,6 +301,7 @@ Once connected, Claude can use these UEMCP tools:
 
 ### Viewport
 - **viewport_screenshot** - Take a screenshot of the current viewport
+- **viewport_camera** - Control viewport camera position and orientation
 
 ### AI Client Setup
 
@@ -619,6 +620,7 @@ Current implementation includes:
 - **level_actors** - List actors in the current level
 - **level_save** - Save the current level
 - **viewport_screenshot** - Capture viewport screenshots
+- **viewport_camera** - Move and orient the viewport camera
 
 ### Actor Spawning
 

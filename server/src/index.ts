@@ -15,6 +15,7 @@ import { actorModifyTool } from './tools/actor-modify.js';
 import { levelActorsTool } from './tools/level-actors.js';
 import { levelSaveTool } from './tools/level-save.js';
 import { viewportScreenshotTool } from './tools/viewport-screenshot.js';
+import { viewportCameraTool } from './tools/viewport-camera.js';
 import { logger } from './utils/logger.js';
 import { PythonBridge } from './services/python-bridge.js';
 import * as os from 'os';
@@ -71,6 +72,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       levelActorsTool.definition,
       levelSaveTool.definition,
       viewportScreenshotTool.definition,
+      viewportCameraTool.definition,
     ],
   };
 });
@@ -113,6 +115,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'viewport_screenshot':
         result = await viewportScreenshotTool.handler(args);
+        break;
+      case 'viewport_camera':
+        result = await viewportCameraTool.handler(args);
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);
