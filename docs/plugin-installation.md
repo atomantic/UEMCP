@@ -2,56 +2,59 @@
 
 ## Overview
 
-The UEMCP system consists of three components:
+The UEMCP system consists of two main components:
 1. **MCP Server** (Node.js) - Communicates with AI assistants
-2. **Python Bridge** - Executes commands in Unreal Engine
-3. **UEMCP Plugin** (C++) - Extends UE functionality
+2. **UEMCP Plugin** (Content-only) - Python listener that runs inside Unreal Engine
+
+## Key Features
+
+- **No C++ compilation required** - It's a content-only plugin
+- **Instant installation** - Just copy the plugin folder
+- **Hot reload support** - Update code without restarting UE
 
 ## Installation Steps
 
 ### 1. Install the UEMCP Plugin
 
-#### Option A: Project-Specific Installation (Recommended)
+#### Option A: Using init.js (Recommended)
 ```bash
-# Copy plugin to your project
-cp -r <PATH_TO_UEMCP>/plugin <YOUR_UE_PROJECT>/Plugins/UEMCP
+# Run the init script with --install-plugin flag
+node init.js --project "/path/to/your/project.uproject" --install-plugin
 ```
 
-#### Option B: Engine-Wide Installation
+#### Option B: Manual Installation
 ```bash
-# Copy plugin to engine (requires admin)
-cp -r <PATH_TO_UEMCP>/plugin "<UE_ENGINE_PATH>/Engine/Plugins/Developer/UEMCP"
+# Create Plugins directory if it doesn't exist
+mkdir -p "<YOUR_UE_PROJECT>/Plugins"
+
+# Copy plugin to your project
+cp -r <PATH_TO_UEMCP>/plugin "<YOUR_UE_PROJECT>/Plugins/UEMCP"
 ```
 
 ### 2. Enable Required Plugins
 
-In your project, ensure these plugins are enabled:
-- **Python Script Plugin** (built-in)
-- **Editor Scripting Utilities** (built-in)
-- **UEMCP** (our plugin)
+In Unreal Editor:
+1. Go to Edit → Plugins
+2. Enable these plugins:
+   - **Python Script Plugin** (built-in) - Required
+   - **UEMCP** (our plugin) - Should auto-enable after copying
 
-### 3. Configure Python Environment
+### 3. Restart Unreal Editor
 
-Set the environment variable to help UEMCP find Unreal:
-```bash
-export UE_INSTALL_LOCATION="<PATH_TO_UE_ENGINE>"
+After installing the plugin, restart Unreal Editor for the changes to take effect.
+
+### 4. Verify Installation
+
+The plugin should start automatically. Check the Output Log for:
+```
+LogPython: UEMCP: Listener started on http://localhost:8765
 ```
 
-Add to your shell profile (~/.zshrc or ~/.bash_profile) to make permanent.
-
-### 4. Rebuild Project
-
-After installing the plugin:
-1. Right-click your .uproject file
-2. Select "Generate Xcode project files" (Mac) or "Generate Visual Studio project files" (Windows)
-3. Open the project in your IDE and build
-
-### 5. Verify Installation
-
-1. Open your project in Unreal Editor
-2. Go to Edit → Plugins
-3. Search for "UEMCP" and ensure it's enabled
-4. Check Tools menu for "UEMCP Status" option
+You can also verify in the Python console:
+```python
+# Check if listener is running
+status()
+```
 
 ## How It Works
 
@@ -59,38 +62,50 @@ After installing the plugin:
 
 ```
 1. AI Assistant (Claude/Cursor) sends command to MCP Server
-2. MCP Server calls Python Bridge (ue_executor.py)
-3. Python Bridge executes command in UE via Python API
-4. UEMCP Plugin provides additional functionality
-5. Results flow back through the chain
+2. MCP Server sends HTTP request to Python listener (port 8765)
+3. Python listener queues command for main thread execution
+4. Command executed using Unreal's Python API
+5. Results flow back through HTTP response
 ```
 
-### Example: Creating a Blueprint
+### Architecture Benefits
+
+- **No compilation** - Pure Python implementation
+- **Hot reload** - Use `restart_listener()` to update code
+- **Thread-safe** - Commands queued for main thread
+- **Reliable** - HTTP communication with retry logic
+
+### Example: Spawning an Actor
 
 1. **AI sends command** → MCP Server receives:
 ```json
 {
-  "tool": "blueprint.create",
+  "tool": "actor_spawn",
   "arguments": {
-    "name": "BP_MyActor",
-    "parentClass": "Actor"
+    "assetPath": "/Game/Meshes/SM_Wall",
+    "location": [1000, 0, 0]
   }
 }
 ```
 
-2. **MCP Server** → Calls Python Bridge:
-```bash
-python3 ue_executor.py '{"type":"blueprint.create","params":{...}}'
+2. **MCP Server** → HTTP POST to localhost:8765:
+```json
+{
+  "type": "actor.spawn",
+  "params": {
+    "assetPath": "/Game/Meshes/SM_Wall",
+    "location": [1000, 0, 0]
+  },
+  "requestId": "unique-id"
+}
 ```
 
-3. **Python Bridge** → Executes in UE:
+3. **Python Listener** → Executes in UE:
 ```python
-# Inside Unreal's Python environment
-asset_tools.create_asset(
-    asset_name="BP_MyActor",
-    package_path="/Game/Blueprints",
-    asset_class=unreal.Blueprint,
-    factory=bp_factory
+# Queued and executed on main thread
+asset = unreal.EditorAssetLibrary.load_asset(asset_path)
+actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
+    asset, location, rotation
 )
 ```
 
@@ -98,29 +113,58 @@ asset_tools.create_asset(
 ```json
 {
   "success": true,
-  "blueprintPath": "/Game/Blueprints/BP_MyActor"
+  "actor": "SM_Wall_2",
+  "location": [1000, 0, 0]
 }
 ```
 
-## Current Limitations
+## Plugin Commands
 
-1. **Editor Must Be Running**: Most operations require UE Editor to be open
-2. **Project-Specific**: Commands operate on the currently open project
-3. **Python API Limits**: Some operations may require C++ implementation
+Use these in the UE Python console:
+
+```python
+# Check status
+status()
+
+# Restart listener (hot reload)
+restart_listener()
+
+# Stop listener
+stop_listener()
+
+# Start listener
+start_listener()
+
+# Enable debug logging
+import os
+os.environ['UEMCP_DEBUG'] = '1'
+restart_listener()
+```
+
+## Current Features
+
+- **11 working MCP tools** for asset management, actor spawning, level editing
+- **Hot reload** - Update Python code without restarting UE
+- **Error handling** - Graceful error recovery and detailed logging
+- **Performance optimization** - Reduced command processing to prevent overload
 
 ## Troubleshooting
 
-### Plugin Not Found
-- Ensure plugin is in correct directory
-- Regenerate project files
-- Check .uproject file includes the plugin
+### Listener Not Starting
+- Check Output Log for errors
+- Ensure Python Script Plugin is enabled
+- Try `restart_listener()` in Python console
 
-### Python Commands Fail
-- Verify Python Script Plugin is enabled
-- Check UE_INSTALL_LOCATION environment variable
-- Look for errors in Output Log (Window → Developer Tools → Output Log)
+### Port 8765 Already in Use
+```python
+# In UE Python console
+restart_listener()  # This will clean up and restart
+```
 
-### MCP Connection Issues
-- Ensure MCP server is running
-- Check Claude Desktop configuration
-- Verify paths in configuration match your setup
+### HTTP 529 Errors
+- The listener automatically throttles requests
+- If persistent, use `restart_listener()`
+
+### Missing File Errors
+- Check DefaultEngine.ini for old references
+- Ensure plugin files are in correct location

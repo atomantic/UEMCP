@@ -62,9 +62,12 @@ Claude should respond with a list of available Unreal Engine tools.
 ### Basic Commands
 
 Ask Claude to:
-- "Create a new Unreal Engine project called MyGame"
 - "Show me information about my current UE project"
-- "List the assets in my project" (when implemented)
+- "List the assets in my project"
+- "Spawn a cube at location 0,0,100"
+- "Take a screenshot of the viewport"
+- "Show me all actors in the current level"
+- "Save the current level"
 
 ### Setting Your Project
 
@@ -72,11 +75,27 @@ If you didn't set a project during init:
 
 ```bash
 # macOS/Linux
-export UE_PROJECT_PATH="/path/to/your/project"
+export UE_PROJECT_PATH="/path/to/your/project.uproject"
 
 # Windows
-set UE_PROJECT_PATH=C:\path\to\your\project
+set UE_PROJECT_PATH=C:\path\to\your\project.uproject
 ```
+
+**Note:** The path should point to the `.uproject` file, not just the directory.
+
+### Installing the Plugin
+
+For full functionality, install the UEMCP plugin to your UE project:
+
+```bash
+# If you didn't do this during init, run:
+node init.js --project "/path/to/project.uproject" --install-plugin
+```
+
+The plugin enables:
+- Python listener for real-time commands
+- All 11 MCP tools
+- Hot reload support
 
 ## 🔧 Common Issues
 

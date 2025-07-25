@@ -98,21 +98,58 @@ npm install --verbose
 
 #### "Python not found"
 
-**Note:** Python is optional. Core features work without it.
+**Note:** Python is required for development. Use Python 3.11 to match UE 5.4+ built-in version.
 
 **To enable Python features:**
 ```bash
 # Check Python version
-python3 --version  # Should be 3.8+
+python3 --version  # Should be 3.11
 
-# Install Python dependencies
-pip3 install -r requirements-dev.txt
+# Install Python dependencies for local development
+pip3 install -r requirements-dev.txt  # Includes unreal module stub
 
-# Or use virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements-dev.txt
+# For CI/CD environments (no UE available)
+pip3 install -r requirements-ci.txt   # Excludes unreal module
 ```
+
+#### "HTTP 529 Too Many Requests"
+
+**Symptoms:**
+- 529 errors from the Python listener
+- Audio buffer underrun warnings in UE
+
+**Solutions:**
+1. Restart the Python listener:
+   ```python
+   # In UE Python console
+   restart_listener()
+   ```
+
+2. The listener now processes fewer commands per tick to prevent overload
+
+#### "Port 8765 already in use"
+
+**Symptoms:**
+- OSError when starting UEMCP listener
+- Address already in use error
+
+**Solutions:**
+1. Find and kill the process using the port:
+   ```bash
+   # Find process
+   lsof -i :8765  # macOS/Linux
+   netstat -ano | findstr :8765  # Windows
+   
+   # Kill process
+   kill -9 <PID>  # macOS/Linux
+   taskkill /PID <PID> /F  # Windows
+   ```
+
+2. Or restart the listener in UE:
+   ```python
+   # In UE Python console
+   restart_listener()
+   ```
 
 ### Unreal Engine Issues
 
@@ -121,7 +158,7 @@ pip install -r requirements-dev.txt
 **Solutions:**
 1. Set the environment variable:
    ```bash
-   export UE_PROJECT_PATH="/full/path/to/project"
+   export UE_PROJECT_PATH="/full/path/to/project.uproject"
    ```
 
 2. Update Claude config:
@@ -130,7 +167,7 @@ pip install -r requirements-dev.txt
      "mcpServers": {
        "uemcp": {
          "env": {
-           "UE_PROJECT_PATH": "/full/path/to/project"
+           "UE_PROJECT_PATH": "/full/path/to/project.uproject"
          }
        }
      }
@@ -138,21 +175,45 @@ pip install -r requirements-dev.txt
    ```
 
 3. Verify path is correct:
-   - Should contain `.uproject` file
+   - Must point to the `.uproject` file, not just the directory
    - Use full absolute path
-   - No trailing slashes
+   - Example: `/Users/name/Documents/Unreal Projects/MyProject/MyProject.uproject`
 
 #### "Unreal Engine Python API not working"
 
 **Requirements:**
 - Enable Python Script Plugin in UE
-- Enable Editor Scripting Utilities
+- UEMCP plugin installed in project
 
 **Check in Unreal:**
 1. Edit → Plugins
 2. Search "Python"
 3. Enable "Python Script Plugin"
-4. Restart Unreal Editor
+4. Search "UEMCP"
+5. Ensure UEMCP is enabled
+6. Restart Unreal Editor
+
+#### "Missing init_unreal_simple.py error on startup"
+
+**Symptoms:**
+- Error about missing `/UEMCP/Content/Python/init_unreal_simple.py`
+- This file was removed but reference remained
+
+**Solution:**
+1. Check `Config/DefaultEngine.ini` in your UE project
+2. Remove any line referencing `init_unreal_simple.py`
+3. The correct startup is handled by `init_unreal.py`
+
+#### "Deprecation warnings for EditorLevelLibrary"
+
+**Symptoms:**
+- Warning about deprecated `get_editor_world()` function
+
+**Solution:**
+This has been fixed in the latest version. The plugin now uses:
+```python
+unreal.UnrealEditorSubsystem().get_editor_world()
+```
 
 ### Platform-Specific Issues
 
@@ -206,9 +267,33 @@ DEBUG=uemcp:* node test-connection.js
 ## Getting Help
 
 1. **Check logs**: Look for error messages in terminal output
-2. **Run diagnostics**: Use `test-connection.js`
+2. **Run diagnostics**: Use `test-connection.js` or the `test_connection` MCP tool
 3. **GitHub Issues**: Search existing issues or create new one
 4. **Debug output**: Include `DEBUG=uemcp:*` output when reporting
+5. **Check UE Output Log**: Window → Developer Tools → Output Log in UE
+
+## UEMCP Plugin Commands
+
+Useful commands in the UE Python console:
+
+```python
+# Check if listener is running
+status()
+
+# Restart the listener (hot reload)
+restart_listener()
+
+# Stop the listener
+stop_listener()
+
+# Start the listener
+start_listener()
+
+# Enable debug logging
+import os
+os.environ['UEMCP_DEBUG'] = '1'
+restart_listener()
+```
 
 ## Reset Everything
 

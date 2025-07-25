@@ -5,75 +5,85 @@
 The UEMCP system uses a multi-layer approach to communicate with Unreal Engine:
 
 ```
-Claude/Cursor → MCP Server (Node.js) → Python Bridge → UE Plugin → Unreal Engine
+Claude/AI Assistant → MCP Server (Node.js) → HTTP → Python Listener (in UE) → Unreal Engine
 ```
 
 ## Communication Flow
 
 ### 1. **MCP Server (Node.js)**
 - Receives commands from AI assistants via Model Context Protocol
-- Validates and routes commands
-- Currently location: `server/`
+- Validates and routes commands through HTTP requests
+- Location: `server/`
+- Runs on port 8080 (configurable)
 
-### 2. **Python Bridge**
-- Communicates with MCP server via subprocess/IPC
-- Uses Unreal's Python API for editor operations
-- Location: `python/`
+### 2. **Python Bridge Layer**
+- Makes HTTP POST requests to the Python listener in UE
+- Handles retries and error responses
+- Location: `server/src/services/python-bridge.ts`
 
-### 3. **Unreal Engine Plugin (C++)**
-- Provides additional functionality not available in Python API
-- Handles performance-critical operations
-- Exposes new Python bindings
-- Location: `plugin/` → will be installed to UE project
+### 3. **Python HTTP Listener (Content-Only Plugin)**
+- Runs inside Unreal Engine on port 8765
+- Receives HTTP commands and queues them for main thread execution
+- Uses Unreal's Python API for all operations
+- Location: `plugin/Content/Python/uemcp_listener_fixed.py`
 
-## Plugin Architecture
+## Current Architecture
 
-### Why We Need a Plugin
+### Content-Only Plugin Design
 
-1. **Python API Limitations**
-   - Some UE operations aren't exposed to Python
-   - Performance-critical operations need C++
-   - Custom editor tools and panels
+The UEMCP plugin is now a **content-only plugin** that requires no C++ compilation:
 
-2. **Extended Capabilities**
-   - Real-time communication with MCP server
-   - Custom asset importers
-   - Build system integration
-   - Advanced Blueprint manipulation
+1. **No C++ Required**
+   - All functionality implemented through Python scripts
+   - Eliminates compilation requirements
+   - Works immediately after copying to UE project
 
-3. **Better Integration**
-   - Custom editor notifications
-   - Progress tracking for long operations
-   - Error handling and recovery
+2. **HTTP Communication**
+   - Python listener runs an HTTP server inside UE
+   - Commands sent as JSON over HTTP POST
+   - Asynchronous command queue for thread safety
 
-## Implementation Plan
+3. **Hot Reload Support**
+   - Use `restart_listener()` to reload changes without restarting UE
+   - Instant development iteration
 
-### Phase 1: Python-Only (Week 2)
-- Use UE's built-in Python plugin
-- Implement basic operations via Python API
-- No custom plugin needed initially
+## Communication Flow Details
 
-### Phase 2: Hybrid Approach (Week 3-4)
-- Create UEMCP plugin for extended features
-- Plugin provides additional Python bindings
-- Mix of Python scripts and C++ code
-
-### Phase 3: Full Integration (Week 5-6)
-- Complete plugin with all features
-- Optional: Direct IPC from plugin to MCP server
-- Performance optimizations
-
-## Communication Methods
-
-### Current Plan: Python Script Execution
+### Request Flow:
 ```
-MCP Server → spawn Python process → unreal.py script → UE Python API
+1. AI Assistant calls MCP tool
+2. MCP Server receives tool request
+3. Python Bridge sends HTTP POST to localhost:8765
+4. Python Listener queues command
+5. Main thread processes command using UE Python API
+6. Result returned via HTTP response
+7. MCP Server returns result to AI
 ```
 
-### Future Enhancement: Direct Plugin Communication
+### Command Structure:
+```json
+{
+  "type": "project.info",
+  "params": {},
+  "requestId": "unique-id"
+}
 ```
-MCP Server ← HTTP/WebSocket → UEMCP Plugin (C++) → UE Core
-```
+
+## Implementation Status
+
+### ✅ Completed Features:
+- Content-only plugin (no C++ compilation)
+- HTTP listener with command queue
+- 11 working MCP tools
+- Hot reload functionality
+- Comprehensive error handling
+- Rate limiting protection
+
+### 🚧 Future Enhancements:
+- WebSocket support for real-time updates
+- Batch command processing
+- Command history and undo
+- Performance metrics collection
 
 ## Plugin Installation
 

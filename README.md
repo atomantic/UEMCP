@@ -614,6 +614,7 @@ export const yourTool = {
 
 Current implementation includes:
 
+- **project_create** - Create new UE projects (mock implementation for testing)
 - **project_info** - Get project information
 - **asset_list** - List and filter project assets  
 - **asset_info** - Get asset dimensions and properties
@@ -622,8 +623,9 @@ Current implementation includes:
 - **actor_modify** - Change actor transform
 - **level_actors** - List actors in the current level
 - **level_save** - Save the current level
-- **viewport_screenshot** - Capture viewport screenshots
+- **viewport_screenshot** - Capture viewport screenshots (1280x720)
 - **viewport_camera** - Move and orient the viewport camera
+- **test_connection** - Test connection to Python listener and diagnose issues
 
 ### Actor Spawning
 

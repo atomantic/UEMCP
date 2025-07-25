@@ -10,7 +10,7 @@ UEMCP (Unreal Engine Model Context Protocol) is an MCP server that bridges AI as
 
 The system consists of three main layers:
 - **MCP Server** (TypeScript/Node.js): Implements Model Context Protocol, handles AI assistant requests
-- **Python Bridge** (Python 3.8+): Interfaces with Unreal Engine's Python API via HTTP
+- **Python Bridge** (Python 3.11): Interfaces with Unreal Engine's Python API via HTTP (matches UE 5.4+ built-in Python)
 - **UE Plugin** (Content-only): Python listener that runs inside Unreal Engine (no C++ compilation required)
 
 ## Development Commands
@@ -52,8 +52,8 @@ python -m pytest tests/
 
 ```
 server/     - MCP server implementation (TypeScript)
-plugin/     - Unreal Engine plugin (C++)
-python/     - Python bridge layer and utilities
+plugin/     - Unreal Engine plugin (Python-only, no C++)
+python/     - Python utilities for development (not used at runtime)
 docs/       - Documentation
 tests/      - Test suites for all components
 ```
@@ -115,12 +115,18 @@ For Claude Desktop integration:
 
 ## Current Status
 
-The project has a working implementation with the following capabilities:
-- Project information retrieval
-- Asset listing and filtering
-- Actor spawning (static meshes and blueprints)
-- Level actor management
-- Level saving
+The project has a working implementation with the following MCP tools:
+- `project_info` - Get project information
+- `asset_list` - List and filter project assets
+- `asset_info` - Get asset dimensions and properties
+- `actor_spawn` - Spawn actors (static meshes and blueprints)
+- `actor_delete` - Delete actors by name
+- `actor_modify` - Modify actor transforms
+- `level_actors` - List actors in the current level
+- `level_save` - Save the current level
+- `viewport_screenshot` - Capture viewport screenshots
+- `viewport_camera` - Control viewport camera position
+- `test_connection` - Test connection to Python listener
 
 ## Current Working Environment
 
@@ -128,3 +134,37 @@ The project has a working implementation with the following capabilities:
 - **Plugin Location**: /Users/antic/Documents/Unreal Projects/Home/Plugins/UEMCP/
 - **Python Listener**: Running on http://localhost:8765
 - **Available Assets**: ModularOldTown building components in /Game/ModularOldTown/Meshes/
+
+## Accessing Logs
+
+### Unreal Engine Logs
+UE logs are typically found in:
+- **Editor Log**: Window → Developer Tools → Output Log (in UE Editor)
+- **File Location**: `[Project]/Saved/Logs/[ProjectName].log`
+- **Python Output**: Look for lines starting with `LogPython:` in the Output Log
+
+### UEMCP Debug Logging
+To enable verbose UEMCP logging:
+1. Set environment variable: `export UEMCP_DEBUG=1`
+2. Or in UE Python console: `os.environ['UEMCP_DEBUG'] = '1'`
+3. Then `restart_listener()` to apply
+
+### MCP Server Logs
+- Run with debug: `DEBUG=uemcp:* npm start`
+- Logs appear in the terminal where the MCP server is running
+
+**Note**: Claude can access log files directly via the filesystem if you provide the path. No special MCP tool is needed for log access.
+
+## Troubleshooting Common Issues
+
+1. **Port 8765 in use**: 
+   ```python
+   import uemcp_port_utils
+   uemcp_port_utils.force_free_port(8765)
+   ```
+
+2. **Changes not reflected**: Always use `restart_listener()` after modifying Python files
+
+3. **Audio buffer underrun**: This has been addressed by reducing command processing rate and screenshot resolution
+
+4. **Deprecation warnings**: Fixed by using `UnrealEditorSubsystem()` instead of deprecated APIs
