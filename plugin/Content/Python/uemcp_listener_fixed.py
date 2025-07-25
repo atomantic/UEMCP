@@ -300,15 +300,18 @@ def execute_on_main_thread(command):
                 
                 # Determine expected save path based on platform
                 project_path = unreal.SystemLibrary.get_project_directory()
-                platform = unreal.SystemLibrary.get_platform_name()
+                
+                # Detect platform by checking OS module
+                import platform as py_platform
+                system = py_platform.system()
                 
                 # UE saves screenshots to Saved/Screenshots/[Platform]Editor/
-                if 'Mac' in platform:
+                if system == 'Darwin':  # macOS
                     expected_path = os.path.join(project_path, 'Saved', 'Screenshots', 'MacEditor', f'{base_filename}.png')
-                elif 'Win' in platform:
+                elif system == 'Windows':
                     expected_path = os.path.join(project_path, 'Saved', 'Screenshots', 'WindowsEditor', f'{base_filename}.png')
                 else:
-                    expected_path = os.path.join(project_path, 'Saved', 'Screenshots', 'Editor', f'{base_filename}.png')
+                    expected_path = os.path.join(project_path, 'Saved', 'Screenshots', 'LinuxEditor', f'{base_filename}.png')
                 
                 # Log the screenshot request
                 unreal.log(f"Screenshot requested: {expected_path}")
