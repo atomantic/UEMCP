@@ -51,7 +51,20 @@ export class PythonBridge {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text().catch(() => 'No error body');
+        logger.error('Python listener HTTP error', {
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText,
+          command: command.type,
+          endpoint: this.httpEndpoint
+        });
+        
+        // HTTP 529 typically means "Too Many Requests" - rate limiting
+        if (response.status === 529) {
+          throw new Error(`Python listener rate limit (HTTP 529): Too many requests. Status: ${response.statusText}. Body: ${errorText}`);
+        }
+        throw new Error(`Python listener HTTP ${response.status}: ${response.statusText}. Body: ${errorText}`);
       }
       
       const data = await response.json() as PythonResponse;
@@ -59,7 +72,12 @@ export class PythonBridge {
       return data;
       
     } catch (httpError) {
-      logger.warn('HTTP request failed, falling back to process spawn', { error: (httpError as Error).message });
+      const error = httpError as Error;
+      logger.warn('HTTP request failed, falling back to process spawn', { 
+        error: error.message,
+        command: command.type,
+        endpoint: this.httpEndpoint
+      });
       
       // Fallback to spawning Python process
       return new Promise((resolve) => {

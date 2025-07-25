@@ -77,6 +77,10 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             # Create unique request ID
             request_id = f"req_{time.time()}_{threading.get_ident()}"
             
+            # Log incoming command
+            cmd_type = command.get('type', 'unknown')
+            unreal.log(f"UEMCP: Received command: {cmd_type} (ID: {request_id})")
+            
             # Queue command for main thread
             command_queue.put((request_id, command))
             
@@ -99,10 +103,19 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(result, indent=2).encode('utf-8'))
             
         except Exception as e:
+            unreal.log_error(f"UEMCP: POST request handler error: {str(e)}")
+            unreal.log_error(f"UEMCP: Error type: {type(e).__name__}")
+            import traceback
+            unreal.log_error(f"UEMCP: Traceback: {traceback.format_exc()}")
+            
             self.send_response(500)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            error = {'success': False, 'error': str(e)}
+            error = {
+                'success': False, 
+                'error': str(e),
+                'error_type': type(e).__name__
+            }
             self.wfile.write(json.dumps(error).encode('utf-8'))
     
     def log_message(self, format, *args):
@@ -579,13 +592,20 @@ def process_commands(delta_time):
     while not command_queue.empty() and processed < max_per_tick:
         try:
             request_id, command = command_queue.get_nowait()
+            cmd_type = command.get('type', 'unknown')
+            unreal.log(f"UEMCP: Processing command: {cmd_type} (ID: {request_id})")
+            
             result = execute_on_main_thread(command)
             response_queue[request_id] = result
+            
+            unreal.log(f"UEMCP: Command completed: {cmd_type} - Success: {result.get('success', False)}")
             processed += 1
         except queue.Empty:
             break
         except Exception as e:
             unreal.log_error(f"UEMCP: Error processing command: {e}")
+            import traceback
+            unreal.log_error(f"UEMCP: Traceback: {traceback.format_exc()}")
 
 def start_listener(port=8765):
     """Start the HTTP listener with main thread processing"""
