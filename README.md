@@ -61,9 +61,9 @@ flowchart TB
     PythonAPI -->|Native Calls| UECore
     CPPPlugin -.->|"Future: Performance<br/>Critical Ops"| UECore
     
-    style Claude fill:#e1d5e7
-    style NodeJS fill:#90ee90
-    style PythonListener fill:#87ceeb
+    style Claude fill:#b464dc
+    style NodeJS fill:#236b23
+    style PythonListener fill:#30525f
     style UECore fill:#ff6b6b
 ```
 
