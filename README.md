@@ -146,7 +146,7 @@ UEMCP/
 ### Prerequisites
 - Node.js 18+ and npm
 - Unreal Engine 5.1+ (for full functionality)
-- Python 3.8+ (optional, for extended features)
+- Python 3.11 (matches UE 5.4+ built-in version, optional for extended features)
 - Git
 
 ### 🚀 Quick Start (2 minutes)
@@ -267,7 +267,7 @@ The init script automatically configures Claude Desktop. For manual setup, see [
 <summary>"Python not found" warning</summary>
 
 Python is optional. Core features work without it. To enable Python features:
-- Install Python 3.8+
+- Install Python 3.11 (to match UE 5.4+ built-in Python)
 - For local development with Unreal Engine: `pip install -r requirements-dev.txt`
 - For CI/CD or without Unreal Engine: `pip install -r requirements-ci.txt`
 </details>

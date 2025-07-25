@@ -2,6 +2,8 @@
 # Note: The 'unreal' module is only available within Unreal Engine's Python environment
 # It cannot be installed via pip and is provided by Unreal Engine itself
 # For CI/CD environments, use requirements-ci.txt which excludes this dependency
+#
+# Python Version: 3.11 (matches Unreal Engine 5.4+ built-in Python)
 unreal>=5.0.0
 
 # Testing
