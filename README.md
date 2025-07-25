@@ -294,6 +294,9 @@ Once connected, Claude can use these UEMCP tools:
 ### Viewport
 - **viewport_screenshot** - Take a screenshot of the current viewport
 - **viewport_camera** - Control viewport camera position and orientation
+- **viewport_mode** - Switch between perspective and orthographic views (top, bottom, left, right, front, back)
+- **viewport_focus** - Focus viewport on a specific actor (equivalent to pressing F)
+- **viewport_render_mode** - Change rendering mode (wireframe, unlit, lit, detail_lighting, lighting_only, light_complexity, shader_complexity)
 
 ### System
 - **restart_listener** - Restart the Python listener for hot reload of code changes
@@ -617,6 +620,9 @@ Current implementation includes:
 - **level_save** - Save the current level
 - **viewport_screenshot** - Capture viewport screenshots (1280x720)
 - **viewport_camera** - Move and orient the viewport camera
+- **viewport_mode** - Switch between perspective and orthographic views
+- **viewport_focus** - Focus viewport on a specific actor
+- **viewport_render_mode** - Change viewport rendering mode (wireframe, unlit, lit, etc.)
 - **test_connection** - Test connection to Python listener and diagnose issues
 
 ### Actor Spawning

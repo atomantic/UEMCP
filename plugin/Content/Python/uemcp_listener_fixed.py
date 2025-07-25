@@ -58,7 +58,8 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'viewport.screenshot',
                     'viewport.camera',
                     'viewport.mode',
-                    'viewport.focus'
+                    'viewport.focus',
+                    'viewport.render_mode'
                 ],
                 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
             }
@@ -707,6 +708,66 @@ def execute_on_main_thread(command):
                     'success': True,
                     'mode': mode,
                     'message': f'Viewport mode set to {mode}'
+                }
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+        
+        elif cmd_type == 'viewport.render_mode':
+            render_mode = params.get('mode', 'lit').lower()
+            
+            try:
+                # Map mode names to viewport show flags
+                mode_map = {
+                    'lit': 'LIT',
+                    'unlit': 'UNLIT', 
+                    'wireframe': 'WIREFRAME',
+                    'detail_lighting': 'DETAILLIGHTING',
+                    'lighting_only': 'LIGHTINGONLY',
+                    'light_complexity': 'LIGHTCOMPLEXITY',
+                    'shader_complexity': 'SHADERCOMPLEXITY'
+                }
+                
+                if render_mode not in mode_map:
+                    return {
+                        'success': False,
+                        'error': f'Invalid render mode: {render_mode}. Valid modes: {", ".join(mode_map.keys())}'
+                    }
+                
+                # Get the editor subsystem
+                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+                
+                # Get the active viewport
+                # Note: There's no direct Python API for viewport show flags
+                # We'll use console commands as a workaround
+                
+                # First reset to default lit mode
+                if render_mode != 'lit':
+                    unreal.EditorLevelLibrary.editor_play_in_viewport()
+                    unreal.EditorLevelLibrary.editor_end_play()
+                
+                # Apply the render mode using console commands
+                if render_mode == 'wireframe':
+                    unreal.SystemLibrary.execute_console_command(None, "viewmode wireframe")
+                elif render_mode == 'unlit':
+                    unreal.SystemLibrary.execute_console_command(None, "viewmode unlit")
+                elif render_mode == 'lit':
+                    unreal.SystemLibrary.execute_console_command(None, "viewmode lit")
+                elif render_mode == 'detail_lighting':
+                    unreal.SystemLibrary.execute_console_command(None, "viewmode lit_detaillighting")
+                elif render_mode == 'lighting_only':
+                    unreal.SystemLibrary.execute_console_command(None, "viewmode lightingonly")
+                elif render_mode == 'light_complexity':
+                    unreal.SystemLibrary.execute_console_command(None, "viewmode lightcomplexity")
+                elif render_mode == 'shader_complexity':
+                    unreal.SystemLibrary.execute_console_command(None, "viewmode shadercomplexity")
+                
+                unreal.log(f"UEMCP: Set viewport render mode to {render_mode}")
+                
+                return {
+                    'success': True,
+                    'mode': render_mode,
+                    'message': f'Viewport render mode set to {render_mode}'
                 }
                 
             except Exception as e:

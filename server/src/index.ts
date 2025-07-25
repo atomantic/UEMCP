@@ -18,6 +18,7 @@ import { viewportScreenshotTool } from './tools/viewport-screenshot.js';
 import { viewportCameraTool } from './tools/viewport-camera.js';
 import { viewportModeTool } from './tools/viewport-mode.js';
 import { viewportFocusTool } from './tools/viewport-focus.js';
+import { viewportRenderModeTool } from './tools/viewport-render-mode.js';
 import { testConnectionTool } from './tools/test-connection.js';
 import { restartListenerTool } from './tools/restart-listener.js';
 import { logger } from './utils/logger.js';
@@ -79,6 +80,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       viewportCameraTool.definition,
       viewportModeTool.definition,
       viewportFocusTool.definition,
+      viewportRenderModeTool.definition,
       testConnectionTool.definition,
       restartListenerTool.definition,
     ],
@@ -132,6 +134,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'viewport_focus':
         result = await viewportFocusTool.handler(args as { actorName: string });
+        break;
+      case 'viewport_render_mode':
+        result = await viewportRenderModeTool.handler(args as { mode?: string });
         break;
       case 'test_connection':
         result = await testConnectionTool.handler(args);

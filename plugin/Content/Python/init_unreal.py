@@ -40,6 +40,7 @@ try:
         unreal.log("UEMCP: Python console: start_listener(), stop_listener(), restart_listener(), reload_uemcp(), status()")
         unreal.log("UEMCP: MCP tools: project_info, asset_list, asset_info, actor_spawn, actor_delete, actor_modify")
         unreal.log("UEMCP:           level_actors, level_save, viewport_screenshot, viewport_camera, viewport_mode, viewport_focus")
+        unreal.log("UEMCP:           viewport_render_mode (wireframe, unlit, lit, etc.)")
     
     # Import helper functions
     import uemcp_helpers
