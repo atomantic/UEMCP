@@ -77,3 +77,5 @@ manual-test.md
 *.so.*
 *.out
 *.app
+
+.claude/settings.local.json
