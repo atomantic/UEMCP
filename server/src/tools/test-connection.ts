@@ -48,8 +48,10 @@ export const testConnectionTool = {
       
       if (projectResult.success) {
         results.push('✅ Project info retrieved successfully');
-        results.push(`   Project: ${projectResult.projectName || 'Unknown'}`);
-        results.push(`   Engine: ${projectResult.engineVersion || 'Unknown'}`);
+        const projectName = typeof projectResult.projectName === 'string' ? projectResult.projectName : 'Unknown';
+        const engineVersion = typeof projectResult.engineVersion === 'string' ? projectResult.engineVersion : 'Unknown';
+        results.push(`   Project: ${projectName}`);
+        results.push(`   Engine: ${engineVersion}`);
       } else {
         results.push(`❌ Project info failed: ${projectResult.error}`);
       }
@@ -62,7 +64,7 @@ export const testConnectionTool = {
       });
       
       if (actorsResult.success) {
-        const count = actorsResult.totalCount || 0;
+        const count = typeof actorsResult.totalCount === 'number' ? actorsResult.totalCount : 0;
         results.push(`✅ Level actors retrieved: ${count} total actors`);
       } else {
         results.push(`❌ Level actors failed: ${actorsResult.error}`);
