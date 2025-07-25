@@ -57,7 +57,8 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'level.save',
                     'viewport.screenshot',
                     'viewport.camera',
-                    'viewport.mode'
+                    'viewport.mode',
+                    'viewport.focus'
                 ],
                 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
             }
@@ -592,6 +593,48 @@ def execute_on_main_thread(command):
                         'roll': float(current_rot.roll)
                     },
                     'message': 'Viewport camera updated'
+                }
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+        
+        elif cmd_type == 'viewport.focus':
+            actor_name = params.get('actorName', '')
+            
+            try:
+                # Find the actor by name
+                all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+                found_actor = None
+                
+                for actor in all_actors:
+                    if actor.get_actor_label() == actor_name:
+                        found_actor = actor
+                        break
+                
+                if not found_actor:
+                    return {
+                        'success': False,
+                        'error': f'Actor not found: {actor_name}'
+                    }
+                
+                # Select the actor
+                unreal.EditorLevelLibrary.set_selected_level_actors([found_actor])
+                
+                # Get level editor subsystem for more control
+                level_editor = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+                
+                # Use the viewport client to focus on selected actors
+                # This is equivalent to pressing 'F' in the editor
+                unreal.EditorLevelLibrary.editor_focus_viewport_on_actors([found_actor])
+                
+                return {
+                    'success': True,
+                    'message': f'Focused viewport on: {actor_name}',
+                    'location': {
+                        'x': float(found_actor.get_actor_location().x),
+                        'y': float(found_actor.get_actor_location().y),
+                        'z': float(found_actor.get_actor_location().z)
+                    }
                 }
                 
             except Exception as e:
