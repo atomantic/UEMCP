@@ -484,8 +484,12 @@ def execute_on_main_thread(command):
             distance = params.get('distance', 500)
             
             try:
-                # Get the active viewport
-                viewport = unreal.EditorLevelLibrary.get_active_viewport_location_and_rotation()
+                # Get the level editor subsystem for viewport control
+                level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+                
+                # Initialize viewport location and rotation
+                current_loc = None
+                current_rot = None
                 
                 if focus_actor:
                     # Find and focus on specific actor
@@ -533,16 +537,15 @@ def execute_on_main_thread(command):
                 
                 else:
                     # Manual camera positioning
-                    current_viewport = unreal.EditorLevelLibrary.get_active_viewport_location_and_rotation()
-                    current_loc = current_viewport[0]
-                    current_rot = current_viewport[1]
-                    
                     if location is not None:
                         current_loc = unreal.Vector(
                             float(location[0]),
                             float(location[1]),
                             float(location[2])
                         )
+                    else:
+                        # If no location provided, return error
+                        return {'success': False, 'error': 'Location required when not focusing on an actor'}
                     
                     if rotation is not None:
                         current_rot = unreal.Rotator(
@@ -550,6 +553,9 @@ def execute_on_main_thread(command):
                             float(rotation[1]),  # Yaw
                             float(rotation[2])   # Roll
                         )
+                    else:
+                        # Default rotation looking forward and slightly down
+                        current_rot = unreal.Rotator(-30, 0, 0)
                     
                     # Set the viewport camera
                     unreal.EditorLevelLibrary.set_level_viewport_camera_info(
