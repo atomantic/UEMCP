@@ -19,6 +19,7 @@ tick_handle = None
 # Queue for main thread execution
 command_queue = queue.Queue()
 response_queue = {}
+restart_scheduled = False
 
 class UEMCPHandler(BaseHTTPRequestHandler):
     """HTTP handler for UEMCP commands"""
@@ -574,6 +575,25 @@ def execute_on_main_thread(command):
             except Exception as e:
                 return {'success': False, 'error': str(e)}
         
+        elif cmd_type == 'system.restart':
+            # Handle restart command
+            force = params.get('force', False)
+            
+            try:
+                # Mark that we need to restart
+                global restart_scheduled
+                restart_scheduled = True
+                
+                # Return success immediately
+                return {
+                    'success': True,
+                    'message': 'Listener restart scheduled. The listener will restart after sending this response.',
+                    'note': 'Connection will be temporarily unavailable during restart (1-2 seconds).'
+                }
+                
+            except Exception as e:
+                return {'success': False, 'error': f'Failed to schedule restart: {str(e)}'}
+        
         else:
             return {
                 'success': False,
@@ -614,6 +634,19 @@ def process_commands(delta_time):
             unreal.log_error(f"UEMCP: Error processing command: {e}")
             import traceback
             unreal.log_error(f"UEMCP: Traceback: {traceback.format_exc()}")
+    
+    # Check if restart was scheduled
+    global restart_scheduled
+    if restart_scheduled:
+        restart_scheduled = False
+        unreal.log("UEMCP: Executing scheduled restart...")
+        # Import and call restart function
+        try:
+            import uemcp_helpers
+            # Schedule restart on next tick to allow response to be sent
+            unreal.register_slate_post_tick_callback(lambda delta: uemcp_helpers.restart_listener())
+        except Exception as e:
+            unreal.log_error(f"UEMCP: Failed to schedule restart: {e}")
 
 def start_listener(port=8765):
     """Start the HTTP listener with main thread processing"""

@@ -98,6 +98,7 @@ Available in UE Python console after plugin loads:
 2. **Tool-Based Architecture**: Each UE operation exposed as a discrete MCP tool
 3. **Hot Reload**: Use `restart_listener()` to test changes without restarting UE
 4. **Sync Pattern**: Always sync changes between UE project and git repository
+5. **Line Endings**: Always use LF (Unix-style) line endings, never CRLF (Windows-style)
 
 ## Important Configuration
 
@@ -116,6 +117,7 @@ For Claude Desktop integration:
 ## Current Status
 
 The project has a working implementation with the following MCP tools:
+- `project_create` - Create new UE projects (mock implementation)
 - `project_info` - Get project information
 - `asset_list` - List and filter project assets
 - `asset_info` - Get asset dimensions and properties
@@ -127,6 +129,7 @@ The project has a working implementation with the following MCP tools:
 - `viewport_screenshot` - Capture viewport screenshots
 - `viewport_camera` - Control viewport camera position
 - `test_connection` - Test connection to Python listener
+- `restart_listener` - Restart Python listener for hot reload
 
 ## Current Working Environment
 
@@ -155,6 +158,21 @@ To enable verbose UEMCP logging:
 
 **Note**: Claude can access log files directly via the filesystem if you provide the path. No special MCP tool is needed for log access.
 
+## Code Style Guidelines
+
+### Line Endings
+**IMPORTANT**: Always use LF (Unix-style) line endings, not CRLF (Windows-style):
+- Git is configured to warn about CRLF line endings
+- All files should use `\n` not `\r\n`
+- This prevents cross-platform issues and git warnings
+
+### File Formatting
+- Use spaces, not tabs (except in Makefiles)
+- 2 spaces for JavaScript/TypeScript
+- 4 spaces for Python
+- No trailing whitespace
+- Files should end with a single newline
+
 ## Troubleshooting Common Issues
 
 1. **Port 8765 in use**: 
@@ -168,3 +186,5 @@ To enable verbose UEMCP logging:
 3. **Audio buffer underrun**: This has been addressed by reducing command processing rate and screenshot resolution
 
 4. **Deprecation warnings**: Fixed by using `UnrealEditorSubsystem()` instead of deprecated APIs
+
+5. **Git CRLF warnings**: If you see "CRLF will be replaced by LF" warnings, the file has Windows line endings that need to be fixed

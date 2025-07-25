@@ -306,6 +306,9 @@ Once connected, Claude can use these UEMCP tools:
 - **viewport_screenshot** - Take a screenshot of the current viewport
 - **viewport_camera** - Control viewport camera position and orientation
 
+### System
+- **restart_listener** - Restart the Python listener for hot reload of code changes
+
 ### AI Client Setup
 
 #### Claude Desktop

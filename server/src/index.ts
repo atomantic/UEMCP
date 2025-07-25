@@ -17,6 +17,7 @@ import { levelSaveTool } from './tools/level-save.js';
 import { viewportScreenshotTool } from './tools/viewport-screenshot.js';
 import { viewportCameraTool } from './tools/viewport-camera.js';
 import { testConnectionTool } from './tools/test-connection.js';
+import { restartListenerTool } from './tools/restart-listener.js';
 import { logger } from './utils/logger.js';
 import { PythonBridge } from './services/python-bridge.js';
 import * as os from 'os';
@@ -75,6 +76,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       viewportScreenshotTool.definition,
       viewportCameraTool.definition,
       testConnectionTool.definition,
+      restartListenerTool.definition,
     ],
   };
 });
@@ -123,6 +125,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'test_connection':
         result = await testConnectionTool.handler(args);
+        break;
+      case 'restart_listener':
+        result = await restartListenerTool.handler(args as { force?: boolean });
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);
