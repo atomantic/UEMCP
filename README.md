@@ -118,6 +118,7 @@ UEMCP/
    - ✅ Install all dependencies
    - ✅ Build the MCP server
    - ✅ Configure Claude Desktop automatically
+   - ✅ Optionally configure Claude Code (claude.ai/code)
    - ✅ Set up your Unreal Engine project path
    - ✅ Optionally install the UEMCP plugin to your project
    - ✅ Create test scripts
@@ -126,6 +127,9 @@ UEMCP/
    ```bash
    # Install with plugin to specific project
    node init.js --project "/path/to/project" --install-plugin
+   
+   # Configure for Claude Code (claude.ai/code)
+   node init.js --claude-code
    
    # Non-interactive installation
    node init.js --project "/path/to/project" --no-interactive --install-plugin
@@ -272,11 +276,12 @@ Use the `claude mcp` CLI or configure manually:
 # Install claude-mcp if not already installed
 npm install -g @anthropic/claude-mcp
 
+# From the UEMCP directory, capture the path
+UEMCP_DIR=$(pwd)
+
 # Add the UEMCP server
-claude mcp add uemcp \
-  --command "node" \
-  --args "/path/to/UEMCP/server/dist/index.js" \
-  --env "UE_PROJECT_PATH=/path/to/your/project.uproject"
+claude mcp add uemcp node "${UEMCP_DIR}/server/dist/index.js" \
+  -e "UE_PROJECT_PATH=/path/to/your/project.uproject"
 
 # Verify configuration
 claude mcp list

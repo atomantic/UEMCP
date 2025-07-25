@@ -12,6 +12,7 @@
  *   --no-interactive    Run without prompts
  *   --install-plugin    Install plugin to UE project
  *   --skip-claude       Skip Claude Desktop configuration
+ *   --claude-code       Configure Claude Code (claude.ai/code) MCP
  *   --help              Show this help
  */
 
@@ -28,6 +29,7 @@ const options = {
     interactive: true,
     installPlugin: false,
     skipClaude: false,
+    claudeCode: false,
     help: false
 };
 
@@ -44,6 +46,9 @@ for (let i = 0; i < args.length; i++) {
             break;
         case '--skip-claude':
             options.skipClaude = true;
+            break;
+        case '--claude-code':
+            options.claudeCode = true;
             break;
         case '--help':
         case '-h':
@@ -64,12 +69,14 @@ Options:
   --no-interactive    Run without prompts
   --install-plugin    Install plugin to UE project
   --skip-claude       Skip Claude Desktop configuration
+  --claude-code       Configure Claude Code (claude.ai/code) MCP
   --help              Show this help
 
 Examples:
   node init.js
   node init.js --project "/path/to/project" --install-plugin
   node init.js --no-interactive --skip-claude
+  node init.js --claude-code
 `);
     process.exit(0);
 }
@@ -353,7 +360,7 @@ async function init() {
     
     // Configure Claude Desktop
     if (!options.skipClaude) {
-        log.section('Configuring Claude integration...');
+        log.section('Configuring Claude Desktop integration...');
         
         const claudeConfigDir = getClaudeConfigDir();
         const configFile = path.join(claudeConfigDir, 'claude_desktop_config.json');
@@ -403,6 +410,56 @@ async function init() {
         log.success('Claude configuration saved');
     }
     
+    // Check if user wants to configure Claude Code
+    if (!options.claudeCode && options.interactive) {
+        const answer = await question('\nAlso configure Claude Code (claude.ai/code)? (y/N): ');
+        options.claudeCode = answer.toLowerCase() === 'y';
+    }
+    
+    // Configure Claude Code
+    if (options.claudeCode) {
+        log.section('Configuring Claude Code (claude.ai/code)...');
+        
+        // Check if claude mcp CLI is installed
+        if (!commandExists('claude')) {
+            log.warning('Claude MCP CLI not found. Installing...');
+            try {
+                execSync('npm install -g @anthropic/claude-mcp', { stdio: 'inherit' });
+                log.success('Claude MCP CLI installed');
+            } catch (error) {
+                log.error('Failed to install Claude MCP CLI');
+                log.info('You can install it manually with: npm install -g @anthropic/claude-mcp');
+            }
+        }
+        
+        // Configure using claude mcp add
+        if (commandExists('claude')) {
+            try {
+                const serverPath = path.join(projectRoot, 'server', 'dist', 'index.js').replace(/\\/g, '/');
+                let addCommand = `claude mcp add uemcp node "${serverPath}"`;
+                
+                // Add project path if available
+                if (validProjectPath) {
+                    addCommand += ` -e "UE_PROJECT_PATH=${validProjectPath}"`;
+                }
+                
+                log.info('Adding UEMCP to Claude Code configuration...');
+                execSync(addCommand, { stdio: 'inherit' });
+                log.success('Claude Code configuration complete!');
+                
+                // Verify installation
+                try {
+                    execSync('claude mcp list', { stdio: 'inherit' });
+                } catch {}
+                
+            } catch (error) {
+                log.error('Failed to configure Claude Code');
+                log.info('You can configure manually with:');
+                console.log(`  claude mcp add uemcp node "${path.join(projectRoot, 'server', 'dist', 'index.js').replace(/\\/g, '/')}"`);
+            }
+        }
+    }
+    
     // Create test scripts
     log.section('Creating test scripts...');
     
@@ -437,7 +494,10 @@ testProcess.on('close', (code) => {
     log.info('Configuration Summary:');
     console.log(`  • Server: Built and ready`);
     if (!options.skipClaude) {
-        console.log(`  • Claude: Configured`);
+        console.log(`  • Claude Desktop: Configured`);
+    }
+    if (options.claudeCode) {
+        console.log(`  • Claude Code: Configured`);
     }
     if (validProjectPath) {
         console.log(`  • Project: ${validProjectPath}`);
@@ -448,14 +508,18 @@ testProcess.on('close', (code) => {
     
     console.log('');
     log.info('Next Steps:');
+    let stepNum = 1;
     if (!options.skipClaude) {
-        console.log('  1. Restart Claude Desktop');
-        console.log('  2. Say "List available UEMCP tools" in Claude');
+        console.log(`  ${stepNum++}. Restart Claude Desktop`);
+        console.log(`  ${stepNum++}. Say "List available UEMCP tools" in Claude Desktop`);
     }
-    console.log('  3. Test locally: node test-connection.js');
+    if (options.claudeCode) {
+        console.log(`  ${stepNum++}. Visit claude.ai/code and say "List available UEMCP tools"`);
+    }
+    console.log(`  ${stepNum++}. Test locally: node test-connection.js`);
     if (validProjectPath && options.installPlugin) {
-        console.log('  4. Open your project in Unreal Editor');
-        console.log('  5. The UEMCP plugin should load automatically');
+        console.log(`  ${stepNum++}. Open your project in Unreal Editor`);
+        console.log(`  ${stepNum++}. The UEMCP plugin should load automatically`);
     }
     
     console.log('');

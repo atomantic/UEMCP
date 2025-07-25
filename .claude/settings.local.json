@@ -40,7 +40,8 @@
       "Bash(git push:*)",
       "Bash(\"/Users/Shared/Epic Games/UE_5.6/Engine/Build/BatchFiles/Mac/Build.sh\" -projectfiles -project=\"/Users/antic/Documents/Unreal Projects/Home/Home.uproject\" -game -rocket -progress)",
       "Bash(pip install:*)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "Bash(claude mcp add:*)"
     ],
     "deny": []
   }
