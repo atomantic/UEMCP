@@ -40,15 +40,15 @@ flowchart TB
     end
     
     subgraph "MCP Server Layer"
-        NodeJS[Node.js MCP Server<br/>:8080]
+        NodeJS["Node.js MCP Server<br/>:8080"]
         Tools[MCP Tool Definitions]
         Bridge[Python Bridge]
     end
     
     subgraph "Unreal Engine Layer"
-        PythonListener[Python HTTP Listener<br/>:8765]
+        PythonListener["Python HTTP Listener<br/>:8765"]
         PythonAPI[Unreal Python API]
-        CPPPlugin[C++ Plugin<br/>UEMCP<br/>(Minimal Stub)]
+        CPPPlugin["C++ Plugin: UEMCP<br/>(Minimal Stub)"]
         UECore[Unreal Engine Core]
     end
     
@@ -59,7 +59,7 @@ flowchart TB
     Bridge -->|HTTP POST| PythonListener
     PythonListener -->|Queue| PythonAPI
     PythonAPI -->|Native Calls| UECore
-    CPPPlugin -.->|Future: Performance<br/>Critical Ops| UECore
+    CPPPlugin -.->|"Future: Performance<br/>Critical Ops"| UECore
     
     style Claude fill:#e1d5e7
     style NodeJS fill:#90ee90
