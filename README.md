@@ -208,7 +208,9 @@ UEMCP/
 1. Install dependencies:
    ```bash
    cd server && npm install
-   pip install -r requirements-dev.txt  # optional
+   pip install -r requirements-dev.txt  # For local development with UE
+   # OR
+   pip install -r requirements-ci.txt   # For CI/CD or without UE
    ```
 
 2. Build the server:
@@ -266,7 +268,8 @@ The init script automatically configures Claude Desktop. For manual setup, see [
 
 Python is optional. Core features work without it. To enable Python features:
 - Install Python 3.8+
-- Run: `pip install -r requirements-dev.txt`
+- For local development with Unreal Engine: `pip install -r requirements-dev.txt`
+- For CI/CD or without Unreal Engine: `pip install -r requirements-ci.txt`
 </details>
 
 <details>

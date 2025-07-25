@@ -1,4 +1,7 @@
 # Core dependencies
+# Note: The 'unreal' module is only available within Unreal Engine's Python environment
+# It cannot be installed via pip and is provided by Unreal Engine itself
+# For CI/CD environments, use requirements-ci.txt which excludes this dependency
 unreal>=5.0.0
 
 # Testing
