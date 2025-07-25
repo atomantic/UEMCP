@@ -141,7 +141,7 @@ def execute_on_main_thread(command):
                 'projectName': unreal.Paths.get_project_file_path().split('/')[-1].replace('.uproject', ''),
                 'projectDirectory': unreal.Paths.project_dir(),
                 'engineVersion': unreal.SystemLibrary.get_engine_version(),
-                'currentLevel': unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world().get_name()
+                'currentLevel': unreal.EditorLevelLibrary.get_editor_world().get_name()
             }
         
         elif cmd_type == 'asset.list':
@@ -169,9 +169,8 @@ def execute_on_main_thread(command):
             }
         
         elif cmd_type == 'level.actors':
-            # Use EditorActorUtilities subsystem instead of deprecated EditorLevelLibrary
-            editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
-            all_actors = editor_actor_utils.get_all_level_actors()
+            # Get all actors in level
+            all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
             actor_list = []
             
             limit = params.get('limit', 30)
@@ -194,7 +193,7 @@ def execute_on_main_thread(command):
                 'success': True,
                 'actors': actor_list,
                 'totalCount': len(all_actors),
-                'currentLevel': unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world().get_name()
+                'currentLevel': unreal.EditorLevelLibrary.get_editor_world().get_name()
             }
         
         elif cmd_type == 'actor.create' or cmd_type == 'actor.spawn':
@@ -228,9 +227,8 @@ def execute_on_main_thread(command):
             # Spawn actor based on asset type
             if isinstance(asset, unreal.StaticMesh):
                 # Spawn static mesh actor
-                # Use LevelEditorSubsystem for spawning
-                level_editor = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
-                actor = level_editor.spawn_actor_from_class(
+                # Spawn static mesh actor
+                actor = unreal.EditorLevelLibrary.spawn_actor_from_class(
                     unreal.StaticMeshActor.static_class(),
                     ue_location,
                     ue_rotation
@@ -255,9 +253,8 @@ def execute_on_main_thread(command):
                     }
             elif isinstance(asset, unreal.Blueprint):
                 # Spawn blueprint actor
-                # Use LevelEditorSubsystem for spawning
-                level_editor = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
-                actor = level_editor.spawn_actor_from_object(
+                # Spawn blueprint actor
+                actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
                     asset,
                     ue_location,
                     ue_rotation
@@ -281,9 +278,8 @@ def execute_on_main_thread(command):
                 return {'success': False, 'error': f'Unsupported asset type: {type(asset).__name__}'}
         
         elif cmd_type == 'level.save':
-            # Use LevelEditorSubsystem for saving
-            level_editor = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
-            success = level_editor.save_current_level()
+            # Save current level
+            success = unreal.EditorLevelLibrary.save_current_level()
             return {
                 'success': success,
                 'message': 'Level saved successfully' if success else 'Failed to save level'
@@ -424,9 +420,8 @@ def execute_on_main_thread(command):
                 
                 for actor in all_actors:
                     if actor.get_actor_label() == actor_name:
-                        # Use EditorActorUtilities for destroying actors
-                        editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
-                        editor_actor_utils.destroy_actor(actor)
+                        # Destroy the actor
+                        unreal.EditorLevelLibrary.destroy_actor(actor)
                         found = True
                         unreal.log(f"UEMCP: Deleted actor {actor_name}")
                         break
@@ -518,8 +513,7 @@ def execute_on_main_thread(command):
             distance = params.get('distance', 500)
             
             try:
-                # Get the level editor subsystem for viewport control
-                level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+                # Get viewport control
                 
                 # Initialize viewport location and rotation
                 current_loc = None
@@ -557,17 +551,15 @@ def execute_on_main_thread(command):
                         camera_rotation = direction.rotation()
                         
                         # Set viewport
-                        # Use UnrealEditorSubsystem for camera control
-                        editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
-                        viewport_client = editor_subsystem.get_level_viewport_camera_info()
-                        editor_subsystem.set_level_viewport_camera_info(
+                        # Set viewport camera
+                        unreal.EditorLevelLibrary.set_level_viewport_camera_info(
                             camera_location,
                             camera_rotation
                         )
                         
                         # Also pilot the actor for better framing
-                        level_editor.pilot_level_actor(target_actor)
-                        level_editor.eject_pilot_level_actor()
+                        unreal.EditorLevelLibrary.pilot_level_actor(target_actor)
+                        unreal.EditorLevelLibrary.eject_pilot_level_actor()
                         
                         current_loc = camera_location
                         current_rot = camera_rotation
@@ -645,18 +637,15 @@ def execute_on_main_thread(command):
                     }
                 
                 # Select the actor
-                # Use EditorActorUtilities for selection
-                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
-                editor_actor_utils.set_selected_level_actors([found_actor])
+                # Select the actor
+                unreal.EditorLevelLibrary.set_selected_level_actors([found_actor])
                 
-                # Get level editor subsystem for more control
-                level_editor = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+                # Focus on selected actors
                 
                 # Use the viewport client to focus on selected actors
                 # This is equivalent to pressing 'F' in the editor
-                # Use LevelEditorViewportClient for focus
-                level_editor = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
-                level_editor.editor_focus_viewport_on_actors([found_actor])
+                # Focus viewport on actor
+                unreal.EditorLevelLibrary.editor_set_camera_look_at_location(found_actor.get_actor_location(), 500)
                 
                 return {
                     'success': True,
@@ -675,11 +664,10 @@ def execute_on_main_thread(command):
             mode = params.get('mode', 'perspective').lower()
             
             try:
-                # Get the level editor subsystem for viewport control
-                level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+                # Get viewport control
                 
                 # Get current viewport client
-                viewport_client = editor_subsystem.get_level_viewport_camera_info()
+                viewport_client = unreal.EditorLevelLibrary.get_level_viewport_camera_info()
                 
                 # Map mode names to viewport types and orientations
                 mode_map = {
@@ -705,10 +693,8 @@ def execute_on_main_thread(command):
                     current_loc = viewport_client[0]
                     
                     # Set orthographic view with proper orientation
-                    # Use UnrealEditorSubsystem for camera control
-                    editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
-                    viewport_client = editor_subsystem.get_level_viewport_camera_info()
-                    editor_subsystem.set_level_viewport_camera_info(
+                    # Set viewport camera for orthographic view
+                    unreal.EditorLevelLibrary.set_level_viewport_camera_info(
                         current_loc,
                         rotation
                     )
