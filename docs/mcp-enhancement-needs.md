@@ -39,6 +39,16 @@ This document tracks MCP limitations discovered during the house building experi
 **Solution**: Fix rotation interpretation or provide clearer documentation
 **Priority**: HIGH
 
+### 8. Actor Organization/Grouping
+**Issue**: Spawned actors appear as individual items in World Outliner, no folder organization
+**Solution**: Add folder parameter to actor_spawn to organize actors in hierarchy
+**Priority**: MEDIUM
+
+### 9. Actor Alignment Helper
+**Issue**: Need to manually calculate positions when building from existing actors
+**Solution**: Add alignment helpers (e.g., "align to actor edge", "continue from actor")
+**Priority**: HIGH
+
 ## Discovered During Phase 4.1
 
 - Wall pieces are 300 units (3m) wide
@@ -48,3 +58,5 @@ This document tracks MCP limitations discovered during the house building experi
 - Listener restart causes loop issues
 - Camera control needs orthographic mode support
 - Rotation parameters need clarification (pitch/yaw/roll interpretation)
+- Actor organization in World Outliner needed
+- Building from existing actors requires better alignment tools

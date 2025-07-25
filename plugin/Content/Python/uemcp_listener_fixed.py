@@ -290,13 +290,17 @@ def execute_on_main_thread(command):
             try:
                 # Take screenshot with reasonable resolution to avoid performance issues
                 # Reduced from 1920x1080 to 1280x720 to prevent audio buffer underruns
-                unreal.AutomationLibrary.take_high_res_screenshot(
+                result = unreal.AutomationLibrary.take_high_res_screenshot(
                     1280, 720,   # Reduced resolution
                     filepath,    # Filename
                     None,        # Camera (None = current view)
                     False,       # Mask enabled
                     False        # Capture HDR
                 )
+                
+                # The function returns immediately but file writing is async
+                # Force a small initial delay
+                time.sleep(0.5)
                 
                 # Log the screenshot attempt
                 unreal.log(f"Screenshot requested: {filepath}")
@@ -528,11 +532,13 @@ def execute_on_main_thread(command):
                         direction = actor_location - camera_location
                         camera_rotation = direction.rotation()
                         
-                        # Set viewport
-                        unreal.EditorLevelLibrary.set_level_viewport_camera_info(
-                            camera_location,
-                            camera_rotation
-                        )
+                        # Set viewport using LevelEditorSubsystem
+                        level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+                        if level_editor_subsystem:
+                            level_editor_subsystem.set_level_viewport_camera_info(
+                                camera_location,
+                                camera_rotation
+                            )
                         
                         # Also pilot the actor for better framing
                         unreal.EditorLevelLibrary.pilot_level_actor(target_actor)
@@ -565,11 +571,13 @@ def execute_on_main_thread(command):
                         # Default rotation looking forward and slightly down
                         current_rot = unreal.Rotator(-30, 0, 0)
                     
-                    # Set the viewport camera
-                    unreal.EditorLevelLibrary.set_level_viewport_camera_info(
-                        current_loc,
-                        current_rot
-                    )
+                    # Set the viewport camera using LevelEditorSubsystem
+                    level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+                    if level_editor_subsystem:
+                        level_editor_subsystem.set_level_viewport_camera_info(
+                            current_loc,
+                            current_rot
+                        )
                 
                 return {
                     'success': True,
@@ -622,11 +630,13 @@ def execute_on_main_thread(command):
                     # Get current camera location
                     current_loc = viewport_client[0]
                     
-                    # Set orthographic view with proper orientation
-                    unreal.EditorLevelLibrary.set_level_viewport_camera_info(
-                        current_loc,
-                        rotation
-                    )
+                    # Set orthographic view with proper orientation using LevelEditorSubsystem
+                    level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+                    if level_editor_subsystem:
+                        level_editor_subsystem.set_level_viewport_camera_info(
+                            current_loc,
+                            rotation
+                        )
                     
                     # Note: UE Python API doesn't directly expose viewport type switching
                     # This sets rotation to match orthographic views
@@ -771,12 +781,13 @@ def start_listener(port=8765):
     unreal.log(f"Status: http://localhost:{port}/")
     unreal.log("Ready to receive commands from Claude")
     
-    # Show notification
-    unreal.EditorDialog.show_message(
-        "UEMCP Connected",
-        f"Listener running on http://localhost:{port}\nClaude can now control Unreal Engine!",
-        unreal.AppMsgType.OK
-    )
+    # Log connection status instead of showing dialog
+    # Dialogs can stack up and cause issues if not dismissed
+    unreal.log("="*50)
+    unreal.log("UEMCP Connected Successfully!")
+    unreal.log(f"Listener running on http://localhost:{port}")
+    unreal.log("Claude can now control Unreal Engine!")
+    unreal.log("="*50)
     
     return True
 
