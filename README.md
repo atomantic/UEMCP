@@ -238,17 +238,12 @@ Python is optional. Core features work without it. To enable Python features:
 
 Once connected, Claude can use these UEMCP tools:
 
-- **project.create** - Create new Unreal Engine projects
-- **project.info** - Get information about the current project
-- **asset.list** - List project assets (coming soon)
-- **blueprint.create** - Create Blueprint classes (coming soon)
-- **level.edit** - Edit levels and place actors (coming soon)
-    "asset_management": true,
-    "level_editing": true,
-    "code_generation": true
-  }
-}
-```
+- **project_create** - Create new Unreal Engine projects
+- **project_info** - Get information about the current project
+- **asset_list** - List and filter project assets
+- **actor_spawn** - Spawn actors using any static mesh or blueprint
+- **level_actors** - List all actors in the current level
+- **level_save** - Save the current level
 
 ### AI Client Setup
 
@@ -424,34 +419,193 @@ Direct tool usage:
 
 ## Development
 
-### Building from Source
-```bash
-# Install development dependencies
-npm install --dev
-pip install -r requirements-dev.txt
+### Plugin Architecture
 
-# Build the UE plugin
-python scripts/build_plugin.py
+The UEMCP plugin has evolved to a **content-only plugin** architecture, eliminating C++ compilation requirements while maintaining full functionality through Unreal Engine's Python API.
 
-# Run tests
-npm test
-python -m pytest tests/
+#### Plugin Structure
+```
+plugin/
+├── UEMCP.uplugin            # Plugin descriptor (content-only)
+├── Content/
+│   └── Python/
+│       ├── init_unreal_simple.py    # Auto-startup script
+│       ├── uemcp_listener_fixed.py  # HTTP listener (main functionality)
+│       └── uemcp_helpers.py         # Developer utilities
+└── Source/                  # (Removed - no C++ compilation needed)
 ```
 
-### Plugin Development
-The C++ plugin provides the core UE integration. Key components:
+### Development Workflow
 
-- **UEMCPSubsystem**: Main subsystem for MCP communication
-- **UEMCPBlueprintLibrary**: Blueprint-accessible functions
-- **UEMCPCommandlet**: Command-line tools for automation
-- **UEMCPSettings**: Configuration management
+#### 1. Making Changes to the Plugin
+
+When developing new features or fixing bugs in the UEMCP plugin:
+
+```bash
+# Edit files in the git repository
+cd /path/to/UEMCP_dev
+# Make your changes to plugin files
+
+# Copy to your UE project for testing
+cp -r plugin/* "/path/to/UE/Project/Plugins/UEMCP/"
+
+# In Unreal Engine Python console:
+restart_listener()  # Reload changes without restarting UE
+```
+
+#### 2. Helper Functions
+
+The plugin includes convenient helper functions for development:
+
+```python
+# In UE Python console:
+restart_listener()  # Reload the listener with code changes
+reload_uemcp()      # Alias for restart_listener()
+status()            # Check if listener is running
+stop_listener()     # Stop the listener
+start_listener()    # Start the listener
+```
+
+#### 3. Adding New Commands
+
+To add new commands to the listener, edit `uemcp_listener_fixed.py`:
+
+```python
+# Example: Add a new command
+elif cmd_type == 'your.command':
+    params = command.get('params', {})
+    # Your implementation here
+    return {
+        'success': True,
+        'data': your_data
+    }
+```
+
+Then update the MCP server tool in `server/src/tools/`:
+
+```typescript
+// Create your-tool.ts
+export const yourTool = {
+  definition: {
+    name: 'your_command',
+    description: 'Description of your command',
+    inputSchema: {
+      // Define parameters
+    }
+  },
+  handler: async (args) => {
+    const result = await bridge.executeCommand({
+      type: 'your.command',
+      params: args
+    });
+    // Handle result
+  }
+};
+```
+
+### Available MCP Tools
+
+Current implementation includes:
+
+- **project_info** - Get project information
+- **asset_list** - List and filter project assets
+- **actor_spawn** - Spawn actors with any static mesh or blueprint
+- **level_actors** - List actors in the current level
+- **level_save** - Save the current level
+
+### Actor Spawning
+
+The enhanced `actor_spawn` tool supports:
+
+```python
+# Spawn any static mesh
+mcp__uemcp__actor_spawn(
+    assetPath="/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m",
+    location=[x, y, z],
+    rotation=[pitch, yaw, roll],  # in degrees
+    scale=[1, 1, 1],
+    name="MyWall"
+)
+
+# Spawn blueprints
+mcp__uemcp__actor_spawn(
+    assetPath="/Game/Blueprints/BP_MyActor",
+    location=[0, 0, 100]
+)
+```
+
+### Testing Changes
+
+1. **Unit Tests** (MCP Server):
+   ```bash
+   cd server
+   npm test
+   ```
+
+2. **Integration Testing**:
+   ```bash
+   # Test connection
+   node test-connection.js
+   
+   # Test with UE project running
+   UE_PROJECT_PATH="/path/to/project" npm start
+   ```
+
+3. **In-Editor Testing**:
+   - Use the Python console to test commands directly
+   - Check Output Log for UEMCP messages
+   - Use `status()` to verify listener state
+
+### Debugging
+
+Enable debug logging:
+
+```bash
+# For MCP server
+DEBUG=uemcp:* npm start
+
+# In UE Python console
+import uemcp_listener_fixed
+uemcp_listener_fixed.server_running  # Check if running
+```
+
+Common debug commands:
+```python
+# Check listener URL
+print("http://localhost:8765/")
+
+# Test a command manually
+import json
+import requests
+response = requests.post('http://localhost:8765/', 
+    json={'type': 'project.info', 'params': {}})
+print(response.json())
+```
+
+### Best Practices
+
+1. **Always sync changes** between UE project and git repo:
+   ```bash
+   # After testing in UE, copy back to git
+   cp -r "/path/to/UE/Project/Plugins/UEMCP/"* plugin/
+   ```
+
+2. **Use restart_listener()** instead of restarting UE when testing
+
+3. **Add new tools** in both Python listener and MCP server
+
+4. **Document new commands** in the listener's available_commands list
+
+5. **Test commands** via Python console before using through MCP
 
 ### Contributing
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Test thoroughly in Unreal Engine
+4. Sync changes back to git repo
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
 ## Supported Unreal Engine Versions
 
