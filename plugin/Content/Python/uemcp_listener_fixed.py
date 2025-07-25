@@ -290,9 +290,11 @@ def execute_on_main_thread(command):
             try:
                 # Take screenshot with reasonable resolution to avoid performance issues
                 # Reduced from 1920x1080 to 1280x720 to prevent audio buffer underruns
+                # Use the filename without extension - UE will add .png
+                filename_no_ext = filename.replace('.png', '')
                 result = unreal.AutomationLibrary.take_high_res_screenshot(
                     1280, 720,   # Reduced resolution
-                    filepath,    # Filename
+                    filename_no_ext,    # Filename without extension
                     None,        # Camera (None = current view)
                     False,       # Mask enabled
                     False        # Capture HDR
@@ -300,13 +302,14 @@ def execute_on_main_thread(command):
                 
                 # The function returns immediately but file writing is async
                 # Force a small initial delay
-                time.sleep(0.5)
+                time.sleep(1.0)  # Increased initial delay
                 
                 # Log the screenshot attempt
                 unreal.log(f"Screenshot requested: {filepath}")
                 
                 # Wait longer for file to be written (UE may be slow)
-                for i in range(10):  # Check for up to 5 seconds
+                # Check every 0.5 seconds for up to 15 seconds
+                for i in range(30):
                     time.sleep(0.5)
                     if os.path.exists(filepath):
                         file_size = os.path.getsize(filepath)
@@ -316,10 +319,13 @@ def execute_on_main_thread(command):
                             'filepath': filepath,
                             'message': f'Screenshot saved to: {filepath}'
                         }
+                    # Log progress every 2 seconds
+                    if i > 0 and i % 4 == 0:
+                        unreal.log(f"Waiting for screenshot... {i//2} seconds elapsed")
                 
                 # If we get here, file wasn't created
-                unreal.log_warning(f"Screenshot file not found after 5 seconds: {filepath}")
-                return {'success': False, 'error': 'Screenshot file not created'}
+                unreal.log_warning(f"Screenshot file not found after 15 seconds: {filepath}")
+                return {'success': False, 'error': 'Screenshot file not created after 15 seconds'}
                     
             except Exception as e:
                 return {'success': False, 'error': str(e)}

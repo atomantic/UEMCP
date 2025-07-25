@@ -154,8 +154,10 @@ The project has a working implementation with the following MCP tools:
 ### Unreal Engine Logs
 UE logs are typically found in:
 - **Editor Log**: Window → Developer Tools → Output Log (in UE Editor)
-- **File Location**: `[Project]/Saved/Logs/[ProjectName].log`
+- **File Location**: `/Users/antic/Library/Logs/Unreal Engine/HomeEditor/Home.log`
 - **Python Output**: Look for lines starting with `LogPython:` in the Output Log
+
+**IMPORTANT**: Always check the UE log file when MCP commands report failure but may have actually succeeded (e.g., screenshot creation). The log file provides ground truth about what actually happened in Unreal Engine.
 
 ### UEMCP Debug Logging
 To enable verbose UEMCP logging:

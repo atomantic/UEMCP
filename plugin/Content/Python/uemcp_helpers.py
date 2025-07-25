@@ -28,10 +28,17 @@ def restart_listener():
             try:
                 # Try to bind to the port to check if it's free
                 test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                test_socket.bind(('localhost', 8765))
-                test_socket.close()
-                port_free = True
-                break
+                try:
+                    test_socket.bind(('localhost', 8765))
+                    port_free = True
+                except:
+                    pass
+                finally:
+                    # Always close the socket to prevent resource warnings
+                    test_socket.close()
+                
+                if port_free:
+                    break
             except:
                 # Port still in use, wait a bit more
                 time.sleep(0.5)
