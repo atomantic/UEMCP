@@ -48,7 +48,7 @@ flowchart TB
     subgraph "Unreal Engine Layer"
         PythonListener[Python HTTP Listener<br/>:8765]
         PythonAPI[Unreal Python API]
-        CPPPlugin[C++ Plugin<br/>UEMCP]
+        CPPPlugin[C++ Plugin<br/>UEMCP<br/>(Minimal Stub)]
         UECore[Unreal Engine Core]
     end
     
@@ -59,7 +59,7 @@ flowchart TB
     Bridge -->|HTTP POST| PythonListener
     PythonListener -->|Queue| PythonAPI
     PythonAPI -->|Native Calls| UECore
-    CPPPlugin -->|Native API| UECore
+    CPPPlugin -.->|Future: Performance<br/>Critical Ops| UECore
     
     style Claude fill:#e1d5e7
     style NodeJS fill:#90ee90
@@ -75,6 +75,8 @@ flowchart TB
 4. **Python HTTP Listener** queues commands for main thread execution
 5. **Unreal Python API** executes commands on the main thread
 6. Results flow back through the same chain
+
+**Note**: The C++ plugin currently serves as a minimal stub to satisfy Unreal Engine's plugin requirements. All functionality is implemented through the Python API. Future versions may utilize the C++ plugin for performance-critical operations or features requiring native C++ APIs.
 
 ### Directory Structure
 
