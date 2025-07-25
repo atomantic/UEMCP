@@ -18,7 +18,7 @@ class Project:
 class MockUnrealEngine:
     """Mock implementation of Unreal Engine for testing without actual UE installation."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self._projects: Dict[str, Project] = {}
         self.current_project: Optional[Project] = None
         self._mock_delay = 0.1  # Simulate operation delays

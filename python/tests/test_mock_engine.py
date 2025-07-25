@@ -7,15 +7,15 @@ from python.ue_api.mock_engine import MockUnrealEngine, Project
 class TestMockUnrealEngine:
     """Test suite for MockUnrealEngine."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.engine = MockUnrealEngine()
 
-    def teardown_method(self):
+    def teardown_method(self) -> None:
         """Clean up after tests."""
         self.engine.reset()
 
-    def test_create_project_success(self):
+    def test_create_project_success(self) -> None:
         """Test successful project creation."""
         project = self.engine.create_project(
             name="TestProject",
@@ -30,7 +30,7 @@ class TestMockUnrealEngine:
         assert project.engine_version == "5.3"
         assert project.project_file == "/tmp/projects/TestProject/TestProject.uproject"
 
-    def test_create_project_invalid_name(self):
+    def test_create_project_invalid_name(self) -> None:
         """Test project creation with invalid name."""
         with pytest.raises(ValueError, match="Project name must start with a letter"):
             self.engine.create_project(
@@ -38,7 +38,7 @@ class TestMockUnrealEngine:
                 path="/tmp/projects"
             )
 
-    def test_create_project_special_chars(self):
+    def test_create_project_special_chars(self) -> None:
         """Test project creation with special characters."""
         with pytest.raises(ValueError, match="Project name must start with a letter"):
             self.engine.create_project(
@@ -46,7 +46,7 @@ class TestMockUnrealEngine:
                 path="/tmp/projects"
             )
 
-    def test_open_project_success(self):
+    def test_open_project_success(self) -> None:
         """Test opening an existing project."""
         # First create a project
         project = self.engine.create_project(
@@ -59,12 +59,12 @@ class TestMockUnrealEngine:
         assert opened.name == "OpenTest"
         assert self.engine.current_project == opened
 
-    def test_open_project_not_found(self):
+    def test_open_project_not_found(self) -> None:
         """Test opening a non-existent project."""
         with pytest.raises(FileNotFoundError):
             self.engine.open_project("/nonexistent/project.uproject")
 
-    def test_list_projects(self):
+    def test_list_projects(self) -> None:
         """Test listing all projects."""
         # Create multiple projects
         proj1 = self.engine.create_project(name="Project1", path="/tmp")
@@ -75,7 +75,7 @@ class TestMockUnrealEngine:
         assert proj1 in projects
         assert proj2 in projects
 
-    def test_get_current_project(self):
+    def test_get_current_project(self) -> None:
         """Test getting current project."""
         assert self.engine.get_current_project() is None
         
@@ -84,7 +84,7 @@ class TestMockUnrealEngine:
         
         assert self.engine.get_current_project() == project
 
-    def test_reset(self):
+    def test_reset(self) -> None:
         """Test resetting the engine state."""
         # Create and open a project
         project = self.engine.create_project(name="ResetTest", path="/tmp")

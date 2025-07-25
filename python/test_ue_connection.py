@@ -4,7 +4,7 @@ Run this in Unreal's Python console to test
 """
 import unreal
 
-def test_connection():
+def test_connection() -> bool:
     """Test basic Unreal Engine Python API access"""
     print("=== UEMCP Connection Test ===")
     

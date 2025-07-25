@@ -12,7 +12,7 @@ export const viewportScreenshotTool = {
       required: [],
     },
   },
-  handler: async (_args?: unknown): Promise<{ content: Array<{ type: string; text: string }> }> => {
+  handler: async (_args?: unknown): Promise<{ content: Array<{ type: string; text?: string; data?: string; mimeType?: string }> }> => {
     logger.debug('Taking viewport screenshot');
     
     try {
@@ -42,7 +42,7 @@ export const viewportScreenshotTool = {
                 data: base64Image,
                 mimeType,
               },
-            ] as Array<{ type: string; text?: string; data?: string; mimeType?: string }>,
+            ],
           };
         } catch (readError) {
           // If we can't read the file, just return the path

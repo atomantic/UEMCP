@@ -650,13 +650,31 @@ mcp__uemcp__actor_spawn(
 
 ### Testing Changes
 
-1. **Unit Tests** (MCP Server):
+1. **Test Before Pushing** (mimics CI exactly):
    ```bash
-   cd server
-   npm test
+   # Run full CI test suite locally
+   ./test-ci-locally.sh
+   
+   # Quick TypeScript-only tests
+   ./test-ts.sh
    ```
 
-2. **Integration Testing**:
+2. **Individual Test Commands**:
+   ```bash
+   # TypeScript/Node.js tests
+   cd server
+   npm run lint          # ESLint
+   npm run typecheck     # TypeScript type checking
+   npm test              # Jest unit tests
+   
+   # Python tests
+   cd python
+   flake8 .              # Python linting
+   mypy . --ignore-missing-imports  # Type checking
+   python -m pytest      # Unit tests
+   ```
+
+3. **Integration Testing**:
    ```bash
    # Test connection
    node test-connection.js

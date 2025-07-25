@@ -9,7 +9,9 @@
     "dev": "tsx watch src/index.ts",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "echo 'No tests configured yet'",
+    "test:coverage": "echo 'No tests configured yet'"
   },
   "keywords": ["mcp", "unreal-engine", "ai-assistant"],
   "author": "",

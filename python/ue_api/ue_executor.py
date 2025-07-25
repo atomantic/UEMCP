@@ -124,7 +124,7 @@ except Exception as e:
             'mockMode': True
         }
 
-def main():
+def main() -> None:
     """Main entry point when called from MCP server"""
     if len(sys.argv) < 2:
         print(json.dumps({'success': False, 'error': 'No command provided'}))
