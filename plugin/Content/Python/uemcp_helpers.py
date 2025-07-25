@@ -18,6 +18,10 @@ def restart_listener():
                 unreal.log("UEMCP: Stopping existing listener...")
                 uemcp_listener_fixed.stop_listener()
         
+        # Wait a moment for socket to fully close
+        import time
+        time.sleep(1)
+        
         # Reload the module to pick up changes
         unreal.log("UEMCP: Reloading listener module...")
         importlib.reload(uemcp_listener_fixed)

@@ -8,9 +8,13 @@ import {
 import { projectCreateTool } from './tools/project.js';
 import { projectInfoTool } from './tools/project-info.js';
 import { assetListTool } from './tools/asset-list.js';
+import { assetInfoTool } from './tools/asset-info.js';
 import { actorSpawnTool } from './tools/actor-spawn.js';
+import { actorDeleteTool } from './tools/actor-delete.js';
+import { actorModifyTool } from './tools/actor-modify.js';
 import { levelActorsTool } from './tools/level-actors.js';
 import { levelSaveTool } from './tools/level-save.js';
+import { viewportScreenshotTool } from './tools/viewport-screenshot.js';
 import { logger } from './utils/logger.js';
 import { PythonBridge } from './services/python-bridge.js';
 import * as os from 'os';
@@ -60,9 +64,13 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       projectCreateTool.definition,
       projectInfoTool.definition,
       assetListTool.definition,
+      assetInfoTool.definition,
       actorSpawnTool.definition,
+      actorDeleteTool.definition,
+      actorModifyTool.definition,
       levelActorsTool.definition,
       levelSaveTool.definition,
+      viewportScreenshotTool.definition,
     ],
   };
 });
@@ -85,14 +93,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'asset_list':
         result = await assetListTool.handler(args);
         break;
+      case 'asset_info':
+        result = await assetInfoTool.handler(args);
+        break;
       case 'actor_spawn':
         result = await actorSpawnTool.handler(args);
+        break;
+      case 'actor_delete':
+        result = await actorDeleteTool.handler(args);
+        break;
+      case 'actor_modify':
+        result = await actorModifyTool.handler(args);
         break;
       case 'level_actors':
         result = await levelActorsTool.handler(args);
         break;
       case 'level_save':
         result = await levelSaveTool.handler(args);
+        break;
+      case 'viewport_screenshot':
+        result = await viewportScreenshotTool.handler(args);
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);

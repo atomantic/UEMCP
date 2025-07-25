@@ -282,12 +282,25 @@ Python is optional. Core features work without it. To enable Python features:
 
 Once connected, Claude can use these UEMCP tools:
 
+### Project Management
 - **project_create** - Create new Unreal Engine projects
 - **project_info** - Get information about the current project
+
+### Asset Management  
 - **asset_list** - List and filter project assets
+- **asset_info** - Get detailed information about an asset (dimensions, vertices, materials)
+
+### Actor Management
 - **actor_spawn** - Spawn actors using any static mesh or blueprint
+- **actor_delete** - Delete actors from the level by name
+- **actor_modify** - Modify actor location, rotation, or scale
+
+### Level Management
 - **level_actors** - List all actors in the current level
 - **level_save** - Save the current level
+
+### Viewport
+- **viewport_screenshot** - Take a screenshot of the current viewport
 
 ### AI Client Setup
 
@@ -598,10 +611,14 @@ export const yourTool = {
 Current implementation includes:
 
 - **project_info** - Get project information
-- **asset_list** - List and filter project assets
+- **asset_list** - List and filter project assets  
+- **asset_info** - Get asset dimensions and properties
 - **actor_spawn** - Spawn actors with any static mesh or blueprint
+- **actor_delete** - Delete actors by name
+- **actor_modify** - Change actor transform
 - **level_actors** - List actors in the current level
 - **level_save** - Save the current level
+- **viewport_screenshot** - Capture viewport screenshots
 
 ### Actor Spawning
 

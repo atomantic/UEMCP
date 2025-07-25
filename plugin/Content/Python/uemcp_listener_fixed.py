@@ -45,9 +45,14 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                 'available_commands': [
                     'project.info',
                     'asset.list', 
+                    'asset.info',
                     'level.actors',
                     'actor.create',
-                    'level.save'
+                    'actor.spawn',
+                    'actor.delete',
+                    'actor.modify',
+                    'level.save',
+                    'viewport.screenshot'
                 ],
                 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
             }
@@ -253,6 +258,206 @@ def execute_on_main_thread(command):
                 'message': 'Level saved successfully' if success else 'Failed to save level'
             }
         
+        elif cmd_type == 'viewport.screenshot':
+            import os
+            import tempfile
+            
+            # Create temp directory for screenshots
+            temp_dir = tempfile.gettempdir()
+            timestamp = int(time.time())
+            filename = f'uemcp_screenshot_{timestamp}.png'
+            filepath = os.path.join(temp_dir, filename)
+            
+            try:
+                # Take high res screenshot
+                unreal.AutomationLibrary.take_high_res_screenshot(
+                    1920, 1080,  # Resolution
+                    filepath,    # Filename
+                    None,        # Camera (None = current view)
+                    False,       # Mask enabled
+                    False        # Capture HDR
+                )
+                
+                # Wait a moment for file to be written
+                time.sleep(0.5)
+                
+                if os.path.exists(filepath):
+                    return {
+                        'success': True,
+                        'filepath': filepath,
+                        'message': f'Screenshot saved to: {filepath}'
+                    }
+                else:
+                    return {'success': False, 'error': 'Screenshot file not created'}
+                    
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+        
+        elif cmd_type == 'asset.info':
+            asset_path = params.get('assetPath', '')
+            
+            try:
+                # Load the asset
+                asset = unreal.EditorAssetLibrary.load_asset(asset_path)
+                if not asset:
+                    return {'success': False, 'error': f'Could not load asset: {asset_path}'}
+                
+                info = {
+                    'success': True,
+                    'assetPath': asset_path,
+                    'assetType': asset.get_class().get_name()
+                }
+                
+                # Get bounds for static meshes
+                if isinstance(asset, unreal.StaticMesh):
+                    bounds = asset.get_bounds()
+                    box_extent = bounds.box_extent
+                    origin = bounds.origin
+                    
+                    info.update({
+                        'bounds': {
+                            'extent': {
+                                'x': float(box_extent.x),
+                                'y': float(box_extent.y),
+                                'z': float(box_extent.z)
+                            },
+                            'origin': {
+                                'x': float(origin.x),
+                                'y': float(origin.y),
+                                'z': float(origin.z)
+                            },
+                            'size': {
+                                'x': float(box_extent.x * 2),
+                                'y': float(box_extent.y * 2),
+                                'z': float(box_extent.z * 2)
+                            }
+                        },
+                        'numVertices': asset.get_num_vertices(0),
+                        'numTriangles': asset.get_num_triangles(0),
+                        'numMaterials': asset.get_num_sections(0)
+                    })
+                    
+                    # Get sockets if any
+                    if hasattr(asset, 'sockets'):
+                        sockets = asset.sockets
+                    else:
+                        sockets = []
+                    
+                    if sockets:
+                        socket_info = []
+                        for socket in sockets:
+                            socket_info.append({
+                                'name': socket.socket_name,
+                                'location': {
+                                    'x': float(socket.relative_location.x),
+                                    'y': float(socket.relative_location.y),
+                                    'z': float(socket.relative_location.z)
+                                },
+                                'rotation': {
+                                    'pitch': float(socket.relative_rotation.pitch),
+                                    'yaw': float(socket.relative_rotation.yaw),
+                                    'roll': float(socket.relative_rotation.roll)
+                                }
+                            })
+                        info['sockets'] = socket_info
+                
+                return info
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+        
+        elif cmd_type == 'actor.delete':
+            actor_name = params.get('actorName', '')
+            
+            try:
+                # Find actor by name
+                all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+                found = False
+                
+                for actor in all_actors:
+                    if actor.get_actor_label() == actor_name:
+                        unreal.EditorLevelLibrary.destroy_actor(actor)
+                        found = True
+                        break
+                
+                if found:
+                    return {
+                        'success': True,
+                        'message': f'Deleted actor: {actor_name}'
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'error': f'Actor not found: {actor_name}'
+                    }
+                    
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+        
+        elif cmd_type == 'actor.modify':
+            actor_name = params.get('actorName', '')
+            location = params.get('location', None)
+            rotation = params.get('rotation', None)
+            scale = params.get('scale', None)
+            
+            try:
+                # Find actor by name
+                all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+                found_actor = None
+                
+                for actor in all_actors:
+                    if actor.get_actor_label() == actor_name:
+                        found_actor = actor
+                        break
+                
+                if not found_actor:
+                    return {
+                        'success': False,
+                        'error': f'Actor not found: {actor_name}'
+                    }
+                
+                # Apply modifications
+                if location is not None:
+                    ue_location = unreal.Vector(
+                        float(location[0]), 
+                        float(location[1]), 
+                        float(location[2])
+                    )
+                    found_actor.set_actor_location(ue_location, False, False)
+                
+                if rotation is not None:
+                    ue_rotation = unreal.Rotator(
+                        float(rotation[0]), 
+                        float(rotation[1]), 
+                        float(rotation[2])
+                    )
+                    found_actor.set_actor_rotation(ue_rotation, False)
+                
+                if scale is not None:
+                    ue_scale = unreal.Vector(
+                        float(scale[0]), 
+                        float(scale[1]), 
+                        float(scale[2])
+                    )
+                    found_actor.set_actor_scale3d(ue_scale)
+                
+                # Get updated transform
+                current_location = found_actor.get_actor_location()
+                current_rotation = found_actor.get_actor_rotation()
+                current_scale = found_actor.get_actor_scale3d()
+                
+                return {
+                    'success': True,
+                    'actorName': actor_name,
+                    'location': [current_location.x, current_location.y, current_location.z],
+                    'rotation': [current_rotation.pitch, current_rotation.yaw, current_rotation.roll],
+                    'scale': [current_scale.x, current_scale.y, current_scale.z],
+                    'message': f'Modified actor: {actor_name}'
+                }
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+        
         else:
             return {
                 'success': False,
@@ -338,22 +543,33 @@ def start_listener(port=8765):
 
 def stop_listener():
     """Stop the listener and cleanup"""
-    global server_running, httpd, tick_handle
+    global server_running, httpd, tick_handle, server_thread
     
     if not server_running:
         unreal.log("UEMCP Listener is not running")
         return
     
+    server_running = False
+    
     # Shutdown HTTP server
     if httpd:
-        httpd.shutdown()
+        try:
+            httpd.shutdown()
+            httpd.server_close()  # This ensures socket is closed
+        except:
+            pass
+    
+    # Wait for thread to finish
+    if server_thread and server_thread.is_alive():
+        server_thread.join(timeout=2)
     
     # Unregister tick callback
     if tick_handle:
         unreal.unregister_slate_pre_tick_callback(tick_handle)
         tick_handle = None
     
-    server_running = False
+    httpd = None
+    server_thread = None
     unreal.log("UEMCP Listener stopped")
 
 # Module info
