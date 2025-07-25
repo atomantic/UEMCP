@@ -243,6 +243,7 @@ def execute_on_main_thread(command):
                     actor.set_actor_label(name)
                     actor.set_actor_scale3d(ue_scale)
                     
+                    unreal.log(f"UEMCP: Spawned {name} at {location}")
                     return {
                         'success': True,
                         'actorName': name,
@@ -266,6 +267,7 @@ def execute_on_main_thread(command):
                     actor.set_actor_label(name)
                     actor.set_actor_scale3d(ue_scale)
                     
+                    unreal.log(f"UEMCP: Spawned blueprint {name} at {location}")
                     return {
                         'success': True,
                         'actorName': name,
@@ -323,8 +325,8 @@ def execute_on_main_thread(command):
                     expected_path = os.path.join(project_path, 'Saved', 'Screenshots', 'LinuxEditor', f'{base_filename}.png')
                 
                 # Log the screenshot request
-                unreal.log(f"Screenshot requested: {expected_path}")
-                unreal.log("Screenshot will be saved asynchronously by Unreal Engine")
+                unreal.log(f"UEMCP: Screenshot requested: {expected_path}")
+                unreal.log("UEMCP: Screenshot will be saved asynchronously by Unreal Engine")
                 
                 # Return immediately - don't block the thread
                 # The screenshot will be written asynchronously by UE
@@ -426,6 +428,7 @@ def execute_on_main_thread(command):
                         editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
                         editor_actor_utils.destroy_actor(actor)
                         found = True
+                        unreal.log(f"UEMCP: Deleted actor {actor_name}")
                         break
                 
                 if found:
@@ -712,7 +715,7 @@ def execute_on_main_thread(command):
                     
                     # Note: UE Python API doesn't directly expose viewport type switching
                     # This sets rotation to match orthographic views
-                    unreal.log(f"Set viewport rotation for {mode} view")
+                    unreal.log(f"UEMCP: Set viewport rotation for {mode} view")
                 
                 return {
                     'success': True,
@@ -828,14 +831,14 @@ def start_listener(port=8765):
             import uemcp_port_utils
             pid, process_name = uemcp_port_utils.find_process_using_port(port)
             if pid:
-                unreal.log_warning(f"Port {port} is used by {process_name} (PID: {pid})")
+                unreal.log_warning(f"UEMCP: Port {port} is used by {process_name} (PID: {pid})")
             else:
-                unreal.log_warning(f"Port {port} is already in use")
+                unreal.log_warning(f"UEMCP: Port {port} is already in use")
         except:
-            unreal.log_warning(f"Port {port} is already in use - another listener may be running")
+            unreal.log_warning(f"UEMCP: Port {port} is already in use")
         
-        unreal.log("Try: stop_listener() first, or check for other processes")
-        unreal.log("Or in Python console: import uemcp_port_utils; uemcp_port_utils.force_free_port(8765)")
+        unreal.log("UEMCP: Try: stop_listener() first, or check for other processes")
+        unreal.log("UEMCP: Or in Python console: import uemcp_port_utils; uemcp_port_utils.force_free_port(8765)")
         return False
     finally:
         # Always close the socket to prevent resource warnings
@@ -852,7 +855,7 @@ def start_listener(port=8765):
             unreal.log(f"UEMCP Listener started on http://localhost:{port}")
             httpd.serve_forever()
         except Exception as e:
-            unreal.log_error(f"Failed to start listener: {e}")
+            unreal.log_error(f"UEMCP: Failed to start listener: {e}")
     
     server_running = True
     server_thread = threading.Thread(target=run_server)
@@ -865,8 +868,8 @@ def start_listener(port=8765):
     # Wait a moment
     time.sleep(0.5)
     
-    unreal.log(f"UEMCP Listener running on: http://localhost:{port}/")
-    unreal.log("Ready to receive MCP commands")
+    unreal.log(f"UEMCP: Listener running on http://localhost:{port}/")
+    unreal.log("UEMCP: Ready to receive MCP commands")
     return True
 
 def stop_listener():
@@ -874,7 +877,7 @@ def stop_listener():
     global server_running, httpd, tick_handle, server_thread
     
     if not server_running:
-        unreal.log("UEMCP Listener is not running")
+        unreal.log("UEMCP: Listener is not running")
         return
     
     server_running = False
@@ -898,9 +901,14 @@ def stop_listener():
     
     httpd = None
     server_thread = None
-    unreal.log("UEMCP Listener stopped")
+    unreal.log("UEMCP: Listener stopped")
 
 # Module info
-print("UEMCP Listener Loaded. Commands:")
+print("\n" + "="*50)
+print("UEMCP Fixed Listener - Thread-Safe Version")
+print("="*50)
+print("\nCommands:")
 print("  start_listener() - Start the listener")
 print("  stop_listener()  - Stop the listener")
+print("\nStatus URL: http://localhost:8765/")
+print("="*50)
