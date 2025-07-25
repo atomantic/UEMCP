@@ -99,3 +99,22 @@ def force_free_port(port):
                 return is_port_available(port)
     
     return False
+
+def is_port_in_use(port):
+    """Check if a port is in use"""
+    return not is_port_available(port)
+
+def force_free_port_silent(port):
+    """Force free a port without user prompts"""
+    if is_port_available(port):
+        return True
+    
+    pid, process_name = find_process_using_port(port)
+    if pid:
+        unreal.log(f"UEMCP: Killing process {process_name} (PID: {pid}) using port {port}")
+        if kill_process_on_port(port):
+            import time
+            time.sleep(1)  # Give OS time to free the port
+            return is_port_available(port)
+    
+    return False

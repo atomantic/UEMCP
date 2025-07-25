@@ -47,7 +47,8 @@ def restart_listener():
             # Force free the port if needed
             try:
                 import uemcp_port_utils
-                uemcp_port_utils.force_free_port(8765)
+                unreal.log("UEMCP: Port still in use, forcing cleanup...")
+                uemcp_port_utils.force_free_port_silent(8765)
                 time.sleep(0.5)
             except:
                 unreal.log_warning("UEMCP: Could not force free port 8765")

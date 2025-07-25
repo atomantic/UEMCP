@@ -22,17 +22,19 @@ try:
         uemcp_listener_fixed.stop_listener()
         time.sleep(1)  # Give it time to clean up
     
+    # Also check if port is in use from a crashed session
+    import uemcp_port_utils
+    if uemcp_port_utils.is_port_in_use(8765):
+        unreal.log("UEMCP: Port 8765 in use from previous session, cleaning up...")
+        uemcp_port_utils.force_free_port_silent(8765)
+        time.sleep(1)
+    
     # Try to start the listener
     started = uemcp_listener_fixed.start_listener()
     if not started:
-        # Port might be in use from previous session
-        unreal.log("UEMCP: Port 8765 in use, waiting for it to be freed...")
-        time.sleep(5)
-        # Try once more
-        started = uemcp_listener_fixed.start_listener()
-        if not started:
-            unreal.log_warning("UEMCP: Still could not start after waiting")
-            unreal.log("UEMCP: Run 'stop_listener()' then 'start_listener()' manually")
+        # This should rarely happen now with automatic cleanup
+        unreal.log_warning("UEMCP: Could not start listener")
+        unreal.log("UEMCP: Check the output log for details")
     
     if started:
         # Success - show status
