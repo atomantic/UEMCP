@@ -106,8 +106,8 @@ flowchart TB
     CPPPlugin -.->|"Future: Performance<br/>Critical Ops"| UECore
     
     style Claude fill:#b464dc
-    style NodeJS fill:#236b23
-    style PythonListener fill:#30525f
+    style NodeJS fill:#319b31
+    style PythonListener fill:#3b90b1
     style UECore fill:#ff6b6b
 ```
 
@@ -126,7 +126,7 @@ flowchart TB
 
 ```
 UEMCP/
-├── server/           # MCP server implementation
+├── server/           # MCP server implementation (Node.js)
 │   ├── tools/        # UE-specific MCP tools
 │   ├── resources/    # Project resources and templates
 │   └── handlers/     # Request handlers
