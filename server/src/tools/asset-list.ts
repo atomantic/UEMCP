@@ -45,7 +45,11 @@ export const assetListTool = {
       });
       
       if (result.success) {
-        const assets = (result.assets as any[]) || [];
+        const assets = (result.assets as Array<{
+          name: string;
+          type: string;
+          path: string;
+        }>) || [];
         const totalCount = (result.totalCount as number) || assets.length;
         
         let text = `Found ${totalCount} assets in ${path}\n`;
@@ -57,7 +61,7 @@ export const assetListTool = {
         if (assets.length === 0) {
           text += 'No assets found.';
         } else {
-          assets.forEach((asset: any) => {
+          assets.forEach((asset) => {
             text += `• ${asset.name} (${asset.type})\n`;
             text += `  Path: ${asset.path}\n`;
           });

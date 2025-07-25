@@ -37,7 +37,7 @@ export const actorDeleteTool = {
           content: [
             {
               type: 'text',
-              text: `✓ ${result.message}`,
+              text: `✓ ${result.message as string}`,
             },
           ],
         };

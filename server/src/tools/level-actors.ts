@@ -39,7 +39,11 @@ export const levelActorsTool = {
       });
       
       if (result.success) {
-        const actors = (result.actors as any[]) || [];
+        const actors = (result.actors as Array<{
+          name: string;
+          class: string;
+          location?: { x: number; y: number; z: number };
+        }>) || [];
         const totalCount = (result.totalCount as number) || actors.length;
         const currentLevel = (result.currentLevel as string) || 'Unknown';
         
@@ -58,7 +62,7 @@ export const levelActorsTool = {
         if (actors.length === 0) {
           text += 'No actors found.';
         } else {
-          actors.forEach((actor: any) => {
+          actors.forEach((actor) => {
             text += `• ${actor.name} (${actor.class})\n`;
             if (actor.location) {
               text += `  Location: [${actor.location.x}, ${actor.location.y}, ${actor.location.z}]\n`;

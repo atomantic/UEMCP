@@ -38,11 +38,11 @@ export const viewportScreenshotTool = {
                 text: `Screenshot captured successfully!\nSaved to: ${filepath}`,
               },
               {
-                type: 'image' as const,
+                type: 'image',
                 data: base64Image,
                 mimeType,
-              } as any,
-            ],
+              },
+            ] as Array<{ type: string; text?: string; data?: string; mimeType?: string }>,
           };
         } catch (readError) {
           // If we can't read the file, just return the path

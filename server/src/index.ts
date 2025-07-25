@@ -144,7 +144,7 @@ async function main(): Promise<void> {
     logger.info('Checking Python listener connection...');
     
     let wasConnected = false;
-    const checkConnection = async () => {
+    const checkConnection = async (): Promise<boolean> => {
       const isAvailable = await pythonBridge.isUnrealEngineAvailable();
       if (isAvailable && !wasConnected) {
         logger.info('✓ Python listener connected at http://localhost:' + (process.env.UEMCP_LISTENER_PORT || '8765'));
@@ -185,12 +185,12 @@ async function main(): Promise<void> {
     // Set up periodic health check (every 30 seconds)
     const healthCheckInterval = setInterval(() => {
       checkConnection().catch(err => {
-        logger.debug('Health check failed', { error: err.message });
+        logger.debug('Health check failed', { error: err instanceof Error ? err.message : String(err) });
       });
     }, 30000);
     
     // Set up graceful shutdown
-    const shutdown = () => {
+    const shutdown = (): void => {
       clearInterval(healthCheckInterval);
       logger.info('\nShutting down gracefully...');
       process.exit(0);

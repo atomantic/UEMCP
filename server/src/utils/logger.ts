@@ -13,7 +13,7 @@ class Logger {
 
   private format(level: string, message: string, context?: LogContext): string {
     // For startup logs (lines, banners), don't add formatting
-    if (message.match(/^[=\-]{3,}$/) || message.includes('✓') || message.includes('✗')) {
+    if (message.match(/^[=-]{3,}$/) || message.includes('✓') || message.includes('✗')) {
       return message;
     }
     

@@ -54,9 +54,9 @@ export class PythonBridge {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json() as PythonResponse;
       logger.debug('Python command response', { response: data });
-      return data as PythonResponse;
+      return data;
       
     } catch (httpError) {
       logger.warn('HTTP request failed, falling back to process spawn', { error: (httpError as Error).message });
@@ -73,11 +73,11 @@ export class PythonBridge {
         let stdout = '';
         let stderr = '';
 
-        pythonProcess.stdout.on('data', (data) => {
+        pythonProcess.stdout.on('data', (data: Buffer) => {
           stdout += data.toString();
         });
 
-        pythonProcess.stderr.on('data', (data) => {
+        pythonProcess.stderr.on('data', (data: Buffer) => {
           stderr += data.toString();
         });
 
@@ -92,7 +92,7 @@ export class PythonBridge {
           }
 
           try {
-            const response = JSON.parse(stdout);
+            const response = JSON.parse(stdout) as PythonResponse;
             logger.debug('Python command response', { response });
             resolve(response);
           } catch (error) {
@@ -124,7 +124,7 @@ export class PythonBridge {
       });
       
       if (response.ok) {
-        const status = await response.json() as any;
+        const status = await response.json() as { ready?: boolean };
         return status.ready === true;
       }
       

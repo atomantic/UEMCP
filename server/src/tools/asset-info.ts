@@ -34,9 +34,14 @@ export const assetInfoTool = {
       
       if (result.success) {
         let text = `Asset Information for: ${assetPath}\n`;
-        text += `Type: ${result.assetType || 'Unknown'}\n\n`;
+        text += `Type: ${typeof result.assetType === 'string' ? result.assetType : 'Unknown'}\n\n`;
         
-        const bounds = result.bounds as any;
+        const bounds = result.bounds as {
+          size: { x: number; y: number; z: number };
+          origin: { x: number; y: number; z: number };
+          extent: { x: number; y: number; z: number };
+        } | undefined;
+        
         if (bounds) {
           text += `Dimensions:\n`;
           text += `  Size: ${bounds.size.x.toFixed(1)} x ${bounds.size.y.toFixed(1)} x ${bounds.size.z.toFixed(1)} units\n`;
@@ -44,14 +49,18 @@ export const assetInfoTool = {
           text += `  Half Extents: (${bounds.extent.x.toFixed(1)}, ${bounds.extent.y.toFixed(1)}, ${bounds.extent.z.toFixed(1)})\n\n`;
         }
         
-        if (result.numVertices !== undefined) {
+        if (typeof result.numVertices === 'number') {
           text += `Geometry:\n`;
           text += `  Vertices: ${result.numVertices}\n`;
-          text += `  Triangles: ${result.numTriangles}\n`;
-          text += `  Materials: ${result.numMaterials}\n\n`;
+          text += `  Triangles: ${typeof result.numTriangles === 'number' ? result.numTriangles : 'N/A'}\n`;
+          text += `  Materials: ${typeof result.numMaterials === 'number' ? result.numMaterials : 'N/A'}\n\n`;
         }
         
-        const sockets = result.sockets as any[];
+        const sockets = result.sockets as Array<{
+          name: string;
+          location: { x: number; y: number; z: number };
+        }> | undefined;
+        
         if (sockets && sockets.length > 0) {
           text += `Sockets (${sockets.length}):\n`;
           for (const socket of sockets) {

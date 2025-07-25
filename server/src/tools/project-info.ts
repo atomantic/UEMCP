@@ -27,9 +27,9 @@ export const projectInfoTool = {
             {
               type: 'text',
               text: `Project Information:\n` +
-                    `Name: ${result.projectName || 'Unknown'}\n` +
-                    `Directory: ${result.projectDirectory || 'Unknown'}\n` +
-                    `Engine Version: ${result.engineVersion || 'Unknown'}\n` +
+                    `Name: ${typeof result.projectName === 'string' ? result.projectName : 'Unknown'}\n` +
+                    `Directory: ${typeof result.projectDirectory === 'string' ? result.projectDirectory : 'Unknown'}\n` +
+                    `Engine Version: ${typeof result.engineVersion === 'string' ? result.engineVersion : 'Unknown'}\n` +
                     `Mock Mode: ${result.mockMode ? 'Yes' : 'No'}`
             },
           ],
