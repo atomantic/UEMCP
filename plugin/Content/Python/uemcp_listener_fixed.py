@@ -416,8 +416,8 @@ def execute_on_main_thread(command):
             try:
                 # Find actor by name
                 # Use EditorActorUtilities subsystem instead of deprecated EditorLevelLibrary
-            editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
-            all_actors = editor_actor_utils.get_all_level_actors()
+                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
+                all_actors = editor_actor_utils.get_all_level_actors()
                 found = False
                 
                 for actor in all_actors:
@@ -451,8 +451,8 @@ def execute_on_main_thread(command):
             try:
                 # Find actor by name
                 # Use EditorActorUtilities subsystem instead of deprecated EditorLevelLibrary
-            editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
-            all_actors = editor_actor_utils.get_all_level_actors()
+                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
+                all_actors = editor_actor_utils.get_all_level_actors()
                 found_actor = None
                 
                 for actor in all_actors:
@@ -525,8 +525,8 @@ def execute_on_main_thread(command):
                 if focus_actor:
                     # Find and focus on specific actor
                     # Use EditorActorUtilities subsystem instead of deprecated EditorLevelLibrary
-            editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
-            all_actors = editor_actor_utils.get_all_level_actors()
+                    editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
+                    all_actors = editor_actor_utils.get_all_level_actors()
                     target_actor = None
                     
                     for actor in all_actors:
@@ -626,8 +626,8 @@ def execute_on_main_thread(command):
             try:
                 # Find the actor by name
                 # Use EditorActorUtilities subsystem instead of deprecated EditorLevelLibrary
-            editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
-            all_actors = editor_actor_utils.get_all_level_actors()
+                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorUtilitySubsystem)
+                all_actors = editor_actor_utils.get_all_level_actors()
                 found_actor = None
                 
                 for actor in all_actors:
