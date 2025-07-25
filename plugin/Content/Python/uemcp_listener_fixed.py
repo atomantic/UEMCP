@@ -6,6 +6,7 @@ import unreal
 import json
 import threading
 import time
+import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import queue
 
@@ -79,7 +80,9 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             
             # Log incoming command
             cmd_type = command.get('type', 'unknown')
-            unreal.log(f"UEMCP: Received command: {cmd_type} (ID: {request_id})")
+            # Only log in debug mode to reduce overhead
+            if os.environ.get('UEMCP_DEBUG'):
+                unreal.log(f"UEMCP: Received command: {cmd_type} (ID: {request_id})")
             
             # Queue command for main thread
             command_queue.put((request_id, command))
@@ -134,7 +137,7 @@ def execute_on_main_thread(command):
                 'projectName': unreal.Paths.get_project_file_path().split('/')[-1].replace('.uproject', ''),
                 'projectDirectory': unreal.Paths.project_dir(),
                 'engineVersion': unreal.SystemLibrary.get_engine_version(),
-                'currentLevel': unreal.EditorLevelLibrary.get_editor_world().get_name()
+                'currentLevel': unreal.UnrealEditorSubsystem().get_editor_world().get_name()
             }
         
         elif cmd_type == 'asset.list':
@@ -185,7 +188,7 @@ def execute_on_main_thread(command):
                 'success': True,
                 'actors': actor_list,
                 'totalCount': len(all_actors),
-                'currentLevel': unreal.EditorLevelLibrary.get_editor_world().get_name()
+                'currentLevel': unreal.UnrealEditorSubsystem().get_editor_world().get_name()
             }
         
         elif cmd_type == 'actor.create' or cmd_type == 'actor.spawn':
@@ -283,9 +286,10 @@ def execute_on_main_thread(command):
             filepath = os.path.join(temp_dir, filename)
             
             try:
-                # Take high res screenshot
+                # Take screenshot with reasonable resolution to avoid performance issues
+                # Reduced from 1920x1080 to 1280x720 to prevent audio buffer underruns
                 unreal.AutomationLibrary.take_high_res_screenshot(
-                    1920, 1080,  # Resolution
+                    1280, 720,   # Reduced resolution
                     filepath,    # Filename
                     None,        # Camera (None = current view)
                     False,       # Mask enabled
@@ -587,18 +591,22 @@ def execute_on_main_thread(command):
 def process_commands(delta_time):
     """Process queued commands on the main thread"""
     processed = 0
-    max_per_tick = 10  # Process up to 10 commands per tick
+    max_per_tick = 3  # Reduced from 10 to prevent audio buffer underrun
     
     while not command_queue.empty() and processed < max_per_tick:
         try:
             request_id, command = command_queue.get_nowait()
             cmd_type = command.get('type', 'unknown')
-            unreal.log(f"UEMCP: Processing command: {cmd_type} (ID: {request_id})")
+            # Only log in debug mode
+            if os.environ.get('UEMCP_DEBUG'):
+                unreal.log(f"UEMCP: Processing command: {cmd_type} (ID: {request_id})")
             
             result = execute_on_main_thread(command)
             response_queue[request_id] = result
             
-            unreal.log(f"UEMCP: Command completed: {cmd_type} - Success: {result.get('success', False)}")
+            # Only log in debug mode
+            if os.environ.get('UEMCP_DEBUG'):
+                unreal.log(f"UEMCP: Command completed: {cmd_type} - Success: {result.get('success', False)}")
             processed += 1
         except queue.Empty:
             break
