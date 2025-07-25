@@ -361,42 +361,64 @@ Configure in your workspace settings:
 ### Current Implementation
 The following tools are currently implemented and available:
 
-#### Asset Management
-- `asset_list` - List assets in the Unreal Engine project with filtering options
-  - Filter by path (e.g., `/Game/Blueprints`)
-  - Filter by asset type (Blueprint, Material, Texture2D, etc.)
-  - Recursive search support
-
-#### Blueprint System
-- `blueprint_create` - Create new Blueprint classes
-  - Specify parent class (Actor, Pawn, Character, GameMode)
-  - Set custom blueprint name and path
-  - Automatic compilation
-
 #### Project Management
+- `project_info` - Get comprehensive project information
+  - Project name, directory, and engine version
+  - Current level information
+  - Connection status
+  
 - `project_create` - Create new Unreal Engine projects (mock implementation)
   - Choose project template (Blank, FirstPerson, ThirdPerson, VR, TopDown)
   - Set project name and location
   - Specify engine version
+
+#### Asset Management
+- `asset_list` - List assets in the Unreal Engine project with filtering options
+  - Filter by path (e.g., `/Game/Blueprints`)
+  - Filter by asset type (StaticMesh, Blueprint, Material, Texture2D, etc.)
+  - Limit number of results
+  - Shows asset name, type, and full path
+
+#### Level Editing
+- `actor_spawn` - Spawn actors in the level using any asset
+  - Spawn static meshes at specific locations
+  - Spawn blueprint actors
+  - Set location, rotation, and scale
+  - Custom actor naming
+  
+- `level_actors` - List all actors in the current level
+  - Filter actors by name or class
+  - Get actor location, class, and properties
+  - Limit number of results
+  
+- `level_save` - Save the current level
+  - Saves all changes made to the level
 
 ### Planned Tools (Coming Soon)
 
 #### Asset Management
 - `asset_import` - Import external assets into the project
 - `asset_export` - Export assets from the project
+- `asset_delete` - Remove assets from the project
 - `material_create` - Generate new materials
 - `texture_modify` - Edit texture properties
 
 #### Blueprint System
+- `blueprint_create` - Create new Blueprint classes
+  - Specify parent class (Actor, Pawn, Character, GameMode)
+  - Set custom blueprint name and path
+  - Automatic compilation
 - `blueprint_modify` - Edit existing Blueprint graphs
 - `blueprint_compile` - Compile and validate Blueprints
 - `blueprint_analyze` - Analyze Blueprint complexity and dependencies
 
-#### Level Editing
+#### Advanced Level Editing
 - `level_create` - Generate new levels
-- `actor_place` - Add actors to levels
+- `actor_modify` - Modify existing actor properties
+- `landscape_create` - Create terrain and landscapes
 - `landscape_modify` - Edit terrain and landscapes
 - `lighting_build` - Build lighting for levels
+- `foliage_paint` - Add foliage and vegetation
 
 #### Code Generation
 - `cpp_class_create` - Generate C++ classes with UE boilerplate
@@ -404,51 +426,75 @@ The following tools are currently implemented and available:
 - `bindings_generate` - Create Python/Blueprint bindings
 - `code_refactor` - Intelligent code refactoring
 
-#### Project Management
-- `project_info` - Get comprehensive project information
+#### Build & Deployment
 - `project_build` - Build the project
 - `project_package` - Package for distribution
+- `project_cook` - Cook content for specific platforms
 - `tests_run` - Execute automated tests
+
+#### Animation & Cinematics
+- `sequence_create` - Create level sequences
+- `animation_import` - Import animation data
+- `camera_animate` - Create camera movements
 
 ## Usage Examples
 
-### Listing Assets
+### Getting Project Information
 With Claude Desktop or Claude Code, you can use natural language:
-- "Show me all blueprints in my Unreal project"
+- "What Unreal project am I connected to?"
+- "Show me the project info"
+- "What engine version is this project using?"
+
+### Listing Assets
+Natural language examples:
+- "Show me all static meshes in the ModularOldTown folder"
 - "List assets in /Game/Characters"
 - "What materials are in the project?"
-
-Or use the tool directly:
-```json
-{
-  "tool": "asset_list",
-  "arguments": {
-    "path": "/Game/Characters",
-    "assetType": "Blueprint",
-    "recursive": true
-  }
-}
-```
-
-### Creating Blueprints
-Natural language examples:
-- "Create a new Actor blueprint called BP_Platform"
-- "Make a Character blueprint named BP_Enemy in /Game/Enemies"
-- "Create a GameMode blueprint"
 
 Direct tool usage:
 ```json
 {
-  "tool": "blueprint_create",
+  "tool": "asset_list",
   "arguments": {
-    "name": "BP_PlayerCharacter",
-    "path": "/Game/Blueprints",
-    "parentClass": "Character"
+    "path": "/Game/ModularOldTown",
+    "assetType": "StaticMesh",
+    "limit": 50
   }
 }
 ```
 
-### Project Creation (Mock)
+### Spawning Actors
+Natural language examples:
+- "Spawn a wall at location 1000, 500, 100"
+- "Place the SM_FlatWall_3m mesh in the level"
+- "Create a cube at the origin"
+
+Direct tool usage:
+```json
+{
+  "tool": "actor_spawn",
+  "arguments": {
+    "assetPath": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m",
+    "location": [1000, 500, 100],
+    "rotation": [0, 90, 0],
+    "scale": [1, 1, 1],
+    "name": "MyWall"
+  }
+}
+```
+
+### Listing Level Actors
+Natural language examples:
+- "Show me all actors in the level"
+- "Find actors with 'Foundation' in their name"
+- "List all StaticMeshActors"
+
+### Saving the Level
+Natural language examples:
+- "Save the current level"
+- "Save my changes"
+
+### Project Creation (Mock - for testing)
 ```json
 {
   "tool": "project_create",
