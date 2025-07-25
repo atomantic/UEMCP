@@ -60,6 +60,20 @@ tests/      - Test suites for all components
 
 ## Plugin Development Workflow
 
+**IMPORTANT**: The plugin directory is symlinked from the git repository to the UE project:
+```bash
+# Symlink already exists:
+/Users/antic/Documents/Unreal Projects/Home/Plugins/UEMCP -> /Users/antic/github.com/atomantic/UEMCP_dev/plugin
+```
+
+This means:
+1. **Edit directly in git repository** - changes are immediately reflected in UE
+2. **No copying needed** - the symlink handles file synchronization
+3. **Just reload in UE** after making changes:
+   ```python
+   restart_listener()  # Reloads changes without restarting UE
+   ```
+
 When making changes to the plugin:
 
 1. **Edit in git repository**:
@@ -67,19 +81,13 @@ When making changes to the plugin:
    # Make changes in /Users/antic/github.com/atomantic/UEMCP_dev/plugin/
    ```
 
-2. **Copy to UE project for testing**:
-   ```bash
-   cp -r plugin/* "/Users/antic/Documents/Unreal Projects/Home/Plugins/UEMCP/"
-   ```
-
-3. **Reload in Unreal Engine** (Python console):
+2. **Reload in Unreal Engine** (Python console):
    ```python
    restart_listener()  # Reloads changes without restarting UE
    ```
 
-4. **After testing, sync back to git**:
+3. **Commit changes**:
    ```bash
-   cp -r "/Users/antic/Documents/Unreal Projects/Home/Plugins/UEMCP/"* plugin/
    git add -A && git commit -m "your changes"
    ```
 

@@ -16,6 +16,7 @@ import { levelActorsTool } from './tools/level-actors.js';
 import { levelSaveTool } from './tools/level-save.js';
 import { viewportScreenshotTool } from './tools/viewport-screenshot.js';
 import { viewportCameraTool } from './tools/viewport-camera.js';
+import { viewportModeTool } from './tools/viewport-mode.js';
 import { testConnectionTool } from './tools/test-connection.js';
 import { restartListenerTool } from './tools/restart-listener.js';
 import { logger } from './utils/logger.js';
@@ -75,6 +76,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       levelSaveTool.definition,
       viewportScreenshotTool.definition,
       viewportCameraTool.definition,
+      viewportModeTool.definition,
       testConnectionTool.definition,
       restartListenerTool.definition,
     ],
@@ -122,6 +124,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'viewport_camera':
         result = await viewportCameraTool.handler(args);
+        break;
+      case 'viewport_mode':
+        result = await viewportModeTool.handler(args);
         break;
       case 'test_connection':
         result = await testConnectionTool.handler(args);

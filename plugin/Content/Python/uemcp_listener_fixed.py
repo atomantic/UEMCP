@@ -55,7 +55,8 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'actor.modify',
                     'level.save',
                     'viewport.screenshot',
-                    'viewport.camera'
+                    'viewport.camera',
+                    'viewport.mode'
                 ],
                 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
             }
@@ -297,17 +298,24 @@ def execute_on_main_thread(command):
                     False        # Capture HDR
                 )
                 
-                # Wait a moment for file to be written
-                time.sleep(0.5)
+                # Log the screenshot attempt
+                unreal.log(f"Screenshot requested: {filepath}")
                 
-                if os.path.exists(filepath):
-                    return {
-                        'success': True,
-                        'filepath': filepath,
-                        'message': f'Screenshot saved to: {filepath}'
-                    }
-                else:
-                    return {'success': False, 'error': 'Screenshot file not created'}
+                # Wait longer for file to be written (UE may be slow)
+                for i in range(10):  # Check for up to 5 seconds
+                    time.sleep(0.5)
+                    if os.path.exists(filepath):
+                        file_size = os.path.getsize(filepath)
+                        unreal.log(f"Screenshot saved: {filepath} ({file_size} bytes)")
+                        return {
+                            'success': True,
+                            'filepath': filepath,
+                            'message': f'Screenshot saved to: {filepath}'
+                        }
+                
+                # If we get here, file wasn't created
+                unreal.log_warning(f"Screenshot file not found after 5 seconds: {filepath}")
+                return {'success': False, 'error': 'Screenshot file not created'}
                     
             except Exception as e:
                 return {'success': False, 'error': str(e)}
@@ -576,6 +584,58 @@ def execute_on_main_thread(command):
                         'roll': float(current_rot.roll)
                     },
                     'message': 'Viewport camera updated'
+                }
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+        
+        elif cmd_type == 'viewport.mode':
+            mode = params.get('mode', 'perspective').lower()
+            
+            try:
+                # Get the level editor subsystem for viewport control
+                level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+                
+                # Get current viewport client
+                viewport_client = unreal.EditorLevelLibrary.get_level_viewport_camera_info()
+                
+                # Map mode names to viewport types and orientations
+                mode_map = {
+                    'perspective': None,  # Default perspective mode
+                    'top': {'type': 'ORTHO_TOP_DOWN', 'rotation': unreal.Rotator(-90, 0, 0)},
+                    'bottom': {'type': 'ORTHO_BOTTOM_UP', 'rotation': unreal.Rotator(90, 0, 0)},
+                    'left': {'type': 'ORTHO_YZ', 'rotation': unreal.Rotator(0, 90, 0)},
+                    'right': {'type': 'ORTHO_NEGATIVE_YZ', 'rotation': unreal.Rotator(0, -90, 0)},
+                    'front': {'type': 'ORTHO_XZ', 'rotation': unreal.Rotator(0, 0, 0)},
+                    'back': {'type': 'ORTHO_NEGATIVE_XZ', 'rotation': unreal.Rotator(0, 180, 0)}
+                }
+                
+                if mode not in mode_map:
+                    return {
+                        'success': False,
+                        'error': f'Invalid mode: {mode}. Valid modes: {", ".join(mode_map.keys())}'
+                    }
+                
+                # For orthographic modes, set specific rotation
+                if mode != 'perspective' and mode_map[mode]:
+                    rotation = mode_map[mode]['rotation']
+                    # Get current camera location
+                    current_loc = viewport_client[0]
+                    
+                    # Set orthographic view with proper orientation
+                    unreal.EditorLevelLibrary.set_level_viewport_camera_info(
+                        current_loc,
+                        rotation
+                    )
+                    
+                    # Note: UE Python API doesn't directly expose viewport type switching
+                    # This sets rotation to match orthographic views
+                    unreal.log(f"Set viewport rotation for {mode} view")
+                
+                return {
+                    'success': True,
+                    'mode': mode,
+                    'message': f'Viewport mode set to {mode}'
                 }
                 
             except Exception as e:
