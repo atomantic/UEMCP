@@ -87,14 +87,5 @@ def status():
         unreal.log("UEMCP: Listener module not loaded")
         unreal.log("Run: import uemcp_listener_fixed")
 
-# Print available commands
-print("\n" + "="*50)
-print("UEMCP Helper Functions Loaded")
-print("="*50)
-print("\nAvailable commands:")
-print("  restart_listener() - Restart the listener (picks up code changes)")
-print("  reload_uemcp()     - Alias for restart_listener()")
-print("  status()           - Check listener status")
-print("  stop_listener()    - Stop the listener")
-print("  start_listener()   - Start the listener")
-print("="*50)
+# Module info - minimal output when imported
+pass

@@ -852,7 +852,7 @@ def start_listener(port=8765):
             httpd = HTTPServer(('localhost', port), UEMCPHandler)
             # Enable socket reuse to prevent "Address already in use" errors
             httpd.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            unreal.log(f"UEMCP Listener started on http://localhost:{port}")
+            # Server thread will log when ready
             httpd.serve_forever()
         except Exception as e:
             unreal.log_error(f"UEMCP: Failed to start listener: {e}")
@@ -868,8 +868,7 @@ def start_listener(port=8765):
     # Wait a moment
     time.sleep(0.5)
     
-    unreal.log(f"UEMCP: Listener running on http://localhost:{port}/")
-    unreal.log("UEMCP: Ready to receive MCP commands")
+    # Startup message handled by init script
     return True
 
 def stop_listener():
@@ -903,12 +902,5 @@ def stop_listener():
     server_thread = None
     unreal.log("UEMCP: Listener stopped")
 
-# Module info
-print("\n" + "="*50)
-print("UEMCP Fixed Listener - Thread-Safe Version")
-print("="*50)
-print("\nCommands:")
-print("  start_listener() - Start the listener")
-print("  stop_listener()  - Stop the listener")
-print("\nStatus URL: http://localhost:8765/")
-print("="*50)
+# Module info - minimal output when imported
+pass
