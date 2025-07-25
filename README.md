@@ -78,32 +78,23 @@ A Model Context Protocol (MCP) server that provides AI models with deep integrat
 
 ```mermaid
 flowchart TB
-    subgraph "AI Assistant Layer"
+    subgraph "AI Assistant"
         Claude[Claude Desktop/Code]
-        Other[Other AI Models]
     end
     
-    subgraph "MCP Server Layer"
-        NodeJS["Node.js MCP Server<br/>:8080"]
-        Tools[MCP Tool Definitions]
-        Bridge[Python Bridge]
+    subgraph "MCP Server (Node.js)"
+        NodeJS["MCP Server<br/>stdio"]
+        Tools[Tool Definitions]
     end
     
-    subgraph "Unreal Engine Layer"
-        PythonListener["Python HTTP Listener<br/>:8765"]
-        PythonAPI[Unreal Python API]
-        CPPPlugin["C++ Plugin: UEMCP<br/>(Minimal Stub)"]
-        UECore[Unreal Engine Core]
+    subgraph "Unreal Engine"
+        PythonListener["Python HTTP API<br/>:8765"]
+        UECore[Unreal Engine]
     end
     
     Claude -->|MCP Protocol| NodeJS
-    Other -->|MCP Protocol| NodeJS
-    NodeJS --> Tools
-    NodeJS --> Bridge
-    Bridge -->|HTTP POST| PythonListener
-    PythonListener -->|Queue| PythonAPI
-    PythonAPI -->|Native Calls| UECore
-    CPPPlugin -.->|"Future: Performance<br/>Critical Ops"| UECore
+    NodeJS -->|HTTP POST| PythonListener
+    PythonListener -->|Python API| UECore
     
     style Claude fill:#b464dc
     style NodeJS fill:#319b31
@@ -113,14 +104,12 @@ flowchart TB
 
 ### Data Flow
 
-1. **AI Assistant** sends MCP commands to Node.js server
-2. **Node.js MCP Server** validates and routes commands through the Python Bridge
-3. **Python Bridge** makes HTTP requests to the Python Listener in Unreal
-4. **Python HTTP Listener** queues commands for main thread execution
-5. **Unreal Python API** executes commands on the main thread
-6. Results flow back through the same chain
+1. **AI Assistant** (Claude) sends MCP commands via stdio to the Node.js server
+2. **MCP Server** validates commands and makes HTTP requests to Unreal Engine
+3. **Python HTTP API** receives requests and executes them via Unreal's Python API
+4. Results flow back through the same chain
 
-**Note**: The C++ plugin currently serves as a minimal stub to satisfy Unreal Engine's plugin requirements. All functionality is implemented through the Python API. Future versions may utilize the C++ plugin for performance-critical operations or features requiring native C++ APIs.
+**Note**: The plugin is pure Python - no C++ compilation required. The HTTP API runs on a background thread and uses a queue to execute commands safely on Unreal's main thread.
 
 ### Directory Structure
 
