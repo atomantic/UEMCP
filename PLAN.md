@@ -9,7 +9,7 @@ This document outlines the implementation plan for the Unreal Engine Model Conte
 ✅ **Phase 1: Foundation & Scaffolding** - COMPLETE
 ✅ **Phase 2: Basic MCP Implementation** - COMPLETE  
 ✅ **Phase 3: Python-UE Bridge** - COMPLETE
-🚧 **Phase 4: Advanced Features** - IN PROGRESS
+🚧 **Phase 4: House Building Experiment** - IN PROGRESS
 
 ### Implemented Features
 
@@ -28,6 +28,138 @@ The final architecture differs from the original plan:
 - **No C++ compilation needed** - Plugin is content-only with Python scripts
 - **HTTP bridge instead of direct Python** - More reliable communication
 - **Simplified deployment** - Just copy plugin folder to UE project
+
+## Phase 4: House Building Experiment - MCP Enhancement Through Practical Application
+
+### Experiment Overview
+
+**Objective**: Build an elaborate house on top of the HouseFoundation in the Home Unreal Project using ModularOldTown assets and other free Fab assets. The primary mission is to discover MCP limitations and enhance the plugin/server capabilities to match what a human can do with the Unreal Engine editor.
+
+**Key Principles**:
+1. **MCP-First Development**: When encountering limitations, prioritize fixing/extending MCP functionality over working around constraints
+2. **Visual Verification**: Have human operator verify progress at key stages through screenshots
+3. **Iterative Enhancement**: Each blocker becomes an opportunity to improve MCP
+4. **Minimal Human Intervention**: Only ask user to perform actions that cannot be automated via MCP
+
+### House Building Phases
+
+#### Phase 4.1: Foundation Assessment & Basic Structure
+**Goals**:
+- Take viewport screenshots of HouseFoundation
+- Identify foundation dimensions and anchor points
+- Place first floor walls using ModularOldTown assets
+- Test asset alignment and snapping capabilities
+
+**Expected MCP Enhancements**:
+- Asset dimension queries
+- Precise placement with snapping
+- Asset rotation for corner pieces
+- Collision detection
+
+#### Phase 4.2: Multi-Story Construction
+**Goals**:
+- Add second floor with proper floor/ceiling pieces
+- Implement stairs or ladder system
+- Test vertical alignment and stacking
+
+**Expected MCP Enhancements**:
+- Vertical offset calculations
+- Asset stacking logic
+- Interior vs exterior wall detection
+- Floor/ceiling asset management
+
+#### Phase 4.3: Architectural Details
+**Goals**:
+- Add windows and doors with proper cutouts
+- Implement roof system with proper angles
+- Add chimneys, dormers, or other details
+
+**Expected MCP Enhancements**:
+- Asset replacement (wall → wall with window)
+- Angle calculations for roof pieces
+- Complex asset relationships
+- Asset variant selection
+
+#### Phase 4.4: Interior Design
+**Goals**:
+- Add interior walls for room division
+- Place furniture and props from Fab
+- Implement basic lighting
+
+**Expected MCP Enhancements**:
+- Interior space detection
+- Asset browsing from Fab/Marketplace
+- Light actor creation and configuration
+- Material instance editing
+
+#### Phase 4.5: Exterior Enhancement
+**Goals**:
+- Add exterior details (shutters, trim, decorations)
+- Create surrounding environment (fence, garden)
+- Implement proper LODs and optimization
+
+**Expected MCP Enhancements**:
+- Detail mesh placement
+- Landscape/foliage tools
+- LOD configuration
+- Performance profiling
+
+### MCP Enhancement Priority List
+
+**Critical Features** (Block house construction):
+1. **Asset Snapping System**: Detect and use socket points for precise placement
+2. **Asset Query Enhancement**: Get dimensions, sockets, collision bounds
+3. **Batch Operations**: Place multiple similar assets efficiently
+4. **Undo/Redo System**: Recover from placement errors
+5. **Asset Search**: Find compatible assets by type/tag/socket
+
+**Important Features** (Improve workflow):
+1. **Blueprint Actor Spawning**: Spawn interactive elements
+2. **Material Instance Creation**: Customize asset appearance
+3. **Viewport Navigation**: Better camera control for inspection
+4. **Selection Groups**: Work with multiple actors together
+5. **Copy/Paste/Duplicate**: Repeat successful patterns
+
+**Nice-to-Have Features** (Polish):
+1. **Lighting Preview**: See lighting changes in real-time
+2. **Physics Simulation**: Test structural integrity
+3. **Weather/Time of Day**: Environmental testing
+4. **Performance Metrics**: Track frame rate and complexity
+5. **Export/Import**: Save house as reusable asset
+
+### Development Workflow
+
+1. **Attempt Task**: Try to accomplish house building goal with current MCP
+2. **Identify Blocker**: Document what MCP cannot currently do
+3. **Design Solution**: Plan MCP enhancement to address limitation
+4. **Implement Enhancement**: Update MCP server/plugin with new capability
+5. **Test Enhancement**: Verify new feature works correctly
+6. **Resume Building**: Continue house construction with enhanced MCP
+7. **Human Verification**: Screenshot and confirm progress
+
+### Success Metrics
+
+- **MCP Completeness**: Can build entire house without manual UE editor intervention
+- **Feature Coverage**: Number of new MCP tools/capabilities added
+- **Workflow Efficiency**: Time to complete common building tasks
+- **Visual Quality**: House looks professional and properly constructed
+- **Code Quality**: MCP enhancements are well-tested and documented
+
+### Current Focus Areas
+
+Based on available assets in `/Game/ModularOldTown/Meshes/`:
+- Wall pieces with various configurations
+- Window and door variants  
+- Roof components
+- Decorative elements
+- Structural supports
+
+**Immediate Next Steps**:
+1. Screenshot current HouseFoundation state
+2. List available ModularOldTown wall assets
+3. Attempt to place first wall piece
+4. Document any placement issues
+5. Implement MCP enhancements as needed
 
 ## Phase 1: Foundation & Scaffolding (Week 1-2)
 
@@ -363,190 +495,56 @@ class MockUnrealModule:
 
 **Tasks**:
 - [ ] Generate API documentation
-- [ ] Create usage examples
-- [ ] Write development setup guide
-- [ ] Document testing procedures
-- [ ] Create troubleshooting guide
+- ✅ Create usage examples
+- ✅ Write development setup guide
+- ✅ Document testing procedures
+- ✅ Create troubleshooting guide
 
-## Phase 4: Integration & Polish (Week 5-6)
+## Integration & Deployment
 
-### 4.1 AI Client Integration
+### Supported AI Clients
 
-**Target Clients**:
-- Claude Desktop
-- Cursor IDE
-- Generic MCP clients
+- ✅ Claude Desktop (auto-configured by init.js)
+- ✅ Claude Code (claude.ai/code) via claude-mcp CLI
+- ✅ Cursor IDE
+- ✅ Generic MCP clients
 
-**Deliverable**: Verified compatibility with major AI platforms
+### Installation Methods
 
-**Test Scenarios**:
-- Connection establishment
-- Tool discovery and execution
-- Error handling and recovery
-- Performance under load
+- **Quick Start**: `node init.js` (2 minutes)
+- **Platform Scripts**: init.sh (macOS/Linux), init.ps1 (Windows)
+- **Manual Setup**: Available for custom configurations
 
-**Tasks**:
-- [ ] Test with Claude Desktop
-- [ ] Test with Cursor IDE
-- [ ] Create configuration examples
-- [ ] Document integration steps
-- [ ] Add troubleshooting guides
+## Known Limitations & Future Work
 
-### 4.2 Performance & Reliability
+### Current Limitations
 
-**Optimization Areas**:
-- Tool execution speed
-- Memory usage
-- Error recovery
-- Connection stability
+1. **Asset Snapping**: No automatic socket-based placement
+2. **Batch Operations**: Single actor operations only
+3. **Blueprint Editing**: Creation only, no graph editing
+4. **Material Editing**: No material instance creation
+5. **Undo/Redo**: No operation history
 
-**Monitoring**:
-- Execution time metrics
-- Memory usage tracking
-- Error rate monitoring
-- Connection health checks
+### Architecture Benefits
 
-**Tasks**:
-- [ ] Add performance monitoring
-- [ ] Optimize slow operations
-- [ ] Improve error handling
-- [ ] Add health check endpoints
-- [ ] Create performance benchmarks
+- **No C++ Compilation**: Content-only plugin
+- **Hot Reload**: Change code without restarting UE
+- **Simple Deployment**: Just copy plugin folder
+- **Python-Only**: All logic in Python for easy modification
 
-### 4.3 Deployment & Distribution
+## Development Workflow Summary
 
-**Package Formats**:
-- npm package for MCP server
-- Python wheel for utilities
-- UE plugin package
-- Docker container (optional)
+### Adding New Features
 
-**Distribution Channels**:
-- GitHub releases
-- npm registry
-- PyPI
-- UE Marketplace (future)
+1. **Edit Python listener** in `plugin/Content/Python/uemcp_listener_fixed.py`
+2. **Add MCP tool** in `server/src/tools/`
+3. **Test in UE** using `restart_listener()`
+4. **Run tests** with `./test-ci-locally.sh`
+5. **Commit changes** when tests pass
 
-**Tasks**:
-- [ ] Create packaging scripts
-- [ ] Set up automated releases
-- [ ] Create installation guides
-- [ ] Add version management
-- [ ] Test deployment procedures
+### Key Files
 
-## Testing Strategy
-
-### Continuous Integration
-
-**GitHub Actions Workflow**:
-```yaml
-name: UEMCP CI
-on: [push, pull_request]
-jobs:
-  test-server:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - run: npm test
-  
-  test-python:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-      - run: pytest
-  
-  integration-test:
-    runs-on: windows-latest  # For UE testing
-    steps:
-      - uses: actions/checkout@v3
-      - run: python scripts/test.py --integration
-```
-
-### Local Development Testing
-
-**Quick Test Commands**:
-```bash
-# Run all tests
-npm run test:all
-
-# Test specific component
-npm run test:server
-npm run test:python
-npm run test:integration
-
-# Test with real UE (requires UE Editor)
-npm run test:ue-integration
-```
-
-**Test Data Management**:
-- Version controlled test assets
-- Automated test project generation
-- Mock data factories
-- Test environment cleanup
-
-## Risk Mitigation
-
-### Technical Risks
-
-1. **UE Python API Limitations**
-   - **Risk**: Python API may not support all required operations
-   - **Mitigation**: Hybrid C++/Python approach, fallback implementations
-
-2. **MCP Protocol Changes**
-   - **Risk**: Protocol updates breaking compatibility
-   - **Mitigation**: Version pinning, protocol abstraction layer
-
-3. **Performance Issues**
-   - **Risk**: Slow tool execution affecting user experience
-   - **Mitigation**: Performance monitoring, async operations, caching
-
-4. **UE Version Compatibility**
-   - **Risk**: Different UE versions having different APIs
-   - **Mitigation**: Version detection, feature flags, compatibility layers
-
-### Project Risks
-
-1. **Scope Creep**
-   - **Risk**: Adding too many features before MVP
-   - **Mitigation**: Strict milestone focus, feature backlog management
-
-2. **Testing Complexity**
-   - **Risk**: Difficult to test without UE Editor
-   - **Mitigation**: Comprehensive mock system, CI/CD automation
-
-## Success Metrics
-
-### MVP Success Criteria
-
-- [ ] MCP server starts and accepts connections
-- [ ] At least 4 core tools working with mock UE
-- [ ] Integration with one AI client (Claude/Cursor)
-- [ ] 90%+ test coverage on core components
-- [ ] Documentation complete for basic usage
-- [ ] Installation process takes <15 minutes
-
-### Quality Gates
-
-**Before Phase 2**: All Phase 1 tests passing
-**Before Phase 3**: Core tools working with real UE
-**Before Phase 4**: Integration tests with AI clients passing
-**Before Release**: All acceptance criteria met
-
-## Timeline Summary
-
-| Phase | Duration | Key Deliverables | Success Criteria |
-|-------|----------|------------------|------------------|
-| 1 | Week 1-2 | Project structure, MCP server foundation, Python bridge | Server starts, basic communication works |
-| 2 | Week 3-4 | Core tools implementation, UE integration | 4+ tools working, mock environment complete |
-| 3 | Week 4-5 | Testing & validation, documentation | 90%+ coverage, integration tests passing |
-| 4 | Week 5-6 | AI client integration, deployment | Working with real AI clients, ready for release |
-
-**Total Estimated Time**: 6 weeks for testable MVP
-**Recommended Team Size**: 1-2 developers
-**Key Dependencies**: Access to UE Editor, AI client accounts for testing
-
----
-
-*This plan prioritizes creating a working, testable system quickly while maintaining code quality and comprehensive testing.*
+- **Python Listener**: `plugin/Content/Python/uemcp_listener_fixed.py`
+- **MCP Tools**: `server/src/tools/*.ts`
+- **Integration**: `server/src/services/python-bridge.ts`
+- **Tests**: `server/tests/` and `python/tests/`
