@@ -16,7 +16,7 @@ export const viewportModeTool = {
       required: ['mode']
     }
   },
-  handler: async (args: any) => {
+  handler: async (args: { mode: string }): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> => {
     const bridge = new PythonBridge();
     
     try {
@@ -34,7 +34,7 @@ export const viewportModeTool = {
       return {
         content: [{
           type: 'text',
-          text: `✓ Viewport mode changed to ${args.mode}\n\n${result.message || ''}`
+          text: `✓ Viewport mode changed to ${args.mode}\n\n${result.message ? String(result.message) : ''}`
         }]
       };
     } catch (error) {

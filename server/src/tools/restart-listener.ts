@@ -58,7 +58,7 @@ export const restartListenerTool = {
         ];
         
         if (result.message) {
-          messages.push('', `Details: ${result.message}`);
+          messages.push('', `Details: ${String(result.message)}`);
         }
         
         return {

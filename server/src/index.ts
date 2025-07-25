@@ -126,7 +126,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         result = await viewportCameraTool.handler(args);
         break;
       case 'viewport_mode':
-        result = await viewportModeTool.handler(args);
+        result = await viewportModeTool.handler(args as { mode: string });
         break;
       case 'test_connection':
         result = await testConnectionTool.handler(args);

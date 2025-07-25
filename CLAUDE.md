@@ -46,6 +46,9 @@ npm test
 
 # Run Python tests
 python -m pytest tests/
+
+# Run linting and CI checks before committing
+./test-ci-locally.sh
 ```
 
 ## Project Structure
