@@ -24,10 +24,10 @@ try:
     
     # Try to start the listener
     if uemcp_listener_fixed.start_listener():
-        unreal.log("="*60)
         unreal.log("UEMCP: Ready on http://localhost:8765")
-        unreal.log("UEMCP: Commands: status(), restart_listener(), stop_listener()")
-        unreal.log("="*60)
+        unreal.log("UEMCP: Python console: status(), restart_listener(), stop_listener()")
+        unreal.log("UEMCP: MCP tools: project_info, asset_list, asset_info, actor_spawn, actor_delete, actor_modify")
+        unreal.log("UEMCP:           level_actors, level_save, viewport_screenshot, viewport_camera, viewport_mode, viewport_focus")
     else:
         unreal.log_warning("UEMCP: Could not start - port may be in use")
         unreal.log("UEMCP: Run 'stop_listener()' then 'start_listener()'")
