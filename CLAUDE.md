@@ -123,6 +123,8 @@ This will:
 
 The whole process takes about 2-3 seconds and doesn't freeze UE.
 
+**Important**: Uses `uemcp_thread_tracker.py` to track threads across module reloads.
+
 ## Key Development Patterns
 
 1. **Content-Only Plugin**: No C++ compilation needed, all functionality via Python
@@ -152,13 +154,18 @@ The project has a working implementation with the following MCP tools:
 - `project_info` - Get project information
 - `asset_list` - List and filter project assets
 - `asset_info` - Get asset dimensions and properties
-- `actor_spawn` - Spawn actors (static meshes and blueprints)
+- `actor_spawn` - Spawn actors with folder organization
 - `actor_delete` - Delete actors by name
-- `actor_modify` - Modify actor transforms
+- `actor_modify` - Modify actor transforms and folder paths
 - `level_actors` - List actors in the current level
 - `level_save` - Save the current level
+- `level_outliner` - Get World Outliner folder structure
 - `viewport_screenshot` - Capture viewport screenshots
 - `viewport_camera` - Control viewport camera position
+- `viewport_mode` - Switch between perspective/orthographic views
+- `viewport_focus` - Focus viewport on specific actor
+- `viewport_render_mode` - Change rendering mode (wireframe, unlit, etc)
+- `python_proxy` - Execute arbitrary Python code with full UE API access
 - `test_connection` - Test connection to Python listener
 - `restart_listener` - Restart Python listener for hot reload
 

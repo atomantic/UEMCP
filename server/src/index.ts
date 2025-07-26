@@ -24,6 +24,7 @@ import { viewportRenderModeTool } from './tools/viewport-render-mode.js';
 import { pythonProxyTool } from './tools/python-proxy.js';
 import { testConnectionTool } from './tools/test-connection.js';
 import { restartListenerTool } from './tools/restart-listener.js';
+import { ueLogsTool } from './tools/ue-logs.js';
 import { logger } from './utils/logger.js';
 import { PythonBridge } from './services/python-bridge.js';
 import * as os from 'os';
@@ -89,6 +90,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       pythonProxyTool.definition,
       testConnectionTool.definition,
       restartListenerTool.definition,
+      ueLogsTool.definition,
     ],
   };
 });
@@ -158,6 +160,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'restart_listener':
         result = await restartListenerTool.handler(args as { force?: boolean });
+        break;
+      case 'ue_logs':
+        result = await ueLogsTool.handler(args as { lines?: number; project?: string });
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);
