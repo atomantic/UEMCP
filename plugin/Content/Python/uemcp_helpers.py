@@ -18,8 +18,8 @@ def restart_listener():
             if hasattr(listener, 'server_running') and listener.server_running:
                 unreal.log("UEMCP: Stopping listener...")
                 listener.server_running = False
-                # Wait for server thread to notice the flag
-                time.sleep(2.0)
+                # Wait longer for server thread to fully stop and release socket
+                time.sleep(3.0)
         
         # Step 2: Force kill any remaining processes on port
         try:

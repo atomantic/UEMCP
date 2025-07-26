@@ -62,6 +62,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'actor.modify',
                     'actor.organize',
                     'level.save',
+                    'level.outliner',
                     'viewport.screenshot',
                     'viewport.camera',
                     'viewport.mode',
@@ -343,6 +344,92 @@ def execute_on_main_thread(command):
                 'success': success,
                 'message': 'Level saved successfully' if success else 'Failed to save level'
             }
+        
+        elif cmd_type == 'level.outliner':
+            show_empty = params.get('showEmpty', False)
+            max_depth = params.get('maxDepth', 10)
+            
+            try:
+                # Get all actors
+                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+                all_actors = editor_actor_utils.get_all_level_actors()
+                
+                # Build folder structure
+                folder_structure = {}
+                unorganized_actors = []
+                organized_count = 0
+                
+                for actor in all_actors:
+                    if actor is None:
+                        continue
+                        
+                    actor_label = actor.get_actor_label()
+                    folder_path = actor.get_folder_path()
+                    
+                    if folder_path:
+                        organized_count += 1
+                        # Convert to string if it's a Name object
+                        folder_path_str = str(folder_path)
+                        # Split folder path and build nested structure
+                        parts = folder_path_str.split('/')
+                        current = folder_structure
+                        
+                        for i, part in enumerate(parts):
+                            if part not in current:
+                                current[part] = {
+                                    'actors': [],
+                                    'subfolders': {}
+                                }
+                            
+                            # If this is the last part, add the actor
+                            if i == len(parts) - 1:
+                                current[part]['actors'].append(actor_label)
+                            
+                            # Move to subfolder for next iteration
+                            current = current[part]['subfolders']
+                    else:
+                        unorganized_actors.append(actor_label)
+                
+                # Sort actors in each folder
+                def sort_folder_actors(folder_dict):
+                    for folder_name, folder_data in folder_dict.items():
+                        if 'actors' in folder_data:
+                            folder_data['actors'].sort()
+                        if 'subfolders' in folder_data:
+                            sort_folder_actors(folder_data['subfolders'])
+                
+                sort_folder_actors(folder_structure)
+                unorganized_actors.sort()
+                
+                # Count total folders
+                def count_folders(folder_dict):
+                    count = len(folder_dict)
+                    for folder_data in folder_dict.values():
+                        if 'subfolders' in folder_data:
+                            count += count_folders(folder_data['subfolders'])
+                    return count
+                
+                total_folders = count_folders(folder_structure)
+                
+                return {
+                    'success': True,
+                    'outliner': {
+                        'folders': folder_structure,
+                        'unorganized': unorganized_actors,
+                        'stats': {
+                            'totalActors': len(all_actors),
+                            'organizedActors': organized_count,
+                            'unorganizedActors': len(unorganized_actors),
+                            'totalFolders': total_folders
+                        }
+                    }
+                }
+                
+            except Exception as e:
+                return {
+                    'success': False,
+                    'error': str(e)
+                }
         
         elif cmd_type == 'viewport.screenshot':
             import os

@@ -15,6 +15,7 @@ import { actorModifyTool } from './tools/actor-modify.js';
 import { actorOrganizeTool } from './tools/actor-organize.js';
 import { levelActorsTool } from './tools/level-actors.js';
 import { levelSaveTool } from './tools/level-save.js';
+import { levelOutlinerTool } from './tools/level-outliner.js';
 import { viewportScreenshotTool } from './tools/viewport-screenshot.js';
 import { viewportCameraTool } from './tools/viewport-camera.js';
 import { viewportModeTool } from './tools/viewport-mode.js';
@@ -79,6 +80,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       actorOrganizeTool.definition,
       levelActorsTool.definition,
       levelSaveTool.definition,
+      levelOutlinerTool.definition,
       viewportScreenshotTool.definition,
       viewportCameraTool.definition,
       viewportModeTool.definition,
@@ -129,6 +131,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'level_save':
         result = await levelSaveTool.handler(args);
+        break;
+      case 'level_outliner':
+        result = await levelOutlinerTool.handler(args);
         break;
       case 'viewport_screenshot':
         result = await viewportScreenshotTool.handler(args);
