@@ -22,17 +22,19 @@ try:
         uemcp_listener_fixed.stop_listener()
         time.sleep(1)  # Give it time to clean up
     
+    # Also check if port is in use from a crashed session
+    import uemcp_port_utils
+    if uemcp_port_utils.is_port_in_use(8765):
+        unreal.log("UEMCP: Port 8765 in use from previous session, cleaning up...")
+        uemcp_port_utils.force_free_port_silent(8765)
+        time.sleep(1)
+    
     # Try to start the listener
     started = uemcp_listener_fixed.start_listener()
     if not started:
-        # Port might be in use from previous session
-        unreal.log("UEMCP: Port 8765 in use, waiting for it to be freed...")
-        time.sleep(5)
-        # Try once more
-        started = uemcp_listener_fixed.start_listener()
-        if not started:
-            unreal.log_warning("UEMCP: Still could not start after waiting")
-            unreal.log("UEMCP: Run 'stop_listener()' then 'start_listener()' manually")
+        # This should rarely happen now with automatic cleanup
+        unreal.log_warning("UEMCP: Could not start listener")
+        unreal.log("UEMCP: Check the output log for details")
     
     if started:
         # Success - show status
@@ -40,7 +42,7 @@ try:
         unreal.log("UEMCP: Python console: start_listener(), stop_listener(), restart_listener(), reload_uemcp(), status()")
         unreal.log("UEMCP: MCP tools: project_info, asset_list, asset_info, actor_spawn, actor_delete, actor_modify")
         unreal.log("UEMCP:           level_actors, level_save, viewport_screenshot, viewport_camera, viewport_mode, viewport_focus")
-        unreal.log("UEMCP:           viewport_render_mode (wireframe, unlit, lit, etc.)")
+        unreal.log("UEMCP:           viewport_render_mode (wireframe, unlit, lit, etc.), python_proxy (full API access)")
     
     # Import helper functions
     import uemcp_helpers

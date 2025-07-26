@@ -300,6 +300,7 @@ Once connected, Claude can use these UEMCP tools:
 
 ### System
 - **restart_listener** - Restart the Python listener for hot reload of code changes
+- **python_proxy** - Execute arbitrary Python code in Unreal Engine's Python environment with full API access
 
 ### AI Client Setup
 
@@ -506,6 +507,58 @@ Natural language examples:
 - "Save the current level"
 - "Save my changes"
 
+### Python Proxy - Direct API Access
+The python_proxy tool provides direct access to Unreal Engine's Python API, giving you access to thousands of API methods without needing individual MCP tool wrappers. This includes:
+
+- **EditorUtilityLibrary** - Editor utilities not exposed in our tools
+- **AssetEditorSubsystem** - Asset editor operations
+- **LevelSequenceEditorSubsystem** - Sequencer control
+- **StaticMeshEditorSubsystem** - Mesh editing
+- **MaterialEditingLibrary** - Material creation and editing
+- **AnimationLibrary** - Animation utilities
+- **GameplayStatics** - Gameplay utilities
+- **And much more** - Full access to all UE Python APIs
+
+Natural language examples:
+- "Use python_proxy to get all actors with 'Wall' in their name"
+- "Execute Python code to change all lights to red"
+- "Run Python to analyze material usage in the level"
+- "Use python_proxy to access EditorUtilityLibrary and get selected assets"
+- "Execute Python to create a new material using MaterialEditingLibrary"
+
+Direct usage example:
+```json
+{
+  "tool": "python_proxy",
+  "arguments": {
+    "code": "# Get all static mesh actors\nactors = unreal.EditorLevelLibrary.get_all_level_actors()\nstatic_meshes = [a for a in actors if isinstance(a, unreal.StaticMeshActor)]\nresult = [(a.get_actor_label(), a.get_actor_location()) for a in static_meshes[:5]]"
+  }
+}
+```
+
+Example with context variables:
+```json
+{
+  "tool": "python_proxy", 
+  "arguments": {
+    "code": "# Find actors near a position\nposition = unreal.Vector(x, y, z)\nactors = unreal.EditorLevelLibrary.get_all_level_actors()\nnearby = [a for a in actors if (a.get_actor_location() - position).size() < radius]\nresult = [a.get_actor_label() for a in nearby]",
+    "context": {"x": 1000, "y": 500, "z": 0, "radius": 1000}
+  }
+}
+```
+
+Advanced example - Using APIs not in our facade:
+```json
+{
+  "tool": "python_proxy",
+  "arguments": {
+    "code": "# Use EditorUtilityLibrary to work with selected assets\nselected_assets = unreal.EditorUtilityLibrary.get_selected_assets()\nfor asset in selected_assets:\n    print(f'Selected: {asset.get_name()}')\n\n# Use MaterialEditingLibrary to analyze materials\nmaterials = unreal.EditorAssetLibrary.list_assets('/Game/Materials')\nresult = {'total_materials': len(materials), 'first_5': materials[:5]}"
+  }
+}
+```
+
+Security note: The python_proxy tool executes code in Unreal Engine's Python environment. While powerful, use with caution and avoid executing untrusted code.
+
 ### Project Creation (Mock - for testing)
 ```json
 {
@@ -623,6 +676,7 @@ Current implementation includes:
 - **viewport_mode** - Switch between perspective and orthographic views
 - **viewport_focus** - Focus viewport on a specific actor
 - **viewport_render_mode** - Change viewport rendering mode (wireframe, unlit, lit, etc.)
+- **python_proxy** - Execute Python code with full Unreal Engine API access
 - **test_connection** - Test connection to Python listener and diagnose issues
 
 ### Actor Spawning
