@@ -3,6 +3,14 @@ import { PythonBridge } from '../services/python-bridge.js';
 import * as fs from 'fs/promises';
 import { spawn } from 'child_process';
 
+interface ViewportScreenshotArgs {
+  width?: number;
+  height?: number;
+  screenPercentage?: number;
+  compress?: boolean;
+  quality?: number;
+}
+
 // Helper function to compress image using sips on macOS
 async function compressImage(inputPath: string, quality: number = 60): Promise<string> {
   const outputPath = inputPath.replace('.png', '_compressed.jpg');
@@ -65,14 +73,14 @@ export const viewportScreenshotTool = {
       required: [],
     },
   },
-  handler: async (args: any = {}): Promise<{ content: Array<{ type: string; text?: string; data?: string; mimeType?: string }> }> => {
+  handler: async (args: unknown = {}): Promise<{ content: Array<{ type: string; text?: string; data?: string; mimeType?: string }> }> => {
     const {
       width = 640,
       height = 360, 
       screenPercentage = 50,
       compress = true,
       quality = 60
-    } = args;
+    } = args as ViewportScreenshotArgs;
     
     logger.debug(`Taking viewport screenshot: ${width}x${height} @ ${screenPercentage}%, compress: ${compress}`);
     
@@ -113,7 +121,7 @@ export const viewportScreenshotTool = {
                 logger.debug('Compressed image not smaller, using original');
               }
             } catch (compressionError) {
-              logger.warn(`Image compression failed: ${compressionError}, using original`);
+              logger.warn(`Image compression failed: ${String(compressionError)}, using original`);
             }
           }
           

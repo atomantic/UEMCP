@@ -6,6 +6,24 @@ interface OutlinerArgs {
   maxDepth?: number;
 }
 
+interface FolderData {
+  actors: string[];
+  subfolders: Record<string, FolderData>;
+}
+
+interface OutlinerStats {
+  totalActors: number;
+  organizedActors: number;
+  unorganizedActors: number;
+  totalFolders: number;
+}
+
+interface OutlinerResult {
+  folders: Record<string, FolderData>;
+  unorganized: string[];
+  stats: OutlinerStats;
+}
+
 export const levelOutlinerTool = {
   definition: {
     name: 'level_outliner',
@@ -40,7 +58,7 @@ export const levelOutlinerTool = {
       });
       
       if (result.success && result.outliner) {
-        const outliner = result.outliner as any;
+        const outliner = result.outliner as OutlinerResult;
         const { folders, unorganized, stats } = outliner;
         
         let text = '📁 World Outliner Structure\n';
@@ -92,13 +110,13 @@ export const levelOutlinerTool = {
   },
 };
 
-function formatFolderTree(folders: any, prefix: string, maxDepth: number, currentDepth: number = 0): string {
+function formatFolderTree(folders: Record<string, FolderData>, prefix: string, maxDepth: number, currentDepth: number = 0): string {
   if (currentDepth >= maxDepth) return '';
   
   let result = '';
   const entries = Object.entries(folders);
   
-  entries.forEach(([folderName, folderData]: [string, any], index) => {
+  entries.forEach(([folderName, folderData], index) => {
     const isLast = index === entries.length - 1;
     const connector = isLast ? '└── ' : '├── ';
     const extension = isLast ? '    ' : '│   ';
