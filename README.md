@@ -1,4 +1,4 @@
-# UEMCP - Unreal Engine Model Context Protocol Server
+# UEMCP - Unreal Engine Model Context Protocol
 
 ![Unreal Engine](https://img.shields.io/badge/Unreal%20Engine-5.x-blue?logo=unrealengine)
 ![MCP](https://img.shields.io/badge/MCP-Compatible-green)
