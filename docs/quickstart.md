@@ -15,8 +15,8 @@ That's it! The init script handles everything automatically.
 ### Advanced Setup Options
 
 ```bash
-# Install with plugin to your Unreal project
-node init.js --project "/path/to/your/ue/project" --install-plugin
+# Install to your Unreal project (automatically installs plugin)
+node init.js --project "/path/to/your/ue/project"
 
 # Non-interactive mode (great for CI/CD)
 node init.js --no-interactive --project "/path/to/project"
@@ -89,7 +89,7 @@ For full functionality, install the UEMCP plugin to your UE project:
 
 ```bash
 # If you didn't do this during init, run:
-node init.js --project "/path/to/project.uproject" --install-plugin
+node init.js --project "/path/to/project.uproject"
 ```
 
 The plugin enables:
