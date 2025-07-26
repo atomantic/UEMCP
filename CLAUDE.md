@@ -180,20 +180,28 @@ The project has a working implementation with the following MCP tools:
 ## Important Unreal Engine Conventions
 
 ### Rotation and Location Arrays
-**CRITICAL**: Unreal Engine uses [X, Y, Z] order for both location and rotation arrays:
-- **Location [X, Y, Z]**: Position in 3D space
-- **Rotation [X, Y, Z]**: 
-  - X = Roll (rotation around X axis - tilting sideways)
-  - Y = Pitch (rotation around Y axis - looking up/down)
-  - Z = Yaw (rotation around Z axis - turning left/right)
+**CRITICAL**: Understanding Unreal Engine rotation arrays:
 
-Common rotation examples:
-- `[0, 0, 90]` - Rotate 90° around vertical Z axis (turn right)
-- `[0, 0, -90]` - Rotate -90° around vertical Z axis (turn left)
-- `[0, -30, 0]` - Look down 30°
+**Location [X, Y, Z]**: Position in 3D space (straightforward)
+
+**Rotation [Roll, Pitch, Yaw]**: 
+- **Roll** (index 0): Rotation around the forward X axis (tilting sideways)
+- **Pitch** (index 1): Rotation around the right Y axis (looking up/down)  
+- **Yaw** (index 2): Rotation around the up Z axis (turning left/right)
+
+Common rotation examples for building:
 - `[0, 0, 0]` - No rotation (default orientation)
+- `[0, 0, 90]` - Rotate 90° clockwise around Z axis (turn right)
+- `[0, 0, -90]` - Rotate 90° counter-clockwise around Z axis (turn left)
+- `[0, 90, 0]` - Rotate 90° around Y axis (face up)
+- `[90, 0, 0]` - Rotate 90° around X axis (tilt sideways)
 
-**Note**: This is NOT [pitch, yaw, roll] order. Always use [X, Y, Z] order.
+**For modular building pieces**:
+- Walls running along X-axis (North-South): Use rotation `[0, 0, 0]`
+- Walls running along Y-axis (East-West): Use rotation `[0, 0, -90]`
+- Corner pieces may need specific rotations like `[0, 0, 90]` or `[0, 90, 0]`
+
+**Note**: The rotation array is [Roll, Pitch, Yaw], NOT [X, Y, Z] as the indices might suggest!
 
 ## Accessing Logs
 

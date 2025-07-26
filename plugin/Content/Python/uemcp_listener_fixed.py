@@ -454,7 +454,7 @@ def execute_on_main_thread(command):
                     None,            # Camera (None = current view)
                     False,           # Mask enabled
                     False,           # Capture HDR
-                    screen_percentage # Screen percentage for further size reduction
+                    unreal.ComparisonTolerance.LOW  # Use LOW tolerance enum
                 )
                 
                 # Determine expected save path based on platform
