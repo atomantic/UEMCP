@@ -30,10 +30,10 @@ The init script automatically:
 # Configure for Claude Code (claude.ai/code)
 node init.js --claude-code
 
-# Specify UE project (automatically installs plugin)
+# Specify UE project (automatically installs plugin to specified unreal engine project)
 node init.js --project "/path/to/project.uproject"
 
-# Install with symlink for development (recommended)
+# Install with symlink for plugin development
 node init.js --project "/path/to/project.uproject" --symlink
 
 # Non-interactive with all options

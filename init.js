@@ -221,7 +221,9 @@ async function installPlugin(projectPath, useSymlink = false) {
     try {
         if (useSymlink) {
             log.info(`Creating symlink: ${uemcpPluginDir} → ${sourcePluginDir}`);
-            fs.symlinkSync(sourcePluginDir, uemcpPluginDir, 'junction');
+            // Use 'junction' on Windows for compatibility, default symlink type on other platforms
+            const symlinkType = os.platform() === 'win32' ? 'junction' : undefined;
+            fs.symlinkSync(sourcePluginDir, uemcpPluginDir, symlinkType);
             log.success('Plugin symlinked successfully!');
             log.info('💡 Tip: Changes to plugin code will be reflected immediately after restart_listener()');
         } else {
@@ -385,7 +387,16 @@ async function init() {
                     console.log('  1. Symlink (recommended for development - hot reload support)');
                     console.log('  2. Copy (recommended for production)');
                     const methodAnswer = await question('Choose method (1/2) [1]: ');
-                    options.symlink = methodAnswer !== '2';
+                    
+                    // Handle method selection with clear logic
+                    if (methodAnswer === '1' || methodAnswer === '') {
+                        options.symlink = true; // Default to symlink
+                    } else if (methodAnswer === '2') {
+                        options.symlink = false; // Use copy
+                    } else {
+                        log.warning('Invalid choice. Defaulting to symlink.');
+                        options.symlink = true;
+                    }
                 }
             }
         } else {
