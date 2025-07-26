@@ -43,10 +43,10 @@ export const pythonProxyTool = {
       }
       
       // Show any locals that were created (excluding result)
-      if (result.locals && Object.keys(result.locals).length > 0) {
-        const filteredLocals = Object.entries(result.locals)
+      if (result.locals && Object.keys(result.locals as Record<string, unknown>).length > 0) {
+        const filteredLocals = Object.entries(result.locals as Record<string, unknown>)
           .filter(([key]) => key !== 'result')
-          .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+          .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {} as Record<string, unknown>);
         
         if (Object.keys(filteredLocals).length > 0) {
           output += '\nLocal variables:\n';
@@ -66,7 +66,8 @@ export const pythonProxyTool = {
       // Check if we have traceback information
       let errorOutput = `Error executing Python code: ${errorMessage}`;
       if (error instanceof Error && 'traceback' in error) {
-        errorOutput += '\n\nTraceback:\n' + (error as any).traceback;
+        const errorWithTraceback = error as Error & { traceback: string };
+        errorOutput += '\n\nTraceback:\n' + errorWithTraceback.traceback;
       }
       
       return {
