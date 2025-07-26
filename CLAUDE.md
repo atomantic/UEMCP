@@ -165,7 +165,7 @@ The project has a working implementation with the following MCP tools:
 - `viewport_mode` - Switch between perspective/orthographic views
 - `viewport_focus` - Focus viewport on specific actor
 - `viewport_render_mode` - Change rendering mode (wireframe, unlit, etc)
-- `python_proxy` - Execute arbitrary Python code with full UE API access
+- `python_proxy` - Execute arbitrary Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6)
 - `test_connection` - Test connection to Python listener
 - `restart_listener` - Restart Python listener for hot reload
 - `ue_logs` - Read recent lines from UE console log file

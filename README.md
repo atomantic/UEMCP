@@ -64,7 +64,7 @@ UEMCP provides these tools to Claude for controlling Unreal Engine:
 - **viewport_render_mode** - Change rendering mode (wireframe, unlit, etc.)
 
 ### Advanced
-- **python_proxy** - Execute Python code with full UE API access
+- **python_proxy** - Execute Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6)
 - **test_connection** - Test connection to UE Python listener
 - **restart_listener** - Hot reload Python code changes
 - **ue_logs** - Read recent lines from UE console log file (useful for debugging)
