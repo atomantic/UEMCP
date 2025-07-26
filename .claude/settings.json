@@ -10,17 +10,6 @@
           }
         ]
       }
-    ],
-    "ToolUsePrompt": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "afplay /System/Library/Sounds/Pop.aiff"
-          }
-        ]
-      }
     ]
   }
 }
