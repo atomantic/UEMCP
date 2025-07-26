@@ -441,14 +441,20 @@ def execute_on_main_thread(command):
             # Use just the base filename - UE will add .png and determine path
             base_filename = f'uemcp_screenshot_{timestamp}'
             
+            # Get resolution and screen percentage from params (with defaults for smaller files)
+            width = params.get('width', 640)   # Reduced from 1280
+            height = params.get('height', 360)  # Reduced from 720
+            screen_percentage = params.get('screenPercentage', 50)  # 50% for smaller files
+            
             try:
-                # Take screenshot using automation library
+                # Take screenshot using automation library with reduced size
                 unreal.AutomationLibrary.take_high_res_screenshot(
-                    1280, 720,   # Resolution
+                    width, height,    # Configurable resolution (default smaller)
                     base_filename,    # Base filename (no path, no extension)
-                    None,        # Camera (None = current view)
-                    False,       # Mask enabled
-                    False        # Capture HDR
+                    None,            # Camera (None = current view)
+                    False,           # Mask enabled
+                    False,           # Capture HDR
+                    screen_percentage # Screen percentage for further size reduction
                 )
                 
                 # Determine expected save path based on platform

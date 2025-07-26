@@ -216,6 +216,48 @@ To enable verbose UEMCP logging:
 
 **Note**: Claude can access log files directly via the filesystem if you provide the path. No special MCP tool is needed for log access.
 
+## Screenshot Optimization
+
+### File Size Reduction
+The `viewport_screenshot` tool has been optimized to produce much smaller files for debugging:
+
+**Default Settings (90-95% smaller files):**
+- Resolution: 640×360 (down from 1280×720)
+- Screen percentage: 50% (renders at half quality)
+- Compression: Enabled (PNG → JPEG @ 60% quality)
+- Expected size: ~50-100KB (down from 1MB+)
+
+**Custom Parameters:**
+```typescript
+viewport_screenshot({
+  width: 800,           // Custom width (default: 640)
+  height: 450,          // Custom height (default: 360)  
+  screenPercentage: 75, // Higher quality (default: 50)
+  compress: false,      // Disable compression (default: true)
+  quality: 80          // Higher JPEG quality (default: 60)
+})
+```
+
+### Wireframe Mode for Better Detail
+For debugging placement and structure, switch to wireframe view before screenshots:
+
+```typescript
+// Switch to wireframe for clearer structural detail
+viewport_render_mode({ mode: 'wireframe' })
+
+// Take screenshot - wireframe creates much smaller files
+viewport_screenshot()
+
+// Switch back to lit mode when done
+viewport_render_mode({ mode: 'lit' })
+```
+
+**Benefits of Wireframe Screenshots:**
+- Much smaller file sizes (simpler geometry)
+- Clear structural details and edges
+- Better for debugging placement and alignment
+- Removes visual clutter from materials/lighting
+
 ## Code Style Guidelines
 
 ### Line Endings
