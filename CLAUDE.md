@@ -149,6 +149,24 @@ The project has a working implementation with the following MCP tools:
 - **Python Listener**: Running on http://localhost:8765
 - **Available Assets**: ModularOldTown building components in /Game/ModularOldTown/Meshes/
 
+## Important Unreal Engine Conventions
+
+### Rotation and Location Arrays
+**CRITICAL**: Unreal Engine uses [X, Y, Z] order for both location and rotation arrays:
+- **Location [X, Y, Z]**: Position in 3D space
+- **Rotation [X, Y, Z]**: 
+  - X = Roll (rotation around X axis - tilting sideways)
+  - Y = Pitch (rotation around Y axis - looking up/down)
+  - Z = Yaw (rotation around Z axis - turning left/right)
+
+Common rotation examples:
+- `[0, 0, 90]` - Rotate 90° around vertical Z axis (turn right)
+- `[0, 0, -90]` - Rotate -90° around vertical Z axis (turn left)
+- `[0, -30, 0]` - Look down 30°
+- `[0, 0, 0]` - No rotation (default orientation)
+
+**Note**: This is NOT [pitch, yaw, roll] order. Always use [X, Y, Z] order.
+
 ## Accessing Logs
 
 ### Unreal Engine Logs

@@ -143,7 +143,7 @@ def execute_on_main_thread(command):
                 'projectName': unreal.Paths.get_project_file_path().split('/')[-1].replace('.uproject', ''),
                 'projectDirectory': unreal.Paths.project_dir(),
                 'engineVersion': unreal.SystemLibrary.get_engine_version(),
-                'currentLevel': unreal.EditorLevelLibrary.get_editor_world().get_name()
+                'currentLevel': unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world().get_name()
             }
         
         elif cmd_type == 'asset.list':
@@ -172,7 +172,7 @@ def execute_on_main_thread(command):
         
         elif cmd_type == 'level.actors':
             # Get all actors in level
-            all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+            all_actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
             actor_list = []
             
             limit = params.get('limit', 30)
@@ -195,7 +195,7 @@ def execute_on_main_thread(command):
                 'success': True,
                 'actors': actor_list,
                 'totalCount': len(all_actors),
-                'currentLevel': unreal.EditorLevelLibrary.get_editor_world().get_name()
+                'currentLevel': unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world().get_name()
             }
         
         elif cmd_type == 'actor.create' or cmd_type == 'actor.spawn':
@@ -554,6 +554,7 @@ def execute_on_main_thread(command):
                         
                         # Set viewport
                         # Set viewport camera
+                        # Use EditorLevelLibrary (works even if deprecated)
                         unreal.EditorLevelLibrary.set_level_viewport_camera_info(
                             camera_location,
                             camera_rotation
@@ -591,10 +592,9 @@ def execute_on_main_thread(command):
                         current_rot = unreal.Rotator(-30, 0, 0)
                     
                     # Set the viewport camera
-                    # Use UnrealEditorSubsystem for camera control
-                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
-                viewport_client = editor_subsystem.get_level_viewport_camera_info()
-                editor_subsystem.set_level_viewport_camera_info(
+                    # Use LevelEditorSubsystem for camera control
+                # Use EditorLevelLibrary (works even if deprecated)
+                unreal.EditorLevelLibrary.set_level_viewport_camera_info(
                         current_loc,
                         current_rot
                     )
@@ -696,6 +696,7 @@ def execute_on_main_thread(command):
                     
                     # Set orthographic view with proper orientation
                     # Set viewport camera for orthographic view
+                    # Use EditorLevelLibrary (works even if deprecated)
                     unreal.EditorLevelLibrary.set_level_viewport_camera_info(
                         current_loc,
                         rotation
