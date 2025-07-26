@@ -6,6 +6,14 @@ This document outlines limitations discovered during the house-building experime
 
 ## Critical Limitations Found
 
+### 0. Python API Method Inconsistencies
+**Problem**: `get_actor_label()` works but `get_actor_reference()` doesn't
+- Must use `get_actor_label()` to get display names
+- `set_actor_rotation()` works for modifying actors
+- Some viewport control methods don't exist in Python API
+
+**Solution Found**: Use `get_actor_label()` for finding actors by name
+
 ### 1. Actor Reference System Issues
 **Problem**: `get_actor_reference()` doesn't work with friendly names like "Corner_Back_Right"
 - Actors are internally referenced as `StaticMeshActor_18` etc.
@@ -184,6 +192,28 @@ def get_actor_by_display_name(name):
     return None
 ```
 
+## House Building Experiment Results
+
+### What Worked
+1. **Python Proxy for Direct Manipulation**: Successfully used `python_proxy` to:
+   - Find actors by label using `get_actor_label()`
+   - Modify rotations with `set_actor_rotation()`
+   - Analyze positions and detect gaps
+
+2. **Basic Actor Placement**: Could place walls and corners at specific coordinates
+
+3. **Level Organization**: Folder structure in World Outliner worked well
+
+### Key Discoveries
+1. **Corner Pieces Are Junction Pieces**: ModularOldTown corner pieces are smaller than walls, creating intentional 300-unit gaps
+2. **Rotation Fix**: Corners need specific rotations:
+   - Front-Left: 0°
+   - Front-Right: -90°
+   - Back-Right: 180°
+   - Back-Left: 90°
+
+3. **Gap Analysis**: The "gaps" are actually by design - corner pieces connect at the junction points
+
 ## Conclusion
 
 The current MCP implementation is functional but requires significant enhancements for efficient building workflows. The main issues are:
@@ -191,6 +221,12 @@ The current MCP implementation is functional but requires significant enhancemen
 1. Lack of placement validation and snapping
 2. Limited viewport control
 3. No batch operations
-4. Poor actor reference system
+4. Poor actor reference system (partially solved with `get_actor_label()`)
 
-With these enhancements, the MCP would enable much more efficient and accurate building in Unreal Engine.
+The house building experiment successfully:
+- ✅ Identified and fixed corner rotation issues
+- ✅ Documented modular building patterns
+- ✅ Created comprehensive best practices
+- ✅ Discovered Python API workarounds
+
+With the proposed enhancements, the MCP would enable much more efficient and accurate building in Unreal Engine.
