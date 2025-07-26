@@ -1,227 +1,260 @@
 # Claude Code MCP Configuration Guide
 
-This guide covers how to configure UEMCP for use with Claude Code (claude.ai/code), which uses a different configuration method than Claude Desktop.
+This guide covers how to configure UEMCP for use with Claude Code (claude.ai/code).
 
 ## Prerequisites
 
-- Claude Code account with MCP access
-- Node.js installed on your system
-- UEMCP server files from this repository
+- Claude Code CLI installed (`claude` command)
+- Node.js 18+ installed
+- UEMCP repository cloned and built
+- Unreal Engine project (optional for initial testing)
 
-## Configuration Steps for Claude Code
+## Quick Setup
 
-### 1. Open Claude Code Settings
+### Option 1: Using Claude CLI (Recommended)
 
-1. Go to [claude.ai/code](https://claude.ai/code)
-2. Click on your profile icon → Settings
-3. Navigate to the "Developer" or "MCP Servers" section
+1. **Build UEMCP first:**
+   ```bash
+   cd /path/to/UEMCP
+   cd server
+   npm install
+   npm run build
+   ```
 
-### 2. Add MCP Server Configuration
+2. **Add UEMCP server to Claude Code:**
+   ```bash
+   # From the UEMCP directory
+   UEMCP_DIR=$(pwd)
+   
+   # Add the server
+   claude mcp add uemcp node "${UEMCP_DIR}/server/dist/index.js" \
+     -e "UE_PROJECT_PATH=/path/to/your/project.uproject"
+   
+   # Verify it was added
+   claude mcp list
+   ```
 
-In Claude Code, you'll use the MCP configuration interface:
+3. **Test the connection:**
+   ```bash
+   # This will show if the server is working
+   claude mcp test uemcp
+   ```
 
-```json
-{
-  "name": "uemcp",
-  "command": "node",
-  "args": ["<PATH_TO_UEMCP>/server/dist/index.js"],
-  "env": {
-    "DEBUG": "uemcp:*"
-  }
-}
-```
+### Option 2: Manual Configuration File
 
-### 3. Alternative: Using claude-mcp CLI
+1. **Create/edit the MCP configuration file:**
+   ```bash
+   # macOS/Linux
+   mkdir -p ~/.config/claude
+   nano ~/.config/claude/mcp_settings.json
+   
+   # Windows
+   # Create %APPDATA%\claude\mcp_settings.json
+   ```
 
-If you have access to the `claude-mcp` CLI tool:
+2. **Add UEMCP configuration:**
+   ```json
+   {
+     "mcpServers": {
+       "uemcp": {
+         "command": "node",
+         "args": ["/absolute/path/to/UEMCP/server/dist/index.js"],
+         "env": {
+           "UE_PROJECT_PATH": "/path/to/your/project.uproject"
+         }
+       }
+     }
+   }
+   ```
+
+## Environment Variables
+
+Configure UEMCP with these environment variables:
 
 ```bash
-# Install claude-mcp if not already installed
-npm install -g @anthropic/claude-mcp
+# Required if you want to work with a specific project
+UE_PROJECT_PATH="/path/to/your/UnrealProject.uproject"
 
-# Add the UEMCP server
-claude-mcp add uemcp \
-  --command "node" \
-  --args "<PATH_TO_UEMCP>/server/dist/index.js" \
-  --env "DEBUG=uemcp:*"
-
-# List configured servers
-claude-mcp list
-
-# Test the server
-claude-mcp test uemcp
-```
-
-### 4. Manual Configuration File
-
-Claude Code may use a configuration file at:
-
-```bash
-# macOS/Linux
-~/.config/claude/mcp_servers.json
-
-# Windows
-%APPDATA%\claude\mcp_servers.json
-```
-
-Create or edit this file:
-
-```json
-{
-  "servers": {
-    "uemcp": {
-      "command": "node",
-      "args": ["<PATH_TO_UEMCP>/server/dist/index.js"],
-      "env": {
-        "DEBUG": "uemcp:*"
-      },
-      "enabled": true
-    }
-  }
-}
+# Optional
+DEBUG="uemcp:*"                    # Enable debug logging
+UE_INSTALL_LOCATION="/path/to/UE"  # Custom UE installation
 ```
 
 ## Verifying the Connection
 
-### In Claude Code:
+### In Claude Code Web Interface:
 
-1. Start a new conversation
-2. Look for the MCP indicator (usually shows connected servers)
-3. Test with: "What MCP tools are available?"
+1. Visit [claude.ai/code](https://claude.ai/code)
+2. Start a new conversation
+3. Ask: "What UEMCP tools are available?"
 
-### Expected Tools:
+You should see a list of available tools like:
+- `project_info`
+- `asset_list`
+- `actor_spawn`
+- `level_save`
+- etc.
 
-- `asset_list` - List Unreal Engine assets
-- `blueprint_create` - Create new blueprints
-- `project_create` - Create new projects (mock)
+### Using Claude CLI:
+
+```bash
+# List all MCP servers
+claude mcp list
+
+# Test UEMCP specifically
+claude mcp test uemcp
+
+# Remove if needed
+claude mcp remove uemcp
+```
+
+## Available Tools
+
+Once connected, UEMCP provides these tools:
+
+### Project & Assets
+- **project_info** - Get project information
+- **asset_list** - List and filter assets
+- **asset_info** - Get asset details
+
+### Level Editing
+- **actor_spawn** - Spawn actors in the level
+- **actor_delete** - Delete actors
+- **actor_modify** - Modify actor properties
+- **level_actors** - List level actors
+- **level_save** - Save the current level
+
+### Viewport Control
+- **viewport_screenshot** - Capture screenshots
+- **viewport_camera** - Control camera
+- **viewport_focus** - Focus on actors
+
+### Advanced
+- **python_proxy** - Execute Python in UE
+- **restart_listener** - Restart Python listener
 
 ## Usage Examples
 
-Once connected, you can use natural language:
-
-### List Assets
 ```
-"Show me all blueprints in my Unreal project"
-"List assets in /Game/Characters"
-"What materials are in the project?"
-```
-
-### Create Blueprints
-```
-"Create a new Actor blueprint called BP_Platform"
-"Make a Character blueprint named BP_Enemy in /Game/Enemies"
-"Create a GameMode blueprint"
-```
-
-### Project Information
-```
-"What Unreal Engine version is my project using?"
-"Show me the project directory"
+"Show me all static meshes in the ModularOldTown folder"
+"Spawn a cube at location 1000, 500, 0"
+"Take a screenshot of the current viewport"
+"List all actors with 'Wall' in their name"
+"Save the current level"
 ```
 
 ## Troubleshooting
 
-### Server Not Connecting
+### Server Not Found
 
-1. **Verify Node.js is accessible:**
+1. **Check the path is absolute:**
    ```bash
-   which node
-   node --version
+   # Good
+   /Users/username/Projects/UEMCP/server/dist/index.js
+   
+   # Bad
+   ~/UEMCP/server/dist/index.js
+   ./server/dist/index.js
    ```
 
-2. **Test the server manually:**
+2. **Verify the server was built:**
    ```bash
-   cd <PATH_TO_UEMCP>/server
-   node dist/index.js
-   ```
-   You should see: "UEMCP server started"
-
-3. **Check the server path:**
-   - Ensure the full path to `index.js` is correct
-   - Use absolute paths, not relative
-
-### Tools Not Appearing
-
-1. **Refresh Claude Code:**
-   - Hard refresh: Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows)
-   - Clear site data if needed
-
-2. **Check browser console:**
-   - Open Developer Tools (F12)
-   - Look for MCP-related errors
-
-3. **Verify server response:**
-   ```bash
-   # Test the server responds to MCP protocol
-   echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node /path/to/server/dist/index.js
+   ls -la /path/to/UEMCP/server/dist/index.js
+   # Should exist and be readable
    ```
 
-### Permission Issues
+3. **Test manually:**
+   ```bash
+   node /path/to/UEMCP/server/dist/index.js
+   # Should output: UEMCP MCP Server running on stdio
+   ```
 
-If you get permission errors:
+### Connection Issues
 
-```bash
-# Make sure the server is executable
-chmod +x <PATH_TO_UEMCP>/server/dist/index.js
+1. **Check Claude CLI version:**
+   ```bash
+   claude --version
+   # Should be recent version with MCP support
+   ```
 
-# Check file ownership
-ls -la <PATH_TO_UEMCP>/server/dist/
-```
+2. **View Claude logs:**
+   ```bash
+   # Location varies by OS
+   # macOS: ~/Library/Logs/Claude/
+   # Check for MCP-related errors
+   ```
+
+3. **Enable debug mode:**
+   ```bash
+   claude mcp remove uemcp
+   claude mcp add uemcp node /path/to/server/dist/index.js \
+     -e "DEBUG=uemcp:*" \
+     -e "UE_PROJECT_PATH=/path/to/project.uproject"
+   ```
+
+### Python Listener Issues
+
+If UE integration isn't working:
+
+1. **Ensure UE is running** with your project open
+2. **Check Python is enabled** in UE (Edit → Plugins → Python)
+3. **Restart the listener** in UE Python console:
+   ```python
+   restart_listener()
+   ```
 
 ## Differences from Claude Desktop
 
 | Feature | Claude Desktop | Claude Code |
 |---------|---------------|-------------|
-| Config Location | `~/Library/Application Support/Claude/` | `~/.config/claude/` or UI |
-| Config Format | `claude_desktop_config.json` | `mcp_servers.json` or UI |
-| Server Management | File-based | UI or CLI-based |
-| Hot Reload | Requires restart | May support hot reload |
+| Config Method | JSON file | CLI or JSON |
+| Config Location | App Support folder | ~/.config/claude/ |
+| Management | Manual editing | `claude mcp` commands |
+| Updates | Restart required | Automatic |
 
 ## Advanced Configuration
 
-### Environment Variables
+### Multiple Projects
 
-You can pass additional environment variables:
+Add multiple UEMCP instances for different projects:
 
-```json
-{
-  "env": {
-    "DEBUG": "uemcp:*",
-    "UE_PROJECT_PATH": "<PATH_TO_YOUR_UE_PROJECT>",
-    "UE_ENGINE_PATH": "/Users/Shared/Epic Games/UE_5.6"
-  }
-}
+```bash
+# Project 1
+claude mcp add uemcp-home node /path/to/UEMCP/server/dist/index.js \
+  -e "UE_PROJECT_PATH=/path/to/Home.uproject"
+
+# Project 2  
+claude mcp add uemcp-game node /path/to/UEMCP/server/dist/index.js \
+  -e "UE_PROJECT_PATH=/path/to/MyGame.uproject"
 ```
 
 ### Custom Python Path
 
-If Python isn't in the default location:
+If using custom Python installation:
 
-```json
-{
-  "env": {
-    "PYTHON_PATH": "/usr/local/bin/python3",
-    "UE_PYTHON_PATH": "/Users/Shared/Epic Games/UE_5.6/Engine/Binaries/ThirdParty/Python3/Mac/bin/python3"
-  }
-}
+```bash
+claude mcp add uemcp node /path/to/server/dist/index.js \
+  -e "PYTHON_PATH=/usr/local/bin/python3" \
+  -e "UE_PROJECT_PATH=/path/to/project.uproject"
 ```
 
 ## Next Steps
 
-1. **Test Basic Operations:**
-   - List assets in your project
-   - Create a test blueprint
+1. **Test basic operations:**
+   - "Show project info"
+   - "List assets in /Game"
    
-2. **Enable Python Bridge:**
-   - Ensure Unreal Editor is running
-   - Python Script Plugin must be enabled
-
-3. **Extend Functionality:**
-   - Add more tools to the server
-   - Implement real Python execution
+2. **Install plugin in UE:**
+   - Copy plugin folder to your project
+   - Enable in UE and restart
+   
+3. **Try advanced features:**
+   - Spawn actors
+   - Take screenshots
+   - Execute Python code
 
 ## Support
 
-- Report issues: [GitHub Issues](https://github.com/yourusername/UEMCP/issues)
-- Documentation: [UEMCP Wiki](https://github.com/yourusername/UEMCP/wiki)
-- MCP Protocol: [Model Context Protocol Docs](https://modelcontextprotocol.io)
+- GitHub Issues: [github.com/atomantic/UEMCP/issues](https://github.com/atomantic/UEMCP/issues)
+- Documentation: See README.md and CLAUDE.md
+- Discord: [Join our community](https://discord.gg/uemcp)

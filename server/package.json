@@ -11,7 +11,13 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "typecheck": "tsc --noEmit",
     "test": "echo 'No tests configured yet'",
-    "test:coverage": "echo 'No tests configured yet'"
+    "test:coverage": "echo 'No tests configured yet'",
+    "version:bump": "node ../scripts/bump-version.js",
+    "version:major": "node ../scripts/bump-version.js --type=major",
+    "version:minor": "node ../scripts/bump-version.js --type=minor",
+    "version:patch": "node ../scripts/bump-version.js --type=patch",
+    "version:beta": "node ../scripts/bump-version.js --prerelease=beta",
+    "version:alpha": "node ../scripts/bump-version.js --prerelease=alpha"
   },
   "keywords": ["mcp", "unreal-engine", "ai-assistant"],
   "author": "",

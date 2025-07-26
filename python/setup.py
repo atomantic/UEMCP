@@ -6,11 +6,11 @@ with open("../README.md", "r", encoding="utf-8") as fh:
 setup(
     name="uemcp-python",
     version="0.1.0",
-    author="UEMCP Team",
+    author="atomantic",
     description="Python utilities for Unreal Engine Model Context Protocol",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/UEMCP",
+    url="https://github.com/atomantic/UEMCP",
     packages=find_packages(exclude=["tests", "tests.*"]),
     classifiers=[
         "Development Status :: 3 - Alpha",

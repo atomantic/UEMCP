@@ -38,12 +38,73 @@ jobs:
       run: |
         tar -czf uemcp-python-${{ github.ref_name }}.tar.gz python/ requirements-dev.txt
     
+    - name: Package Plugin
+      run: |
+        # Create plugin directory structure
+        mkdir -p UEMCP-Plugin/UEMCP
+        
+        # Copy plugin files
+        cp -r plugin/* UEMCP-Plugin/UEMCP/
+        
+        # Create zip
+        cd UEMCP-Plugin
+        zip -r ../UEMCP-Plugin-${{ github.ref_name }}.zip UEMCP/
+        cd ..
+    
+    - name: Create Full Package
+      run: |
+        # Create full package directory
+        mkdir -p UEMCP-Full-${{ github.ref_name }}
+        
+        # Copy all components
+        cp -r server UEMCP-Full-${{ github.ref_name }}/
+        cp -r plugin UEMCP-Full-${{ github.ref_name }}/
+        cp -r docs UEMCP-Full-${{ github.ref_name }}/
+        cp README.md LICENSE VERSIONING.md CLAUDE.md UEMCP-Full-${{ github.ref_name }}/
+        
+        # Copy setup scripts
+        cp init.js init.sh init.ps1 UEMCP-Full-${{ github.ref_name }}/
+        cp -r scripts UEMCP-Full-${{ github.ref_name }}/
+        
+        # Create zip
+        zip -r UEMCP-Full-${{ github.ref_name }}.zip UEMCP-Full-${{ github.ref_name }}/
+    
+    - name: Generate Checksums
+      run: |
+        sha256sum *.tar.gz *.zip > checksums-${{ github.ref_name }}.txt
+    
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
           uemcp-server-${{ github.ref_name }}.tar.gz
           uemcp-python-${{ github.ref_name }}.tar.gz
+          UEMCP-Plugin-${{ github.ref_name }}.zip
+          UEMCP-Full-${{ github.ref_name }}.zip
+          checksums-${{ github.ref_name }}.txt
         generate_release_notes: true
         draft: false
         prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}
+        body: |
+          ## UEMCP ${{ github.ref_name }}
+          
+          ### Installation
+          
+          #### Quick Start (Recommended)
+          Download `UEMCP-Full-${{ github.ref_name }}.zip` and run:
+          ```bash
+          unzip UEMCP-Full-${{ github.ref_name }}.zip
+          cd UEMCP-Full-${{ github.ref_name }}
+          node init.js
+          ```
+          
+          #### Individual Components
+          - **Plugin only**: `UEMCP-Plugin-${{ github.ref_name }}.zip`
+          - **Server only**: `uemcp-server-${{ github.ref_name }}.tar.gz`
+          - **Python tools**: `uemcp-python-${{ github.ref_name }}.tar.gz`
+          
+          ### What's Changed
+          See below for full changelog.
+          
+          ### Checksums
+          Verify downloads with `checksums-${{ github.ref_name }}.txt`
