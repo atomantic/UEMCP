@@ -17,6 +17,12 @@ server_thread = None
 httpd = None
 tick_handle = None
 
+# Import thread tracker
+try:
+    import uemcp_thread_tracker
+except ImportError:
+    pass
+
 # Queue for main thread execution
 command_queue = queue.Queue()
 response_queue = {}
@@ -54,6 +60,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'actor.spawn',
                     'actor.delete',
                     'actor.modify',
+                    'actor.organize',
                     'level.save',
                     'viewport.screenshot',
                     'viewport.camera',
@@ -206,6 +213,7 @@ def execute_on_main_thread(command):
             rotation = params.get('rotation', [0, 0, 0])
             scale = params.get('scale', [1, 1, 1])
             name = params.get('name', f'UEMCP_Actor_{int(time.time())}')
+            folder = params.get('folder', None)
             
             # Create transform
             ue_location = unreal.Vector(float(location[0]), float(location[1]), float(location[2]))
@@ -243,6 +251,10 @@ def execute_on_main_thread(command):
                     actor.set_actor_label(name)
                     actor.set_actor_scale3d(ue_scale)
                     
+                    # Set folder if specified
+                    if folder:
+                        actor.set_folder_path(folder)
+                    
                     unreal.log(f"UEMCP: Spawned {name} at {location}")
                     return {
                         'success': True,
@@ -278,6 +290,51 @@ def execute_on_main_thread(command):
                     }
             else:
                 return {'success': False, 'error': f'Unsupported asset type: {type(asset).__name__}'}
+        
+        elif cmd_type == 'actor.organize':
+            actors = params.get('actors', [])
+            pattern = params.get('pattern', None)
+            folder = params.get('folder', '')
+            
+            if not folder:
+                return {'success': False, 'error': 'Folder path is required'}
+            
+            try:
+                # Get all actors
+                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+                all_actors = editor_actor_utils.get_all_level_actors()
+                
+                organized_actors = []
+                
+                # If specific actors are provided, organize those
+                if actors:
+                    for actor in all_actors:
+                        actor_name = actor.get_actor_label()
+                        if actor_name in actors:
+                            actor.set_folder_path(folder)
+                            organized_actors.append(actor_name)
+                
+                # If pattern is provided, organize matching actors
+                elif pattern:
+                    for actor in all_actors:
+                        actor_name = actor.get_actor_label()
+                        if pattern in actor_name:
+                            actor.set_folder_path(folder)
+                            organized_actors.append(actor_name)
+                
+                # Sort for better display
+                organized_actors.sort()
+                
+                return {
+                    'success': True,
+                    'count': len(organized_actors),
+                    'organizedActors': organized_actors,
+                    'folder': folder,
+                    'message': f'Organized {len(organized_actors)} actors into {folder}'
+                }
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
         
         elif cmd_type == 'level.save':
             # Save current level
@@ -447,6 +504,7 @@ def execute_on_main_thread(command):
             location = params.get('location', None)
             rotation = params.get('rotation', None)
             scale = params.get('scale', None)
+            folder = params.get('folder', None)
             
             try:
                 # Find actor by name
@@ -490,6 +548,9 @@ def execute_on_main_thread(command):
                         float(scale[2])
                     )
                     found_actor.set_actor_scale3d(ue_scale)
+                
+                if folder is not None:
+                    found_actor.set_folder_path(folder)
                 
                 # Get updated transform
                 current_location = found_actor.get_actor_location()
@@ -859,23 +920,18 @@ def execute_on_main_thread(command):
                 }
         
         elif cmd_type == 'system.restart':
-            # Handle restart command
-            force = params.get('force', False)
-            
+            # Use the non-blocking restart from helpers
             try:
-                # Mark that we need to restart
-                global restart_scheduled
-                restart_scheduled = True
+                import uemcp_helpers
+                result = uemcp_helpers.restart_listener()
                 
-                # Return success immediately
                 return {
-                    'success': True,
-                    'message': 'Listener restart scheduled. The listener will restart after sending this response.',
-                    'note': 'Connection will be temporarily unavailable during restart (1-2 seconds).'
+                    'success': result,
+                    'message': 'Hot reload completed!' if result else 'Restart failed - check console'
                 }
                 
             except Exception as e:
-                return {'success': False, 'error': f'Failed to schedule restart: {str(e)}'}
+                return {'success': False, 'error': f'Failed to initiate restart: {str(e)}'}
         
         else:
             return {
@@ -918,35 +974,28 @@ def process_commands(delta_time):
             import traceback
             unreal.log_error(f"UEMCP: Traceback: {traceback.format_exc()}")
     
-    # Check if restart was scheduled
-    global restart_scheduled
-    if restart_scheduled:
-        restart_scheduled = False
-        unreal.log("UEMCP: Executing scheduled restart...")
-        # Import and call restart function
-        try:
-            import uemcp_helpers
-            # Use a one-time callback to restart after response is sent
-            # We need to use a list to store the handle since we can't assign to
-            # a function attribute before the function is defined
-            handle_container = []
-            
-            def restart_once(delta):
-                # Unregister this callback immediately
-                if handle_container:
-                    unreal.unregister_slate_post_tick_callback(handle_container[0])
-                # Now restart the listener
-                uemcp_helpers.restart_listener()
-            
-            # Register the callback and store its handle
-            handle = unreal.register_slate_post_tick_callback(restart_once)
-            handle_container.append(handle)
-        except Exception as e:
-            unreal.log_error(f"UEMCP: Failed to schedule restart: {e}")
+    # Removed old restart scheduled code - now handled in system.restart command
+
+def cleanup_all_threads():
+    """Clean up all server threads before starting fresh"""
+    global server_running
+    
+    # Signal all threads to stop
+    server_running = False
+    
+    # Use external tracker if available
+    try:
+        import uemcp_thread_tracker
+        uemcp_thread_tracker.cleanup_all()
+    except:
+        pass
 
 def start_listener(port=8765):
     """Start the HTTP listener with main thread processing"""
     global server_running, server_thread, httpd, tick_handle
+    
+    # Always clean up any existing threads first
+    cleanup_all_threads()
     
     if server_running:
         unreal.log_warning("UEMCP Listener is already running!")
@@ -993,21 +1042,62 @@ def start_listener(port=8765):
     
     # Start HTTP server
     def run_server():
-        global httpd
+        global httpd, server_running
         try:
-            # Create server with socket reuse enabled
-            httpd = HTTPServer(('localhost', port), UEMCPHandler)
-            # Enable socket reuse to prevent "Address already in use" errors
-            httpd.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            # Create custom server class with SO_REUSEADDR
+            class ReuseAddrHTTPServer(HTTPServer):
+                allow_reuse_address = True
+                
+                def server_bind(self):
+                    # Set SO_REUSEADDR before binding
+                    self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    super().server_bind()
+                
+                def serve_forever(self, poll_interval=0.5):
+                    """Handle requests until shutdown, checking server_running flag"""
+                    while server_running:
+                        self.handle_request()
+                    # Just close the socket when done - don't call shutdown()
+                    try:
+                        self.server_close()
+                    except:
+                        pass
+            
+            # Create server with reuse enabled
+            httpd = ReuseAddrHTTPServer(('localhost', port), UEMCPHandler)
+            httpd.timeout = 0.5  # Set timeout so handle_request doesn't block forever
+            
+            # Track the httpd server externally
+            try:
+                import uemcp_thread_tracker
+                uemcp_thread_tracker.add_httpd_server(httpd)
+            except:
+                pass
+            
             # Server thread will log when ready
             httpd.serve_forever()
         except Exception as e:
-            unreal.log_error(f"UEMCP: Failed to start listener: {e}")
+            if server_running:  # Only log error if we weren't trying to stop
+                unreal.log_error(f"UEMCP: Failed to start listener: {e}")
+        finally:
+            # Ensure socket is closed
+            if httpd:
+                try:
+                    httpd.server_close()
+                except:
+                    pass
     
     server_running = True
     server_thread = threading.Thread(target=run_server)
     server_thread.daemon = True
     server_thread.start()
+    
+    # Track this thread externally
+    try:
+        import uemcp_thread_tracker
+        uemcp_thread_tracker.add_server_thread(server_thread)
+    except:
+        pass
     
     # Register tick callback for main thread processing
     tick_handle = unreal.register_slate_pre_tick_callback(process_commands)
@@ -1035,19 +1125,27 @@ def stop_listener():
             pass
         return
     
+    unreal.log("UEMCP: Stopping listener...")
     server_running = False
     
     # Shutdown HTTP server
     if httpd:
         try:
+            # First shutdown the server
             httpd.shutdown()
-            httpd.server_close()  # This ensures socket is closed
-        except:
-            pass
+            # Then close the socket
+            httpd.server_close()
+            # Set to None to ensure it's garbage collected
+            httpd = None
+        except Exception as e:
+            unreal.log_warning(f"UEMCP: Error shutting down server: {e}")
     
-    # Wait for thread to finish
+    # Wait for thread to finish (with timeout to prevent hanging)
     if server_thread and server_thread.is_alive():
-        server_thread.join(timeout=2)
+        # Don't wait too long - this can hang UE
+        server_thread.join(timeout=0.5)
+        if server_thread.is_alive():
+            unreal.log_warning("UEMCP: Server thread did not stop cleanly")
     
     # Unregister tick callback
     if tick_handle:

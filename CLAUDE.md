@@ -96,12 +96,32 @@ When making changes to the plugin:
 
 ## Helper Functions
 
-Available in UE Python console after plugin loads:
-- `restart_listener()` - Reload the listener with code changes
+To use helper functions in UE Python console:
+```python
+from uemcp_helpers import *
+```
+
+Available functions:
+- `restart_listener()` - Hot reload the listener with code changes (stops, reloads, restarts automatically)
 - `reload_uemcp()` - Alias for restart_listener()
 - `status()` - Check if listener is running
-- `stop_listener()` - Stop the listener
+- `stop_listener()` - Send stop signal to listener (non-blocking)
 - `start_listener()` - Start the listener
+
+### Hot Reload Workflow
+To reload code changes without restarting Unreal Engine:
+```python
+restart_listener()  # One command does it all!
+```
+
+This will:
+1. Signal the server to stop
+2. Wait for it to stop
+3. Clean up the port if needed
+4. Reload the Python module with your changes
+5. Start a fresh listener
+
+The whole process takes about 2-3 seconds and doesn't freeze UE.
 
 ## Key Development Patterns
 

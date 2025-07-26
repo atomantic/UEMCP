@@ -1,16 +1,24 @@
 """
-UEMCP Port Utilities
-Helper functions for managing port conflicts
+Port management utilities for UEMCP
 """
 
 import socket
 import subprocess
 import platform
 import unreal
+import time
 
-def find_process_using_port(port):
-    """Find which process is using a specific port"""
+def is_port_in_use(port):
+    """Check if a port is currently in use"""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = sock.connect_ex(('localhost', port))
+    sock.close()
+    return result == 0
+
+def find_all_processes_using_port(port):
+    """Find all processes using a specific port"""
     system = platform.system()
+    processes = []
     
     try:
         if system == "Darwin":  # macOS
@@ -21,15 +29,20 @@ def find_process_using_port(port):
                 text=True
             )
             if result.stdout:
-                pid = result.stdout.strip()
-                # Get process name
-                name_result = subprocess.run(
-                    ['ps', '-p', pid, '-o', 'comm='],
-                    capture_output=True,
-                    text=True
-                )
-                process_name = name_result.stdout.strip()
-                return pid, process_name
+                # Get all PIDs
+                pids = [pid.strip() for pid in result.stdout.strip().split('\n') if pid.strip()]
+                for pid in pids:
+                    try:
+                        # Get process name
+                        name_result = subprocess.run(
+                            ['ps', '-p', pid, '-o', 'comm='],
+                            capture_output=True,
+                            text=True
+                        )
+                        process_name = name_result.stdout.strip()
+                        processes.append((pid, process_name))
+                    except:
+                        processes.append((pid, "Unknown"))
         elif system == "Windows":
             # Use netstat for Windows
             result = subprocess.run(
@@ -41,31 +54,41 @@ def find_process_using_port(port):
                 if f':{port}' in line and 'LISTENING' in line:
                     parts = line.split()
                     pid = parts[-1]
-                    return pid, "Unknown (use Task Manager to check)"
+                    processes.append((pid, "Unknown (use Task Manager to check)"))
     except Exception as e:
         unreal.log_warning(f"Could not check port usage: {e}")
     
+    return processes
+
+def find_process_using_port(port):
+    """Find which process is using a specific port (returns first one)"""
+    processes = find_all_processes_using_port(port)
+    if processes:
+        return processes[0]
     return None, None
 
 def kill_process_on_port(port):
-    """Kill process using a specific port (use with caution)"""
-    pid, process_name = find_process_using_port(port)
+    """Kill all processes using a specific port"""
+    processes = find_all_processes_using_port(port)
     
-    if pid:
-        unreal.log(f"Found process {process_name} (PID: {pid}) using port {port}")
+    if not processes:
+        return False
+    
+    success = True
+    for pid, process_name in processes:
+        unreal.log(f"Killing process {process_name} (PID: {pid}) using port {port}")
         try:
             if platform.system() == "Darwin":
-                subprocess.run(['kill', '-9', pid])
+                subprocess.run(['kill', '-9', str(pid)], check=True)
                 unreal.log(f"Killed process {pid}")
-                return True
             elif platform.system() == "Windows":
-                subprocess.run(['taskkill', '/F', '/PID', pid])
+                subprocess.run(['taskkill', '/F', '/PID', str(pid)], check=True)
                 unreal.log(f"Killed process {pid}")
-                return True
         except Exception as e:
-            unreal.log_error(f"Failed to kill process: {e}")
+            unreal.log_error(f"Failed to kill process {pid}: {e}")
+            success = False
     
-    return False
+    return success
 
 def is_port_available(port):
     """Check if a port is available"""
@@ -78,43 +101,59 @@ def is_port_available(port):
     finally:
         sock.close()
 
+def wait_for_port_available(port, timeout=5):
+    """Wait for a port to become available"""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if is_port_available(port):
+            return True
+        time.sleep(0.1)
+    return False
+
 def force_free_port(port):
-    """Try to free up a port by killing the process using it"""
+    """Force free a port by killing the process using it"""
     if is_port_available(port):
         unreal.log(f"Port {port} is already available")
         return True
     
     pid, process_name = find_process_using_port(port)
-    if pid:
-        unreal.log_warning(f"Port {port} is used by {process_name} (PID: {pid})")
-        response = unreal.EditorDialog.show_message(
-            "Port Conflict",
-            f"Port {port} is being used by {process_name} (PID: {pid}).\n\nKill this process?",
-            unreal.AppMsgType.YES_NO
-        )
-        if response == unreal.AppReturnType.YES:
-            if kill_process_on_port(port):
-                import time
-                time.sleep(1)  # Give OS time to free the port
-                return is_port_available(port)
+    if not pid:
+        unreal.log_warning(f"Port {port} is in use but could not find process")
+        return False
     
-    return False
-
-def is_port_in_use(port):
-    """Check if a port is in use"""
-    return not is_port_available(port)
+    unreal.log(f"Port {port} is used by {process_name} (PID: {pid})")
+    
+    # Ask user for confirmation with dialog
+    dialog_result = unreal.EditorDialog.show_message(
+        "UEMCP Port Conflict",
+        f"Port {port} is being used by:\n{process_name} (PID: {pid})\n\nDo you want to kill this process?",
+        unreal.AppMsgType.YES_NO
+    )
+    
+    if dialog_result == unreal.AppReturnType.YES:
+        if kill_process_on_port(port):
+            # Wait for port to be freed
+            if wait_for_port_available(port):
+                unreal.log(f"Successfully freed port {port}")
+                return True
+            else:
+                unreal.log_error(f"Killed process but port {port} is still in use")
+                return False
+        else:
+            unreal.log_error("Failed to kill process")
+            return False
+    else:
+        unreal.log("User cancelled port cleanup")
+        return False
 
 def force_free_port_silent(port):
     """Force free a port without user prompts"""
     if is_port_available(port):
         return True
     
-    pid, process_name = find_process_using_port(port)
-    if pid:
-        unreal.log(f"UEMCP: Killing process {process_name} (PID: {pid}) using port {port}")
-        if kill_process_on_port(port):
-            import time
-            time.sleep(1)  # Give OS time to free the port
-            return is_port_available(port)
+    # Kill all processes using the port
+    if kill_process_on_port(port):
+        # Wait for port to be freed
+        return wait_for_port_available(port, timeout=3)
     
     return False

@@ -19,8 +19,9 @@ try:
     
     # Check if a listener is already running (from previous session)
     if uemcp_listener_fixed.server_running:
-        uemcp_listener_fixed.stop_listener()
-        time.sleep(1)  # Give it time to clean up
+        unreal.log("UEMCP: Stopping previous listener...")
+        uemcp_listener_fixed.server_running = False
+        time.sleep(1)  # Give it time to stop
     
     # Also check if port is in use from a crashed session
     import uemcp_port_utils
@@ -39,16 +40,11 @@ try:
     if started:
         # Success - show status
         unreal.log("UEMCP: Ready on http://localhost:8765")
-        unreal.log("UEMCP: Python console: start_listener(), stop_listener(), restart_listener(), reload_uemcp(), status()")
-        unreal.log("UEMCP: MCP tools: project_info, asset_list, asset_info, actor_spawn, actor_delete, actor_modify")
-        unreal.log("UEMCP:           level_actors, level_save, viewport_screenshot, viewport_camera, viewport_mode, viewport_focus")
-        unreal.log("UEMCP:           viewport_render_mode (wireframe, unlit, lit, etc.), python_proxy (full API access)")
+        unreal.log("UEMCP: Commands: from uemcp_helpers import *")
+        unreal.log("UEMCP: Functions: restart_listener(), stop_listener(), status(), start_listener()")
     
-    # Import helper functions
-    import uemcp_helpers
-    # Make helper functions available globally
-    from uemcp_helpers import restart_listener, reload_uemcp, status
-    from uemcp_listener_fixed import start_listener, stop_listener
+    # Import helper functions for convenience
+    from uemcp_helpers import restart_listener, reload_uemcp, status, start_listener, stop_listener
         
 except ImportError as e:
     unreal.log_error(f"UEMCP: Could not import module: {e}")

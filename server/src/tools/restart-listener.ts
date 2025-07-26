@@ -49,12 +49,12 @@ export const restartListenerTool = {
         const messages = [
           '🔄 Python listener restart initiated!',
           '',
-          'The listener will:',
-          '1. Stop the current HTTP server',
-          '2. Reload all Python modules',
-          '3. Start a fresh HTTP server on port 8765',
+          'The server will stop shortly. To complete hot reload:',
+          '1. Wait 1-2 seconds for server to stop',
+          '2. Run in UE Python console: reload_module()',
+          '3. Run in UE Python console: start_listener()',
           '',
-          '✅ Hot reload complete - your code changes are now active!'
+          'This non-blocking approach prevents UE from freezing.'
         ];
         
         if (result.message) {

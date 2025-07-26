@@ -7,6 +7,7 @@ interface ActorSpawnArgs {
   rotation?: [number, number, number];
   scale?: [number, number, number];
   name?: string;
+  folder?: string;
 }
 
 export const actorSpawnTool = {
@@ -48,6 +49,10 @@ export const actorSpawnTool = {
           type: 'string',
           description: 'Optional name for the spawned actor',
         },
+        folder: {
+          type: 'string',
+          description: 'Optional folder path in World Outliner (e.g., "Estate/House")',
+        },
       },
       required: ['assetPath'],
     },
@@ -58,16 +63,17 @@ export const actorSpawnTool = {
       location = [0, 0, 0], 
       rotation = [0, 0, 0], 
       scale = [1, 1, 1],
-      name 
+      name,
+      folder
     } = args as ActorSpawnArgs;
     
-    logger.debug('Spawning actor', { assetPath, location, rotation, scale, name });
+    logger.debug('Spawning actor', { assetPath, location, rotation, scale, name, folder });
     
     try {
       const bridge = new PythonBridge();
       const result = await bridge.executeCommand({
         type: 'actor.spawn',
-        params: { assetPath, location, rotation, scale, name }
+        params: { assetPath, location, rotation, scale, name, folder }
       });
       
       if (result.success) {

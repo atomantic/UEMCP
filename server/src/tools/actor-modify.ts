@@ -6,6 +6,7 @@ interface ActorModifyArgs {
   location?: [number, number, number];
   rotation?: [number, number, number];
   scale?: [number, number, number];
+  folder?: string;
 }
 
 export const actorModifyTool = {
@@ -40,12 +41,16 @@ export const actorModifyTool = {
           maxItems: 3,
           description: 'New scale [x, y, z]',
         },
+        folder: {
+          type: 'string',
+          description: 'New folder path in World Outliner (e.g., "Estate/House")',
+        },
       },
       required: ['actorName'],
     },
   },
   handler: async (args: unknown = {}): Promise<{ content: Array<{ type: string; text: string }> }> => {
-    const { actorName, location, rotation, scale } = args as ActorModifyArgs;
+    const { actorName, location, rotation, scale, folder } = args as ActorModifyArgs;
     
     logger.debug('Modifying actor', { actorName, location, rotation, scale });
     
@@ -53,7 +58,7 @@ export const actorModifyTool = {
       const bridge = new PythonBridge();
       const result = await bridge.executeCommand({
         type: 'actor.modify',
-        params: { actorName, location, rotation, scale }
+        params: { actorName, location, rotation, scale, folder }
       });
       
       if (result.success) {
@@ -67,6 +72,9 @@ export const actorModifyTool = {
         }
         if (scale) {
           text += `  Scale: [${scale.join(', ')}]\n`;
+        }
+        if (folder) {
+          text += `  Folder: ${folder}\n`;
         }
         
         return {

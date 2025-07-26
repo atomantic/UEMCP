@@ -283,9 +283,10 @@ Once connected, Claude can use these UEMCP tools:
 - **asset_info** - Get detailed information about an asset (dimensions, vertices, materials)
 
 ### Actor Management
-- **actor_spawn** - Spawn actors using any static mesh or blueprint
+- **actor_spawn** - Spawn actors using any static mesh or blueprint (with folder support)
 - **actor_delete** - Delete actors from the level by name
-- **actor_modify** - Modify actor location, rotation, or scale
+- **actor_modify** - Modify actor location, rotation, scale, or folder
+- **actor_organize** - Organize existing actors into folders by pattern or name list
 
 ### Level Management
 - **level_actors** - List all actors in the current level
