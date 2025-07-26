@@ -168,6 +168,7 @@ The project has a working implementation with the following MCP tools:
 - `python_proxy` - Execute arbitrary Python code with full UE API access
 - `test_connection` - Test connection to Python listener
 - `restart_listener` - Restart Python listener for hot reload
+- `ue_logs` - Read recent lines from UE console log file
 
 ## Current Working Environment
 

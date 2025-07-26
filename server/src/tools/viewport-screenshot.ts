@@ -2,8 +2,6 @@ import { logger } from '../utils/logger.js';
 import { PythonBridge } from '../services/python-bridge.js';
 import * as fs from 'fs/promises';
 import { spawn } from 'child_process';
-import { promisify } from 'util';
-import * as path from 'path';
 
 // Helper function to compress image using sips on macOS
 async function compressImage(inputPath: string, quality: number = 60): Promise<string> {
@@ -91,7 +89,6 @@ export const viewportScreenshotTool = {
       
       if (result.success && result.filepath) {
         let filepath = result.filepath as string;
-        let mimeType = 'image/png';
         let originalSize = 0;
         let compressedSize = 0;
         
@@ -111,7 +108,6 @@ export const viewportScreenshotTool = {
               // Use compressed version if it's actually smaller
               if (compressedSize < originalSize) {
                 filepath = compressedPath;
-                mimeType = 'image/jpeg';
                 logger.debug(`Image compressed: ${originalSize} bytes -> ${compressedSize} bytes (${Math.round((1 - compressedSize/originalSize) * 100)}% reduction)`);
               } else {
                 logger.debug('Compressed image not smaller, using original');
@@ -121,8 +117,9 @@ export const viewportScreenshotTool = {
             }
           }
           
-          const imageBuffer = await fs.readFile(filepath);
-          const base64Image = imageBuffer.toString('base64');
+          // For now, just return the file path since we don't display images inline
+          // const imageBuffer = await fs.readFile(filepath);
+          // const base64Image = imageBuffer.toString('base64');
           
           const sizeInfo = compress && compressedSize > 0 && compressedSize < originalSize
             ? `\nOriginal: ${Math.round(originalSize/1024)}KB, Compressed: ${Math.round(compressedSize/1024)}KB`
