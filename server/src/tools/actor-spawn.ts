@@ -13,7 +13,7 @@ interface ActorSpawnArgs {
 export const actorSpawnTool = {
   definition: {
     name: 'actor_spawn',
-    description: 'Spawn an actor in the level using an asset (mesh, blueprint, etc)',
+    description: 'Spawn an actor in the level using an asset (mesh, blueprint, etc). IMPORTANT: For modular building pieces, verify placement with wireframe screenshots from multiple angles to check for gaps and overlaps.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -34,7 +34,7 @@ export const actorSpawnTool = {
           items: { type: 'number' },
           minItems: 3,
           maxItems: 3,
-          description: 'Rotation [pitch, yaw, roll] in degrees (default: [0, 0, 0])',
+          description: 'Rotation [roll, pitch, yaw] in degrees. For walls: [0,0,0] for X-axis, [0,0,-90] for Y-axis. Corner pieces often need [0,0,90] or similar.',
           default: [0, 0, 0],
         },
         scale: {

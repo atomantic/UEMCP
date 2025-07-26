@@ -203,6 +203,48 @@ Common rotation examples for building:
 
 **Note**: The rotation array is [Roll, Pitch, Yaw], NOT [X, Y, Z] as the indices might suggest!
 
+### Best Practices for Actor Placement
+
+**CRITICAL**: Always verify actor placement from multiple angles:
+
+1. **Use Multiple Viewpoints**:
+   - Take screenshots from perspective view first
+   - Then switch to top/wireframe view to check alignment
+   - Wireframe mode reveals gaps and overlaps clearly
+
+2. **Modular Asset Snapping**:
+   - ModularOldTown assets are typically 300 units (3m) wide
+   - Corner pieces need specific rotations to connect properly
+   - Check for gaps between walls - they should connect seamlessly
+
+3. **Common Placement Issues**:
+   - **Corner Rotation**: Corners must be rotated to match adjacent walls
+   - **Wall Gaps**: Ensure walls are placed at exact 300-unit intervals
+   - **Overlapping**: Check wireframe view for overlapping geometry
+   - **Missing Actors**: Keep track of all placed actors (doors, windows)
+
+4. **Verification Steps**:
+   ```python
+   # 1. List all actors to verify nothing is missing
+   level_actors(filter="Wall")
+   level_actors(filter="Door")
+   
+   # 2. Take wireframe screenshot from top
+   viewport_render_mode(mode="wireframe")
+   viewport_mode(mode="top")
+   viewport_screenshot()
+   
+   # 3. Check actor positions mathematically
+   # Walls should be at exact 300-unit intervals
+   # Corners need proper rotation values
+   ```
+
+5. **Debugging Placement**:
+   - If walls don't align, check both position AND rotation
+   - Corner pieces often need 90° rotations
+   - Use `actor_modify` to fix misaligned actors
+   - Save level frequently to preserve progress
+
 ## Accessing Logs
 
 ### Unreal Engine Logs
