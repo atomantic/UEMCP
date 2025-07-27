@@ -43,13 +43,14 @@ The final architecture differs from the original plan:
 
 ### House Building Progress
 
-**Current Status**: Ground floor complete ✅
+**Current Status**: Ground floor in progress ⚠️
 
 The detailed house building plan and progress tracking has been moved to:
 📁 **[house-building-scripts/PLAN.md](house-building-scripts/PLAN.md)**
 
 This includes:
-- Current build status with screenshots
+- Current build status with identified issues
+- Actor naming and folder organization requirements
 - Architectural specifications and layout
 - Key lessons learned (pivot points, viewport control, asset paths)
 - ModularOldTown asset reference with dimensions
@@ -59,11 +60,14 @@ This includes:
 
 ### Summary of House Building Phases
 
-#### ✅ Phase 4.1: Foundation & Ground Floor - COMPLETE
-- Successfully placed all ground floor walls, corners, and doors
-- Fixed critical issues with pivot points and rotations
-- Eliminated all gaps between modular pieces
+#### ⚠️ Phase 4.1: Foundation & Ground Floor - IN PROGRESS
+- Multiple wall and corner pieces placed but with issues:
+  - Wall gaps between segments
+  - Corner rotation problems
+  - Generic actor names (UEMCP_Actor_*)
+  - No folder organization
 - Created comprehensive helper scripts and verification tools
+- Identified need for actor naming and organization features
 
 #### ⏳ Phase 4.2: Multi-Story Construction - NEXT
 - Add floor/ceiling separator (80 tiles)

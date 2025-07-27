@@ -4,18 +4,24 @@
 
 This document consolidates all house building documentation, lessons learned, and the plan for completing the house construction using UEMCP.
 
-## Current Status: Ground Floor Complete ✅
+## Current Status: Ground Floor In Progress ⚠️
 
 ### What's Been Built
-- **4 corner pieces** properly placed and rotated
-- **14 wall pieces** positioned with correct 100-unit inset
-- **3 door pieces** (includes duplicates at same position)
-- All components properly aligned with no gaps or overlaps
+- **Multiple UEMCP_Actor_* pieces** placed (30+ actors with generic names)
+- **Appears to be corner and wall pieces** based on placement patterns
+- **Foundation** properly placed at [10760, 660, 80]
+- **Issues identified**:
+  - Wall gaps between pieces
+  - Corner rotation issues
+  - No human-readable actor names (all named UEMCP_Actor_1753576XXX)
+  - Actors not organized in Estate/House folder structure
 
-### Screenshot Evidence
-- Ground floor structure verified from multiple angles
-- Wireframe view confirmed proper alignment
-- All pieces connect seamlessly
+### Current Problems to Fix
+1. **Actor Naming**: All spawned actors have generic names instead of descriptive ones
+2. **Folder Organization**: House pieces are in root "None" folder, not Estate/House
+3. **Wall Gaps**: Visible gaps between wall segments
+4. **Corner Rotations**: Some corners not properly aligned
+5. **Some actors at Z=-1000**: Likely placement errors
 
 ## Original Design Specification
 
@@ -44,7 +50,32 @@ Ground Floor Layout (Top View):
 - **Impact**: All placement calculations must account for half-dimensions
 - **Example**: A 300x100 wall at position (X,Y) extends from (X-150, Y-50) to (X+150, Y+50)
 
-### 2. Viewport Camera Control 📸
+### 2. Actor Naming Requirements 🏷️
+- **Problem**: Spawned actors get generic names like "UEMCP_Actor_1753576458"
+- **Solution**: Must provide meaningful names when spawning
+- **Naming Convention**:
+  - Walls: `Wall_[Side]_[Number]` (e.g., `Wall_Front_1`, `Wall_West_2`)
+  - Corners: `Corner_[Position]` (e.g., `Corner_Front_Left`, `Corner_Back_Right`)
+  - Doors: `Door_[Location]_[Number]` (e.g., `Door_Front_1`)
+  - Windows: `Window_[Side]_[Number]` (e.g., `Window_East_1`)
+
+### 3. Folder Organization Requirements 📁
+- **Requirement**: All house actors must be organized in folder structure
+- **Path**: `Estate/House/[Component]`
+- **Structure**:
+  ```
+  Estate/
+  └── House/
+      ├── GroundFloor/
+      │   ├── Walls/
+      │   ├── Corners/
+      │   └── Doors/
+      ├── SecondFloor/
+      └── Roof/
+  ```
+- **Implementation**: Use `folderPath` parameter in actor_spawn
+
+### 4. Viewport Camera Control 📸
 - **Rotation Array**: [Pitch, Yaw, Roll] - NOT [X, Y, Z]
 - **Common Mistake**: Using Roll instead of Pitch creates tilted horizon
 - **Correct Views**:
@@ -52,12 +83,7 @@ Ground Floor Layout (Top View):
   - Perspective: `[-30, 45, 0]` (Pitch=-30, Yaw=45)
   - NEVER modify Roll unless creating Dutch angle
 
-### 3. Actor Naming Issue 🏷️
-- **Problem**: Spawned actors get generic names like "UEMCP_Actor_1753576458"
-- **Impact**: Custom names not applied, making verification difficult
-- **Workaround**: Track actors by position or use organization scripts
-
-### 4. Asset Path Discoveries 📁
+### 5. Asset Path Discoveries 📁
 - **Window walls**: Use `SM_FlatWall_2m_SquareWin` (not Window_Square)
 - **Door walls**: Use `SM_FlatWall_3m_SquareDoor` (not Door_Square)
 - **All paths**: Must include subfolder like `/Walls/` or `/Ground/`
@@ -108,15 +134,38 @@ const wallX = foundation.x - (houseWidth/2) + cornerSize + (wallWidth/2);
 
 ## Completion Plan
 
-### Phase 1: Second Floor (Next)
+### Phase 0: Fix Current Issues (Immediate)
+1. **Clean up misplaced actors**
+   - Delete actors at Z=-1000
+   - Identify and remove duplicate/overlapping pieces
+
+2. **Fix actor naming and organization**
+   - Rename all UEMCP_Actor_* to proper names
+   - Move all house actors to Estate/House folder structure
+   - Use actor_organize tool or python_proxy
+
+3. **Fix wall gaps and rotations**
+   - Identify gap locations
+   - Adjust wall positions for seamless connections
+   - Fix corner rotations (use rotation guide above)
+
+4. **Verify ground floor completion**
+   - Take screenshots from multiple angles
+   - Ensure all walls connect properly
+   - Check corner alignments
+
+### Phase 1: Second Floor (After fixes)
 1. **Floor/Ceiling Separator**
    - Place SM_Floor_1m tiles (100x100) in 10x8 grid
    - Total: 80 floor pieces at Z = 140 + 282 = 422
+   - Use proper naming: `Floor_Tile_[X]_[Y]`
+   - Organize in `Estate/House/SecondFloor/Floor`
 
 2. **Second Floor Walls**
    - Duplicate ground floor pattern
    - More windows, fewer solid walls
    - Same corner configuration
+   - Proper naming and organization
 
 ### Phase 2: Roof Structure
 1. **Roof Base**
@@ -194,9 +243,18 @@ const wallX = foundation.x - (houseWidth/2) + cornerSize + (wallWidth/2);
 
 ## Success Metrics
 
-- ⬜ Ground floor complete with no gaps
+- ⬜ Ground floor complete with no gaps (currently has gaps)
+- ⬜ All actors have meaningful names (currently generic UEMCP_Actor_*)
+- ⬜ All actors organized in Estate/House folders (currently in None folder)
 - ⬜ Second floor with windows
 - ⬜ Roof properly attached
 - ⬜ Interior details added
-- ⬜ All actors organized in World Outliner
 - ⬜ MCP enhancements documented and implemented
+
+## Immediate Action Items
+
+1. **Create cleanup script** to fix current issues
+2. **Update actor_spawn** to support custom names
+3. **Update actor_spawn** to support folder paths
+4. **Create batch placement helper** for floor tiles
+5. **Document proper spawn parameters** in CLAUDE.md
