@@ -57,7 +57,7 @@
       "mcp__uemcp__viewport_camera",
       "mcp__uemcp__viewport_focus",
       "mcp__uemcp__viewport_mode",
-      "mcp__uemcp__viewport_screenshot",
+      "mcp__uemcp__viewport_screenshot"
     ],
     "deny": [
       "Bash(:(){ :|:& };:*)",
@@ -155,7 +155,7 @@
       "Bash(telnet*)",
       "Bash(wget * | bash*)",
       "Bash(wget * | sh*)",
-      "Bash(yes > /dev*)",
+      "Bash(yes > /dev*)"
     ]
   }
 }
