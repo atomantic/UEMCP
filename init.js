@@ -8,9 +8,10 @@
  *   node init.js [options]
  * 
  * Options:
- *   --project <path>    Path to Unreal Engine project
+ *   --project <path>    Path to Unreal Engine project (will install plugin)
+ *   --symlink           Create symlink instead of copying plugin (recommended for development)
+ *   --copy              Copy plugin files instead of symlinking
  *   --no-interactive    Run without prompts
- *   --install-plugin    Install plugin to UE project
  *   --skip-claude       Skip Claude Desktop configuration
  *   --claude-code       Configure Claude Code (claude.ai/code) MCP
  *   --help              Show this help
@@ -27,9 +28,9 @@ const args = process.argv.slice(2);
 const options = {
     project: null,
     interactive: true,
-    installPlugin: false,
     skipClaude: false,
     claudeCode: false,
+    symlink: null, // null = ask, true = symlink, false = copy
     help: false
 };
 
@@ -41,14 +42,17 @@ for (let i = 0; i < args.length; i++) {
         case '--no-interactive':
             options.interactive = false;
             break;
-        case '--install-plugin':
-            options.installPlugin = true;
-            break;
         case '--skip-claude':
             options.skipClaude = true;
             break;
         case '--claude-code':
             options.claudeCode = true;
+            break;
+        case '--symlink':
+            options.symlink = true;
+            break;
+        case '--copy':
+            options.symlink = false;
             break;
         case '--help':
         case '-h':
@@ -65,16 +69,17 @@ Usage:
   node init.js [options]
 
 Options:
-  --project <path>    Path to Unreal Engine project
+  --project <path>    Path to Unreal Engine project (will install plugin)
+  --symlink           Create symlink instead of copying plugin (recommended for development)
+  --copy              Copy plugin files instead of symlinking
   --no-interactive    Run without prompts
-  --install-plugin    Install plugin to UE project
   --skip-claude       Skip Claude Desktop configuration
   --claude-code       Configure Claude Code (claude.ai/code) MCP
   --help              Show this help
 
 Examples:
   node init.js
-  node init.js --project "/path/to/project" --install-plugin
+  node init.js --project "/path/to/project" --symlink
   node init.js --no-interactive --skip-claude
   node init.js --claude-code
 `);
@@ -152,8 +157,8 @@ function copyDir(src, dest) {
 }
 
 // Install plugin to Unreal project
-async function installPlugin(projectPath) {
-    log.section('Installing UEMCP Plugin to Unreal Project...');
+async function installPlugin(projectPath, useSymlink = false) {
+    log.section(`${useSymlink ? 'Symlinking' : 'Installing'} UEMCP Plugin to Unreal Project...`);
     
     const pluginsDir = path.join(projectPath, 'Plugins');
     const uemcpPluginDir = path.join(pluginsDir, 'UEMCP');
@@ -179,27 +184,53 @@ async function installPlugin(projectPath) {
     
     // Check if plugin already exists
     if (fs.existsSync(uemcpPluginDir)) {
-        log.warning('UEMCP plugin already exists in project.');
-        if (options.interactive) {
-            const answer = await question('Overwrite existing plugin? (y/N): ');
-            if (answer.toLowerCase() !== 'y') {
-                log.info('Skipping plugin installation.');
+        // Check if it's already a symlink
+        const stats = fs.lstatSync(uemcpPluginDir);
+        if (stats.isSymbolicLink()) {
+            const linkTarget = fs.readlinkSync(uemcpPluginDir);
+            log.warning(`UEMCP plugin already exists as symlink → ${linkTarget}`);
+            if (options.interactive) {
+                const answer = await question('Update existing symlink? (y/N): ');
+                if (answer.toLowerCase() !== 'y') {
+                    log.info('Keeping existing symlink.');
+                    return false;
+                }
+            } else {
+                log.info('Keeping existing symlink.');
                 return false;
             }
         } else {
-            log.info('Skipping plugin installation (already exists).');
-            return false;
+            log.warning('UEMCP plugin already exists in project.');
+            if (options.interactive) {
+                const answer = await question('Replace existing plugin? (y/N): ');
+                if (answer.toLowerCase() !== 'y') {
+                    log.info('Skipping plugin installation.');
+                    return false;
+                }
+            } else {
+                log.info('Skipping plugin installation (already exists).');
+                return false;
+            }
         }
         
-        // Remove existing plugin
+        // Remove existing plugin or symlink
         fs.rmSync(uemcpPluginDir, { recursive: true, force: true });
     }
     
-    // Copy plugin
+    // Install plugin (copy or symlink)
     try {
-        log.info('Copying plugin files...');
-        copyDir(sourcePluginDir, uemcpPluginDir);
-        log.success('Plugin installed successfully!');
+        if (useSymlink) {
+            log.info(`Creating symlink: ${uemcpPluginDir} → ${sourcePluginDir}`);
+            // Use 'junction' on Windows for compatibility, default symlink type on other platforms
+            const symlinkType = os.platform() === 'win32' ? 'junction' : undefined;
+            fs.symlinkSync(sourcePluginDir, uemcpPluginDir, symlinkType);
+            log.success('Plugin symlinked successfully!');
+            log.info('💡 Tip: Changes to plugin code will be reflected immediately after restart_listener()');
+        } else {
+            log.info('Copying plugin files...');
+            copyDir(sourcePluginDir, uemcpPluginDir);
+            log.success('Plugin copied successfully!');
+        }
         
         // Update .uproject file to enable the plugin
         const uprojectFiles = fs.readdirSync(projectPath).filter(f => f.endsWith('.uproject'));
@@ -336,16 +367,37 @@ async function init() {
     }
     
     let validProjectPath = null;
+    let shouldInstallPlugin = false;
     if (ueProjectPath) {
         const expandedPath = ueProjectPath.replace(/^~/, os.homedir());
         if (fs.existsSync(expandedPath)) {
             validProjectPath = expandedPath;
             log.success(`Project path verified: ${expandedPath}`);
             
-            // Ask about plugin installation if not specified
-            if (options.interactive && !options.installPlugin) {
+            // Plugin installation is automatic when project is specified
+            // Ask for confirmation in interactive mode
+            shouldInstallPlugin = true;
+            if (options.interactive) {
                 const answer = await question('Install UEMCP plugin to this project? (Y/n): ');
-                options.installPlugin = answer.toLowerCase() !== 'n';
+                shouldInstallPlugin = answer.toLowerCase() !== 'n';
+                
+                // Ask about symlink vs copy if not specified
+                if (shouldInstallPlugin && options.symlink === null) {
+                    console.log('\nHow would you like to install the plugin?');
+                    console.log('  1. Symlink (recommended for development - hot reload support)');
+                    console.log('  2. Copy (recommended for production)');
+                    const methodAnswer = await question('Choose method (1/2) [1]: ');
+                    
+                    // Handle method selection with clear logic
+                    if (methodAnswer === '1' || methodAnswer === '') {
+                        options.symlink = true; // Default to symlink
+                    } else if (methodAnswer === '2') {
+                        options.symlink = false; // Use copy
+                    } else {
+                        log.warning('Invalid choice. Defaulting to symlink.');
+                        options.symlink = true;
+                    }
+                }
             }
         } else {
             log.error(`Directory not found: ${expandedPath}`);
@@ -353,9 +405,11 @@ async function init() {
         }
     }
     
-    // Install plugin if requested
-    if (options.installPlugin && validProjectPath) {
-        await installPlugin(validProjectPath);
+    // Install plugin if project path provided
+    if (shouldInstallPlugin && validProjectPath) {
+        // Default to symlink in non-interactive mode if not specified
+        const useSymlink = options.symlink !== null ? options.symlink : true;
+        await installPlugin(validProjectPath, useSymlink);
     }
     
     // Configure Claude Desktop
@@ -501,8 +555,9 @@ testProcess.on('close', (code) => {
     }
     if (validProjectPath) {
         console.log(`  • Project: ${validProjectPath}`);
-        if (options.installPlugin) {
-            console.log(`  • Plugin: Installed to project`);
+        if (shouldInstallPlugin) {
+            const useSymlink = options.symlink !== null ? options.symlink : true;
+            console.log(`  • Plugin: ${useSymlink ? 'Symlinked' : 'Copied'} to project`);
         }
     }
     
@@ -517,7 +572,7 @@ testProcess.on('close', (code) => {
         console.log(`  ${stepNum++}. Visit claude.ai/code and say "List available UEMCP tools"`);
     }
     console.log(`  ${stepNum++}. Test locally: node test-connection.js`);
-    if (validProjectPath && options.installPlugin) {
+    if (validProjectPath && shouldInstallPlugin) {
         console.log(`  ${stepNum++}. Open your project in Unreal Editor`);
         console.log(`  ${stepNum++}. The UEMCP plugin should load automatically`);
     }

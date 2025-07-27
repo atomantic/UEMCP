@@ -18,8 +18,14 @@ The UEMCP system consists of two main components:
 
 #### Option A: Using init.js (Recommended)
 ```bash
-# Run the init script with --install-plugin flag
-node init.js --project "/path/to/your/project.uproject" --install-plugin
+# Run the init script (automatically installs plugin when project is specified)
+node init.js --project "/path/to/your/project.uproject"
+
+# For development, use symlink (recommended):
+node init.js --project "/path/to/your/project.uproject" --symlink
+
+# For production deployment, use copy:
+node init.js --project "/path/to/your/project.uproject" --copy
 ```
 
 #### Option B: Manual Installation
@@ -27,9 +33,16 @@ node init.js --project "/path/to/your/project.uproject" --install-plugin
 # Create Plugins directory if it doesn't exist
 mkdir -p "<YOUR_UE_PROJECT>/Plugins"
 
-# Copy plugin to your project
+# For development (symlink):
+ln -s <PATH_TO_UEMCP>/plugin "<YOUR_UE_PROJECT>/Plugins/UEMCP"
+
+# For production (copy):
 cp -r <PATH_TO_UEMCP>/plugin "<YOUR_UE_PROJECT>/Plugins/UEMCP"
 ```
+
+**Symlink vs Copy:**
+- **Symlink** (Development): Changes in git repo reflect immediately, supports hot reload
+- **Copy** (Production): Self-contained, no dependency on git repo location
 
 ### 2. Enable Required Plugins
 

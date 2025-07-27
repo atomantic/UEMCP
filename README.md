@@ -1,4 +1,4 @@
-# UEMCP - Unreal Engine Model Context Protocol Server
+# UEMCP - Unreal Engine Model Context Protocol
 
 ![Unreal Engine](https://img.shields.io/badge/Unreal%20Engine-5.x-blue?logo=unrealengine)
 ![MCP](https://img.shields.io/badge/MCP-Compatible-green)
@@ -30,11 +30,14 @@ The init script automatically:
 # Configure for Claude Code (claude.ai/code)
 node init.js --claude-code
 
-# Specify UE project and install plugin
-node init.js --project "/path/to/project.uproject" --install-plugin
+# Specify UE project (automatically installs plugin to specified unreal engine project)
+node init.js --project "/path/to/project.uproject"
+
+# Install with symlink for plugin development
+node init.js --project "/path/to/project.uproject" --symlink
 
 # Non-interactive with all options
-node init.js --claude-code --project "/path/to/project.uproject" --install-plugin --no-interactive
+node init.js --claude-code --project "/path/to/project.uproject" --no-interactive
 ```
 
 ## 🛠 Available Tools
@@ -139,15 +142,25 @@ Key Features:
 ### Plugin Development
 
 **Recommended: Use symlinks for hot reloading**
+
+The init script now supports creating symlinks automatically:
 ```bash
-# Create a symlink from your UE project to the git repo
-ln -s /path/to/UEMCP/plugin "/path/to/UE/Project/Plugins/UEMCP"
+# Install with symlink (recommended for development)
+node init.js --project "/path/to/project.uproject" --symlink
 
-# Now edit directly in git repo - changes reflect immediately in UE
-code /path/to/UEMCP/plugin/
+# Or let it ask you interactively (defaults to symlink)
+node init.js --project "/path/to/project.uproject"
+```
 
+Benefits of symlinking:
+- ✅ Edit plugin files directly in the git repository
+- ✅ Changes reflect immediately after `restart_listener()`
+- ✅ No need to copy files back and forth
+- ✅ Version control friendly
+
+```bash
 # In UE Python console, reload changes without restarting:
-restart_listener()  # Hot reload changes
+restart_listener()  # Hot reload your changes
 
 # Available helpers:
 status()            # Check if running
