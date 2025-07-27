@@ -4,14 +4,22 @@
 
 This document consolidates all house building documentation, lessons learned, and the plan for completing the house construction using UEMCP.
 
+### Important: Unreal Engine Coordinate System
+**Note**: UE's coordinate system is counterintuitive!
+- **X- = NORTH** (X decreases going North)
+- **X+ = SOUTH** (X increases going South)  
+- **Y- = EAST** (Y decreases going East)
+- **Y+ = WEST** (Y increases going West)
+- **Z+ = UP** (Z increases going Up)
+
 ## Current Status: Ground Floor Complete with Correct Cardinal Naming ✅
 
 ### What's Been Built
 - **4 corner pieces** properly positioned and named with cardinal directions:
-  - Corner_F1_NW at [10260, 260] (North-West)
-  - Corner_F1_NE at [11260, 260] (North-East)
-  - Corner_F1_SE at [11260, 1060] (South-East)
-  - Corner_F1_SW at [10260, 1060] (South-West)
+  - Corner_F1_NE at [10260, 260] (North-East: X-, Y-)
+  - Corner_F1_SE at [11260, 260] (South-East: X+, Y-)
+  - Corner_F1_SW at [11260, 1060] (South-West: X+, Y+)
+  - Corner_F1_NW at [10260, 1060] (North-West: X-, Y+)
 - **11 wall pieces** seamlessly connected (no gaps)
 - **1 door** centered on the front wall
 - **Foundation** at [10760, 660, 80]

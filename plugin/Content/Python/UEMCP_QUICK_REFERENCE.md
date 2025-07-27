@@ -2,19 +2,19 @@
 
 ## Coordinate System
 ```
-        NORTH (Y-)
+        NORTH (X-)
            ↑
-WEST ←─────┼─────→ EAST  
-(X-)       │      (X+)
+EAST ←─────┼─────→ WEST  
+(Y-)       │      (Y+)
            ↓
-        SOUTH (Y+)
+        SOUTH (X+)
 ```
 
 ## Cardinal Directions
-- **NW**: X- Y- (Northwest)
-- **NE**: X+ Y- (Northeast)  
-- **SE**: X+ Y+ (Southeast)
-- **SW**: X- Y+ (Southwest)
+- **NW**: X- Y+ (Northwest)
+- **NE**: X- Y- (Northeast)  
+- **SE**: X+ Y- (Southeast)
+- **SW**: X+ Y+ (Southwest)
 
 ## Rotations [Roll, Pitch, Yaw]
 - **[0, 0, 0]**: Default (no rotation)

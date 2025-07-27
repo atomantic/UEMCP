@@ -13,24 +13,25 @@ UEMCP (Unreal Engine Model Context Protocol) is a plugin that allows AI assistan
 ## Coordinate System & Cardinal Directions
 
 ### Unreal Engine's World Coordinates
-- **X+ = EAST** (positive X direction)
-- **X- = WEST** (negative X direction)
-- **Y+ = SOUTH** (positive Y direction)
-- **Y- = NORTH** (negative Y direction)
+**Note**: UE's coordinate system is counterintuitive!
+- **X- = NORTH** (X decreases going North)
+- **X+ = SOUTH** (X increases going South)
+- **Y- = EAST** (Y decreases going East)
+- **Y+ = WEST** (Y increases going West)
 - **Z+ = UP** (positive Z direction)
 
 ### Cardinal Direction Naming Convention
 When naming actors with cardinal directions (e.g., corners of a building):
-- **NW (Northwest)**: X-, Y- quadrant
-- **NE (Northeast)**: X+, Y- quadrant
-- **SE (Southeast)**: X+, Y+ quadrant
-- **SW (Southwest)**: X-, Y+ quadrant
+- **NW (Northwest)**: X-, Y+ quadrant
+- **NE (Northeast)**: X-, Y- quadrant
+- **SE (Southeast)**: X+, Y- quadrant
+- **SW (Southwest)**: X+, Y+ quadrant
 
 Example: If your building foundation is at [10760, 660, 80]:
-- NW corner would be at approximately [10260, 260]
-- NE corner would be at approximately [11260, 260]
-- SE corner would be at approximately [11260, 1060]
-- SW corner would be at approximately [10260, 1060]
+- NW corner would be at approximately [10260, 1060]
+- NE corner would be at approximately [10260, 260]
+- SE corner would be at approximately [11260, 260]
+- SW corner would be at approximately [11260, 1060]
 
 ## Rotation System
 

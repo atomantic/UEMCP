@@ -215,10 +215,21 @@ The project has a working implementation with the following MCP tools:
    camera_rotation = unreal.Rotator(0, 0, -90)  # This uses Roll instead of Pitch!
    ```
 
+### Coordinate System
+**CRITICAL**: Unreal Engine's coordinate system is counterintuitive:
+- **X- = NORTH** (X decreases going North)
+- **X+ = SOUTH** (X increases going South)
+- **Y- = EAST** (Y decreases going East)
+- **Y+ = WEST** (Y increases going West)
+- **Z+ = UP** (Z increases going Up)
+
 ### Rotation and Location Arrays
 **CRITICAL**: Understanding Unreal Engine rotation arrays:
 
-**Location [X, Y, Z]**: Position in 3D space (straightforward)
+**Location [X, Y, Z]**: Position in 3D space
+- X axis: North (-) to South (+)
+- Y axis: East (-) to West (+)
+- Z axis: Down (-) to Up (+)
 
 **Rotation [Roll, Pitch, Yaw]**: 
 - **Roll** (index 0): Rotation around the forward X axis (tilting sideways)
