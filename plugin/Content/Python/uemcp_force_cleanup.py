@@ -14,8 +14,8 @@ def force_cleanup():
     unreal.log("=== UEMCP Force Cleanup ===")
     
     # Step 1: Signal any running listener to stop
-    if 'uemcp_listener_fixed' in sys.modules:
-        mod = sys.modules['uemcp_listener_fixed']
+    if 'uemcp_listener' in sys.modules:
+        mod = sys.modules['uemcp_listener']
         if hasattr(mod, 'server_running'):
             mod.server_running = False
         if hasattr(mod, 'httpd') and mod.httpd:
@@ -43,12 +43,12 @@ def force_cleanup():
         unreal.log_error(f"Error killing processes: {e}")
     
     # Step 3: Remove module from sys.modules
-    if 'uemcp_listener_fixed' in sys.modules:
-        del sys.modules['uemcp_listener_fixed']
+    if 'uemcp_listener' in sys.modules:
+        del sys.modules['uemcp_listener']
         unreal.log("✓ Removed module from cache")
     
     unreal.log("=== Cleanup Complete ===")
-    unreal.log("You can now run: import uemcp_listener_fixed; uemcp_listener_fixed.start_listener()")
+    unreal.log("You can now run: import uemcp_listener; uemcp_listener.start_listener()")
 
 if __name__ == "__main__":
     force_cleanup()

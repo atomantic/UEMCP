@@ -706,10 +706,9 @@ def execute_on_main_thread(command):
                         direction = actor_location - camera_location
                         camera_rotation = direction.rotation()
                         
-                        # Set viewport
-                        # Set viewport camera
-                        # Use EditorLevelLibrary (works even if deprecated)
-                        unreal.EditorLevelLibrary.set_level_viewport_camera_info(
+                        # Set viewport camera using UnrealEditorSubsystem
+                        editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+                        editor_subsystem.set_level_viewport_camera_info(
                             camera_location,
                             camera_rotation
                         )
@@ -745,10 +744,9 @@ def execute_on_main_thread(command):
                         # Default rotation looking forward and slightly down
                         current_rot = unreal.Rotator(-30, 0, 0)
                     
-                    # Set the viewport camera
-                    # Use LevelEditorSubsystem for camera control
-                # Use EditorLevelLibrary (works even if deprecated)
-                unreal.EditorLevelLibrary.set_level_viewport_camera_info(
+                    # Set the viewport camera using UnrealEditorSubsystem
+                    editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+                    editor_subsystem.set_level_viewport_camera_info(
                         current_loc,
                         current_rot
                     )
@@ -792,16 +790,31 @@ def execute_on_main_thread(command):
                         'error': f'Actor not found: {actor_name}'
                     }
                 
-                # Select the actor
-                # Select the actor
-                unreal.EditorLevelLibrary.set_selected_level_actors([found_actor])
+                # Select the actor using EditorActorSubsystem
+                editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+                editor_actor_subsystem.set_selected_level_actors([found_actor])
                 
                 # Focus on selected actors
+                # First, get the actor's location and bounds
+                actor_location = found_actor.get_actor_location()
+                actor_bounds = found_actor.get_actor_bounds(only_colliding_components=False)
+                bounds_extent = actor_bounds[1]  # Box extent
                 
-                # Use the viewport client to focus on selected actors
-                # This is equivalent to pressing 'F' in the editor
-                # Focus viewport on actor
-                unreal.EditorLevelLibrary.editor_set_camera_look_at_location(found_actor.get_actor_location(), 500)
+                # Calculate a good camera distance based on bounds
+                max_extent = max(bounds_extent.x, bounds_extent.y, bounds_extent.z)
+                camera_distance = max_extent * 3  # View from 3x the largest dimension
+                
+                # Set camera to look at the actor from a nice angle
+                camera_offset = unreal.Vector(-camera_distance, -camera_distance * 0.5, camera_distance * 0.5)
+                camera_location = actor_location + camera_offset
+                
+                # Calculate rotation to look at actor
+                direction = actor_location - camera_location
+                camera_rotation = direction.rotation()
+                
+                # Set the viewport camera
+                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+                editor_subsystem.set_level_viewport_camera_info(camera_location, camera_rotation)
                 
                 return {
                     'success': True,
@@ -822,8 +835,9 @@ def execute_on_main_thread(command):
             try:
                 # Get viewport control
                 
-                # Get current viewport client
-                viewport_client = unreal.EditorLevelLibrary.get_level_viewport_camera_info()
+                # Get current viewport client using UnrealEditorSubsystem
+                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+                viewport_client = editor_subsystem.get_level_viewport_camera_info()
                 
                 # Map mode names to viewport types and orientations
                 mode_map = {
@@ -849,9 +863,8 @@ def execute_on_main_thread(command):
                     current_loc = viewport_client[0]
                     
                     # Set orthographic view with proper orientation
-                    # Set viewport camera for orthographic view
-                    # Use EditorLevelLibrary (works even if deprecated)
-                    unreal.EditorLevelLibrary.set_level_viewport_camera_info(
+                    # Set viewport camera for orthographic view using UnrealEditorSubsystem
+                    editor_subsystem.set_level_viewport_camera_info(
                         current_loc,
                         rotation
                     )
@@ -890,17 +903,8 @@ def execute_on_main_thread(command):
                         'error': f'Invalid render mode: {render_mode}. Valid modes: {", ".join(mode_map.keys())}'
                     }
                 
-                # Get the editor subsystem
-                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
-                
-                # Get the active viewport
                 # Note: There's no direct Python API for viewport show flags
                 # We'll use console commands as a workaround
-                
-                # First reset to default lit mode
-                if render_mode != 'lit':
-                    unreal.EditorLevelLibrary.editor_play_in_viewport()
-                    unreal.EditorLevelLibrary.editor_end_play()
                 
                 # Apply the render mode using console commands
                 if render_mode == 'wireframe':

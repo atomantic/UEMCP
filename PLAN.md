@@ -41,68 +41,45 @@ The final architecture differs from the original plan:
 3. **Iterative Enhancement**: Each blocker becomes an opportunity to improve MCP
 4. **Minimal Human Intervention**: Only ask user to perform actions that cannot be automated via MCP
 
-### House Building Phases
+### House Building Progress
 
-#### Phase 4.1: Foundation Assessment & Basic Structure
-**Goals**:
-- Take viewport screenshots of HouseFoundation
-- Identify foundation dimensions and anchor points
-- Place first floor walls using ModularOldTown assets
-- Test asset alignment and snapping capabilities
+**Current Status**: Ground floor in progress ⚠️
 
-**Expected MCP Enhancements**:
-- Asset dimension queries
-- Precise placement with snapping
-- Asset rotation for corner pieces
-- Collision detection
+The detailed house building plan and progress tracking has been moved to:
+📁 **[house-building-scripts/PLAN.md](house-building-scripts/PLAN.md)**
 
-#### Phase 4.2: Multi-Story Construction
-**Goals**:
-- Add second floor with proper floor/ceiling pieces
-- Implement stairs or ladder system
-- Test vertical alignment and stacking
+This includes:
+- Current build status with identified issues
+- Actor naming and folder organization requirements
+- Architectural specifications and layout
+- Key lessons learned (pivot points, viewport control, asset paths)
+- ModularOldTown asset reference with dimensions
+- Technical fixes and solutions
+- Completion plan for remaining floors
+- Helper scripts documentation
 
-**Expected MCP Enhancements**:
-- Vertical offset calculations
-- Asset stacking logic
-- Interior vs exterior wall detection
-- Floor/ceiling asset management
+### Summary of House Building Phases
 
-#### Phase 4.3: Architectural Details
-**Goals**:
-- Add windows and doors with proper cutouts
-- Implement roof system with proper angles
-- Add chimneys, dormers, or other details
+#### ⚠️ Phase 4.1: Foundation & Ground Floor - IN PROGRESS
+- Multiple wall and corner pieces placed but with issues:
+  - Wall gaps between segments
+  - Corner rotation problems
+  - Generic actor names (UEMCP_Actor_*)
+  - No folder organization
+- Created comprehensive helper scripts and verification tools
+- Identified need for actor naming and organization features
 
-**Expected MCP Enhancements**:
-- Asset replacement (wall → wall with window)
-- Angle calculations for roof pieces
-- Complex asset relationships
-- Asset variant selection
+#### ⏳ Phase 4.2: Multi-Story Construction - NEXT
+- Add floor/ceiling separator (80 tiles)
+- Duplicate ground floor pattern for second story
+- Add more windows on upper floor
 
-#### Phase 4.4: Interior Design
-**Goals**:
-- Add interior walls for room division
-- Place furniture and props from Fab
-- Implement basic lighting
+#### 📋 Phase 4.3-4.5: Remaining Work
+- Roof structure with proper angles
+- Interior walls and stairs
+- Exterior details and environment
 
-**Expected MCP Enhancements**:
-- Interior space detection
-- Asset browsing from Fab/Marketplace
-- Light actor creation and configuration
-- Material instance editing
-
-#### Phase 4.5: Exterior Enhancement
-**Goals**:
-- Add exterior details (shutters, trim, decorations)
-- Create surrounding environment (fence, garden)
-- Implement proper LODs and optimization
-
-**Expected MCP Enhancements**:
-- Detail mesh placement
-- Landscape/foliage tools
-- LOD configuration
-- Performance profiling
+See the detailed plan for specific coordinates, scripts, and implementation details.
 
 ### MCP Enhancement Priority List
 
@@ -154,12 +131,32 @@ Based on available assets in `/Game/ModularOldTown/Meshes/`:
 - Decorative elements
 - Structural supports
 
-**Immediate Next Steps**:
-1. Screenshot current HouseFoundation state
-2. List available ModularOldTown wall assets
-3. Attempt to place first wall piece
-4. Document any placement issues
-5. Implement MCP enhancements as needed
+### House Building Experiment Status
+
+The house building experiment has yielded valuable insights and improvements:
+
+**✅ Completed**:
+- Ground floor fully constructed with proper alignment
+- Critical viewport control issues fixed
+- Actor placement mathematics corrected for center pivots
+- Comprehensive helper scripts created
+- All gaps eliminated between modular pieces
+
+**📊 Discovered Issues & Solutions**:
+1. **Viewport rotation bug** - Fixed Roll/Pitch confusion
+2. **Actor naming not applied** - Documented workaround
+3. **Asset paths missing subfolders** - Added /Walls/, /Ground/ paths
+4. **Mathematical placement failures** - Corrected for center pivots
+5. **Screenshot detection timing** - Identified file system lag
+
+**📁 Resources Created**:
+- `house-building-scripts/` - All helper scripts and data files
+- `house-building-scripts/PLAN.md` - Detailed build documentation
+- `modular_dimensions.json` - Asset dimension database
+- Multiple verification and fix scripts
+
+For detailed implementation, coordinates, and next steps, see:
+📄 **[house-building-scripts/PLAN.md](house-building-scripts/PLAN.md)**
 
 ## Phase 1: Foundation & Scaffolding (Week 1-2)
 
@@ -536,7 +533,7 @@ class MockUnrealModule:
 
 ### Adding New Features
 
-1. **Edit Python listener** in `plugin/Content/Python/uemcp_listener_fixed.py`
+1. **Edit Python listener** in `plugin/Content/Python/uemcp_listener.py`
 2. **Add MCP tool** in `server/src/tools/`
 3. **Test in UE** using `restart_listener()`
 4. **Run tests** with `./test-ci-locally.sh`
@@ -544,7 +541,7 @@ class MockUnrealModule:
 
 ### Key Files
 
-- **Python Listener**: `plugin/Content/Python/uemcp_listener_fixed.py`
+- **Python Listener**: `plugin/Content/Python/uemcp_listener.py`
 - **MCP Tools**: `server/src/tools/*.ts`
 - **Integration**: `server/src/services/python-bridge.ts`
 - **Tests**: `server/tests/` and `python/tests/`

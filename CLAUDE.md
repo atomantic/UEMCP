@@ -81,7 +81,7 @@ When making changes to the plugin:
 
 1. **Edit in git repository**:
    ```bash
-   # Make changes in /Users/antic/github.com/atomantic/UEMCP_dev/plugin/
+   # Make changes in ./plugin/
    ```
 
 2. **Reload in Unreal Engine** (Python console):
@@ -179,6 +179,42 @@ The project has a working implementation with the following MCP tools:
 
 ## Important Unreal Engine Conventions
 
+### Viewport Camera Control
+
+**CRITICAL**: Understanding viewport camera positioning:
+
+1. **Camera Rotation [Pitch, Yaw, Roll]**:
+   - **Pitch**: Tilt up/down (-90 = looking straight down, 0 = horizontal, 90 = looking straight up)
+   - **Yaw**: Turn left/right (0 = north, 90 = east, 180 = south, -90 = west)
+   - **Roll**: Tilt sideways (KEEP AT 0 for normal viewing - non-zero creates tilted horizon!)
+
+2. **Focusing on Actors**:
+   ```python
+   # Method 1: Use viewport_focus tool
+   viewport_focus({ actorName: 'HouseFoundation' })
+   
+   # Method 2: Use python_proxy for more control
+   target_actor = unreal.EditorLevelLibrary.get_actor_reference('ActorName')
+   unreal.EditorLevelLibrary.set_actor_selection_state(target_actor, True)
+   unreal.EditorLevelLibrary.focus_viewport_on_actors([target_actor])
+   ```
+
+3. **Common Camera Views**:
+   - **Top-down**: Rotation = [-90, 0, 0] (Pitch=-90, looking straight down)
+   - **Front view**: Rotation = [0, 0, 0] (horizontal, facing north)
+   - **Isometric**: Rotation = [-30, 45, 0] (angled down, turned northeast)
+   - **NEVER use Roll unless creating Dutch angle effects**
+
+4. **Setting Proper Views**:
+   ```python
+   # CORRECT top-down view
+   camera_location = unreal.Vector(10760, 690, 2000)  # Above target
+   camera_rotation = unreal.Rotator(-90, 0, 0)  # Pitch=-90, Yaw=0, Roll=0
+   
+   # WRONG (creates sideways view with tilted horizon)
+   camera_rotation = unreal.Rotator(0, 0, -90)  # This uses Roll instead of Pitch!
+   ```
+
 ### Rotation and Location Arrays
 **CRITICAL**: Understanding Unreal Engine rotation arrays:
 
@@ -202,6 +238,48 @@ Common rotation examples for building:
 - Corner pieces may need specific rotations like `[0, 0, 90]` or `[0, 90, 0]`
 
 **Note**: The rotation array is [Roll, Pitch, Yaw], NOT [X, Y, Z] as the indices might suggest!
+
+### Best Practices for Actor Placement
+
+**CRITICAL**: Always verify actor placement from multiple angles:
+
+1. **Use Multiple Viewpoints**:
+   - Take screenshots from perspective view first
+   - Then switch to top/wireframe view to check alignment
+   - Wireframe mode reveals gaps and overlaps clearly
+
+2. **Modular Asset Snapping**:
+   - ModularOldTown assets are typically 300 units (3m) wide
+   - Corner pieces need specific rotations to connect properly
+   - Check for gaps between walls - they should connect seamlessly
+
+3. **Common Placement Issues**:
+   - **Corner Rotation**: Corners must be rotated to match adjacent walls
+   - **Wall Gaps**: Ensure walls are placed at exact 300-unit intervals
+   - **Overlapping**: Check wireframe view for overlapping geometry
+   - **Missing Actors**: Keep track of all placed actors (doors, windows)
+
+4. **Verification Steps**:
+   ```python
+   # 1. List all actors to verify nothing is missing
+   level_actors(filter="Wall")
+   level_actors(filter="Door")
+   
+   # 2. Take wireframe screenshot from top
+   viewport_render_mode(mode="wireframe")
+   viewport_mode(mode="top")
+   viewport_screenshot()
+   
+   # 3. Check actor positions mathematically
+   # Walls should be at exact 300-unit intervals
+   # Corners need proper rotation values
+   ```
+
+5. **Debugging Placement**:
+   - If walls don't align, check both position AND rotation
+   - Corner pieces often need 90° rotations
+   - Use `actor_modify` to fix misaligned actors
+   - Save level frequently to preserve progress
 
 ## Accessing Logs
 

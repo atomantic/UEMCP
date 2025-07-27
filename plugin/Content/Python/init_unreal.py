@@ -15,12 +15,12 @@ if plugin_python_path not in sys.path:
 
 try:
     # Import listener module
-    import uemcp_listener_fixed
+    import uemcp_listener
     
     # Check if a listener is already running (from previous session)
-    if uemcp_listener_fixed.server_running:
+    if uemcp_listener.server_running:
         unreal.log("UEMCP: Stopping previous listener...")
-        uemcp_listener_fixed.server_running = False
+        uemcp_listener.server_running = False
         time.sleep(1)  # Give it time to stop
     
     # Also check if port is in use from a crashed session
@@ -31,7 +31,7 @@ try:
         time.sleep(1)
     
     # Try to start the listener
-    started = uemcp_listener_fixed.start_listener()
+    started = uemcp_listener.start_listener()
     if not started:
         # This should rarely happen now with automatic cleanup
         unreal.log_warning("UEMCP: Could not start listener")

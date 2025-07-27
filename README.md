@@ -6,6 +6,8 @@
 
 UEMCP bridges AI assistants with Unreal Engine, enabling intelligent control of game development workflows through the Model Context Protocol (MCP).
 
+> Note: This project was made because I wanted to have my own UE MCP since Epic does not have plans to create one (or at least has not alluded to one being on the roadmap)--and I wanted this to do some things that other WIP UE MCP projects didn't support. This is working for me on my macbook with UE 5.6. As I test it with other environments and unreal versions (I do have plans to do so), I will update it. If you happen to want to use it and find it doesn't work in another environment or version of unreal, please open a pull-request. This project is entirely coded with Claude Code so feel free to use the CLAUDE.md and other files in here that can aid in development and testing. Or file issues, and I (or claude, or codex) will take a look.
+
 ## 🚀 Quick Start (2 minutes)
 
 ```bash
@@ -169,7 +171,7 @@ start_listener()    # Start listener
 ```
 
 ### Adding New Tools
-1. Add command handler in `plugin/Content/Python/uemcp_listener_fixed.py`
+1. Add command handler in `plugin/Content/Python/uemcp_listener.py`
 2. Create MCP tool wrapper in `server/src/tools/`
 3. Register tool in `server/src/index.ts`
 

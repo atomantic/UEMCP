@@ -21,7 +21,7 @@ This document tracks MCP limitations discovered during the house building experi
 
 ### 4. Screenshot Detection Fix
 **Issue**: Screenshot files are created but MCP reports failure
-**Solution**: Fix file detection timing in uemcp_listener_fixed.py
+**Solution**: Fix file detection timing in uemcp_listener.py
 **Priority**: HIGH
 
 ### 5. Console Log Access
