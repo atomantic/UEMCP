@@ -171,7 +171,7 @@ start_listener()    # Start listener
 ```
 
 ### Adding New Tools
-1. Add command handler in `plugin/Content/Python/uemcp_listener_fixed.py`
+1. Add command handler in `plugin/Content/Python/uemcp_listener.py`
 2. Create MCP tool wrapper in `server/src/tools/`
 3. Register tool in `server/src/index.ts`
 

@@ -536,7 +536,7 @@ class MockUnrealModule:
 
 ### Adding New Features
 
-1. **Edit Python listener** in `plugin/Content/Python/uemcp_listener_fixed.py`
+1. **Edit Python listener** in `plugin/Content/Python/uemcp_listener.py`
 2. **Add MCP tool** in `server/src/tools/`
 3. **Test in UE** using `restart_listener()`
 4. **Run tests** with `./test-ci-locally.sh`
@@ -544,7 +544,7 @@ class MockUnrealModule:
 
 ### Key Files
 
-- **Python Listener**: `plugin/Content/Python/uemcp_listener_fixed.py`
+- **Python Listener**: `plugin/Content/Python/uemcp_listener.py`
 - **MCP Tools**: `server/src/tools/*.ts`
 - **Integration**: `server/src/services/python-bridge.ts`
 - **Tests**: `server/tests/` and `python/tests/`

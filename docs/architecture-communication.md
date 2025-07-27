@@ -25,7 +25,7 @@ Claude/AI Assistant → MCP Server (Node.js) → HTTP → Python Listener (in UE
 - Runs inside Unreal Engine on port 8765
 - Receives HTTP commands and queues them for main thread execution
 - Uses Unreal's Python API for all operations
-- Location: `plugin/Content/Python/uemcp_listener_fixed.py`
+- Location: `plugin/Content/Python/uemcp_listener.py`
 
 ## Current Architecture
 
