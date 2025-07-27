@@ -1,0 +1,530 @@
+{
+  "BASIC WALLS": [
+    {
+      "name": "SM_FlatWall_2m",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m",
+      "dimensions": {
+        "x": 199.98773956298828,
+        "y": 99.37970578670502,
+        "z": 281.75814855098724
+      },
+      "dimensions_meters": {
+        "x": 1.9998773956298828,
+        "y": 0.9937970578670502,
+        "z": 2.8175814855098724
+      },
+      "vertices": 178,
+      "triangles": 204
+    },
+    {
+      "name": "SM_FlatWall_3m",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m",
+      "dimensions": {
+        "x": 299.9891775784781,
+        "y": 99.37970578670502,
+        "z": 281.75814855098724
+      },
+      "dimensions_meters": {
+        "x": 2.999891775784781,
+        "y": 0.9937970578670502,
+        "z": 2.8175814855098724
+      },
+      "vertices": 214,
+      "triangles": 252
+    },
+    {
+      "name": "SM_FlatStoneWall_2m",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatStoneWall_2m",
+      "dimensions": {
+        "x": 199.99994659423828,
+        "y": 100.31716817617416,
+        "z": 281.7617231607437
+      },
+      "dimensions_meters": {
+        "x": 1.9999994659423828,
+        "y": 1.0031716817617415,
+        "z": 2.817617231607437
+      },
+      "vertices": 7036,
+      "triangles": 9224
+    },
+    {
+      "name": "SM_FlatStoneWall_3m",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatStoneWall_3m",
+      "dimensions": {
+        "x": 300.00006103515625,
+        "y": 100.46169549226761,
+        "z": 281.76251661777496
+      },
+      "dimensions_meters": {
+        "x": 3.0000006103515626,
+        "y": 1.004616954922676,
+        "z": 2.81762516617775
+      },
+      "vertices": 61036,
+      "triangles": 20360
+    }
+  ],
+  "CORNER PIECES": [
+    {
+      "name": "SM_FlatWall_1m_Corner",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner",
+      "dimensions": {
+        "x": 100.14825284481049,
+        "y": 99.37970578670502,
+        "z": 281.75814855098724
+      },
+      "dimensions_meters": {
+        "x": 1.0014825284481048,
+        "y": 0.9937970578670502,
+        "z": 2.8175814855098724
+      },
+      "vertices": 325,
+      "triangles": 246
+    },
+    {
+      "name": "SM_FlatWall_1m_Corner_R",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner_R",
+      "dimensions": {
+        "x": 199.98773956298828,
+        "y": 199.94497680664062,
+        "z": 281.75816905498505
+      },
+      "dimensions_meters": {
+        "x": 1.9998773956298828,
+        "y": 1.9994497680664063,
+        "z": 2.8175816905498503
+      },
+      "vertices": 257,
+      "triangles": 252
+    },
+    {
+      "name": "SM_FlatStoneWall_1m_Corner",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatStoneWall_1m_Corner",
+      "dimensions": {
+        "x": 101.91670572757721,
+        "y": 102.56102287769318,
+        "z": 281.80475294589996
+      },
+      "dimensions_meters": {
+        "x": 1.019167057275772,
+        "y": 1.0256102287769318,
+        "z": 2.8180475294589997
+      },
+      "vertices": 51911,
+      "triangles": 17411
+    },
+    {
+      "name": "SM_FlatStoneWall_1m_Corner_R",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatStoneWall_1m_Corner_R",
+      "dimensions": {
+        "x": 199.98773956298828,
+        "y": 199.95706939697266,
+        "z": 281.7617233991623
+      },
+      "dimensions_meters": {
+        "x": 1.9998773956298828,
+        "y": 1.9995706939697266,
+        "z": 2.817617233991623
+      },
+      "vertices": 7618,
+      "triangles": 9303
+    }
+  ],
+  "DOOR WALLS": [
+    {
+      "name": "SM_FlatWall_2m_SquareDoor",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m_SquareDoor",
+      "dimensions": {
+        "x": 199.98773956298828,
+        "y": 99.49732679128647,
+        "z": 281.75814855098724
+      },
+      "dimensions_meters": {
+        "x": 1.9998773956298828,
+        "y": 0.9949732679128647,
+        "z": 2.8175814855098724
+      },
+      "vertices": 1294,
+      "triangles": 648
+    },
+    {
+      "name": "SM_FlatWall_3m_SquareDoor",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m_SquareDoor",
+      "dimensions": {
+        "x": 299.9891775784781,
+        "y": 99.49732679128647,
+        "z": 281.75814855098724
+      },
+      "dimensions_meters": {
+        "x": 2.999891775784781,
+        "y": 0.9949732679128647,
+        "z": 2.8175814855098724
+      },
+      "vertices": 384,
+      "triangles": 256
+    },
+    {
+      "name": "SM_FlatWall_3m_ArchedDoor",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m_ArchedDoor",
+      "dimensions": {
+        "x": 299.9891775784781,
+        "y": 99.75540092587471,
+        "z": 281.7657376527786
+      },
+      "dimensions_meters": {
+        "x": 2.999891775784781,
+        "y": 0.9975540092587472,
+        "z": 2.8176573765277864
+      },
+      "vertices": 785,
+      "triangles": 531
+    },
+    {
+      "name": "SM_FlatStoneWall_3m_ArchedDoor",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatStoneWall_3m_ArchedDoor",
+      "dimensions": {
+        "x": 300.00006103515625,
+        "y": 100.46169549226761,
+        "z": 281.7701017856598
+      },
+      "dimensions_meters": {
+        "x": 3.0000006103515626,
+        "y": 1.004616954922676,
+        "z": 2.817701017856598
+      },
+      "vertices": 7489,
+      "triangles": 8741
+    }
+  ],
+  "WINDOW WALLS": [
+    {
+      "name": "SM_FlatWall_2m_SquareWin",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m_SquareWin",
+      "dimensions": {
+        "x": 199.98773956298828,
+        "y": 99.8418083563447,
+        "z": 281.75814855098724
+      },
+      "dimensions_meters": {
+        "x": 1.9998773956298828,
+        "y": 0.998418083563447,
+        "z": 2.8175814855098724
+      },
+      "vertices": 472,
+      "triangles": 255
+    },
+    {
+      "name": "SM_FlatWall_3m_SquareWin",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m_SquareWin",
+      "dimensions": {
+        "x": 299.98923861363437,
+        "y": 99.84178192913532,
+        "z": 281.7581526041031
+      },
+      "dimensions_meters": {
+        "x": 2.999892386136344,
+        "y": 0.9984178192913532,
+        "z": 2.817581526041031
+      },
+      "vertices": 473,
+      "triangles": 256
+    },
+    {
+      "name": "SM_FlatWall_3m_ArchedWin",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m_ArchedWin",
+      "dimensions": {
+        "x": 299.98923861363437,
+        "y": 100.71290612220764,
+        "z": 281.7581526041031
+      },
+      "dimensions_meters": {
+        "x": 2.999892386136344,
+        "y": 1.0071290612220765,
+        "z": 2.817581526041031
+      },
+      "vertices": 801,
+      "triangles": 482
+    },
+    {
+      "name": "SM_FlatStoneWall_3m_ArchedWin",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatStoneWall_3m_ArchedWin",
+      "dimensions": {
+        "x": 300.00006103515625,
+        "y": 101.28216564655304,
+        "z": 281.76251661777496
+      },
+      "dimensions_meters": {
+        "x": 3.0000006103515626,
+        "y": 1.0128216564655304,
+        "z": 2.81762516617775
+      },
+      "vertices": 58555,
+      "triangles": 20204
+    }
+  ],
+  "FLOORS": [
+    {
+      "name": "SM_Floor_1m",
+      "path": "/Game/ModularOldTown/Meshes/Ground/SM_Floor_1m",
+      "dimensions": {
+        "x": 99.99994659423828,
+        "y": 99.95588958013832,
+        "z": 6.621589303016663
+      },
+      "dimensions_meters": {
+        "x": 0.9999994659423828,
+        "y": 0.9995588958013832,
+        "z": 0.06621589303016663
+      },
+      "vertices": 24,
+      "triangles": 12
+    },
+    {
+      "name": "SM_Floor_2m",
+      "path": "/Game/ModularOldTown/Meshes/Ground/SM_Floor_2m",
+      "dimensions": {
+        "x": 199.98773956298828,
+        "y": 99.95579325990184,
+        "z": 6.621589303016663
+      },
+      "dimensions_meters": {
+        "x": 1.9998773956298828,
+        "y": 0.9995579325990184,
+        "z": 0.06621589303016663
+      },
+      "vertices": 24,
+      "triangles": 12
+    },
+    {
+      "name": "SM_Ceiling_1m_Corner",
+      "path": "/Game/ModularOldTown/Meshes/Ground/SM_Ceiling_1m_Corner",
+      "dimensions": {
+        "x": 75.96166229248047,
+        "y": 75.56490707397461,
+        "z": 6.621589303016663
+      },
+      "dimensions_meters": {
+        "x": 0.7596166229248047,
+        "y": 0.7556490707397461,
+        "z": 0.06621589303016663
+      },
+      "vertices": 24,
+      "triangles": 12
+    }
+  ],
+  "ROOFS": [
+    {
+      "name": "SM_Roof_1m",
+      "path": "/Game/ModularOldTown/Meshes/Roof_Parts/SM_Roof_1m",
+      "dimensions": {
+        "x": 100.00057792663574,
+        "y": 100.42903053760529,
+        "z": 47.25434619188309
+      },
+      "dimensions_meters": {
+        "x": 1.0000057792663575,
+        "y": 1.0042903053760528,
+        "z": 0.4725434619188309
+      },
+      "vertices": 428,
+      "triangles": 255
+    },
+    {
+      "name": "SM_Roof_2m",
+      "path": "/Game/ModularOldTown/Meshes/Roof_Parts/SM_Roof_2m",
+      "dimensions": {
+        "x": 200.0000483618869,
+        "y": 100.42922127246857,
+        "z": 47.297895818948746
+      },
+      "dimensions_meters": {
+        "x": 2.000000483618869,
+        "y": 1.0042922127246856,
+        "z": 0.47297895818948743
+      },
+      "vertices": 815,
+      "triangles": 492
+    },
+    {
+      "name": "SM_Roof_3m_Top",
+      "path": "/Game/ModularOldTown/Meshes/Roof_Parts/SM_Roof_3m_Top",
+      "dimensions": {
+        "x": 206.94817352294922,
+        "y": 104.27614855766296,
+        "z": 31.25236415863037
+      },
+      "dimensions_meters": {
+        "x": 2.069481735229492,
+        "y": 1.0427614855766296,
+        "z": 0.3125236415863037
+      },
+      "vertices": 542,
+      "triangles": 342
+    },
+    {
+      "name": "SM_Roof_1m_Corner",
+      "path": "/Game/ModularOldTown/Meshes/Roof_Parts/SM_Roof_1m_Corner",
+      "dimensions": {
+        "x": 107.3131537437439,
+        "y": 109.53602743148804,
+        "z": 54.662840604782104
+      },
+      "dimensions_meters": {
+        "x": 1.073131537437439,
+        "y": 1.0953602743148805,
+        "z": 0.546628406047821
+      },
+      "vertices": 696,
+      "triangles": 432
+    },
+    {
+      "name": "SM_Roof_1m_Edge",
+      "path": "/Game/ModularOldTown/Meshes/Roof_Parts/SM_Roof_1m_Edge",
+      "dimensions": {
+        "x": 100.00843709440232,
+        "y": 110.10236358642578,
+        "z": 72.39975882982253
+      },
+      "dimensions_meters": {
+        "x": 1.0000843709440232,
+        "y": 1.1010236358642578,
+        "z": 0.7239975882982254
+      },
+      "vertices": 522,
+      "triangles": 313
+    }
+  ],
+  "ARCHES & GATES": [
+    {
+      "name": "SM_FlatWall_3m_BigArch",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m_BigArch",
+      "dimensions": {
+        "x": 299.9891775784781,
+        "y": 99.77557326853275,
+        "z": 281.75814855098724
+      },
+      "dimensions_meters": {
+        "x": 2.999891775784781,
+        "y": 0.9977557326853276,
+        "z": 2.8175814855098724
+      },
+      "vertices": 485,
+      "triangles": 347
+    },
+    {
+      "name": "SM_FlatStoneWall_3m_BigArch",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatStoneWall_3m_BigArch",
+      "dimensions": {
+        "x": 300.0913129784167,
+        "y": 100.46168786287308,
+        "z": 281.76251661777496
+      },
+      "dimensions_meters": {
+        "x": 3.0009131297841667,
+        "y": 1.0046168786287308,
+        "z": 2.81762516617775
+      },
+      "vertices": 26651,
+      "triangles": 9273
+    },
+    {
+      "name": "SM_FlatWall_3m_Gate",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m_Gate",
+      "dimensions": {
+        "x": 299.9891775784781,
+        "y": 104.98953199386597,
+        "z": 281.75814855098724
+      },
+      "dimensions_meters": {
+        "x": 2.999891775784781,
+        "y": 1.0498953199386596,
+        "z": 2.8175814855098724
+      },
+      "vertices": 1679,
+      "triangles": 1722
+    },
+    {
+      "name": "SM_FlatStoneWall_3m_Gate",
+      "path": "/Game/ModularOldTown/Meshes/Walls/SM_FlatStoneWall_3m_Gate",
+      "dimensions": {
+        "x": 300.0000610351708,
+        "y": 104.989501953125,
+        "z": 281.76251661777496
+      },
+      "dimensions_meters": {
+        "x": 3.000000610351708,
+        "y": 1.04989501953125,
+        "z": 2.81762516617775
+      },
+      "vertices": 7951,
+      "triangles": 9295
+    }
+  ],
+  "DECORATION": [
+    {
+      "name": "SM_WallDecor_2m",
+      "path": "/Game/ModularOldTown/Meshes/Decoration_Parts/SM_WallDecor_2m",
+      "dimensions": {
+        "x": 199.98803561925888,
+        "y": 13.182445526123047,
+        "z": 40.70656759594567
+      },
+      "dimensions_meters": {
+        "x": 1.9998803561925889,
+        "y": 0.13182445526123046,
+        "z": 0.4070656759594567
+      },
+      "vertices": 1883,
+      "triangles": 1602
+    },
+    {
+      "name": "SM_WallDecor_3m",
+      "path": "/Game/ModularOldTown/Meshes/Decoration_Parts/SM_WallDecor_3m",
+      "dimensions": {
+        "x": 299.9878178294166,
+        "y": 13.18249225616455,
+        "z": 40.70653358718846
+      },
+      "dimensions_meters": {
+        "x": 2.999878178294166,
+        "y": 0.13182492256164552,
+        "z": 0.4070653358718846
+      },
+      "vertices": 1825,
+      "triangles": 1380
+    },
+    {
+      "name": "SM_SimpleBalcony_A",
+      "path": "/Game/ModularOldTown/Meshes/Decoration_Parts/SM_SimpleBalcony_A",
+      "dimensions": {
+        "x": 157.76683580875397,
+        "y": 61.06095600128174,
+        "z": 47.1955246925354
+      },
+      "dimensions_meters": {
+        "x": 1.5776683580875397,
+        "y": 0.6106095600128174,
+        "z": 0.471955246925354
+      },
+      "vertices": 2550,
+      "triangles": 2483
+    },
+    {
+      "name": "SM_Stairs_A",
+      "path": "/Game/ModularOldTown/Meshes/Decoration_Parts/SM_Stairs_A",
+      "dimensions": {
+        "x": 421.79983043670654,
+        "y": 137.86065435409546,
+        "z": 352.4698549459863
+      },
+      "dimensions_meters": {
+        "x": 4.2179983043670655,
+        "y": 1.3786065435409547,
+        "z": 3.524698549459863
+      },
+      "vertices": 468,
+      "triangles": 256
+    }
+  ]
+}

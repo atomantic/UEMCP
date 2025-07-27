@@ -1,0 +1,29 @@
+actor_name	asset_path	location_x	location_y	location_z	rotation_roll	rotation_pitch	rotation_yaw	notes
+# Foundation: Center at [10760, 690, 80], Top at Z=140
+# House: 10m x 8m (outer dimensions)
+# Accounting for CENTER PIVOTS - all positions are piece centers
+# Corner pieces: 100x100cm, Walls: 100cm thick
+# 
+# GROUND FLOOR - CORNERS (pivot at center, so offset by 50cm from true corners)
+Corner_GF_FL	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner	10310	340	140	0	0	0	Front-left (extends from 10260,290 to 10360,390)
+Corner_GF_FR	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner	11210	340	140	0	0	-90	Front-right (extends from 11160,290 to 11260,390)
+Corner_GF_BR	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner	11210	1040	140	0	0	180	Back-right (extends from 11160,990 to 11260,1090)
+Corner_GF_BL	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner	10310	1040	140	0	0	90	Back-left (extends from 10260,990 to 10360,1090)
+# 
+# GROUND FLOOR - WALLS (accounting for corner space and center pivots)
+# Front wall (Y=340, between corners at X: 10360-11160 = 800cm span)
+Wall_Front_L	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m	10460	340	140	0	0	0	Left of door (center at 10460)
+Door_Front	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m_SquareDoor	10760	340	140	0	0	0	Main door (center at 10760)
+Wall_Front_R	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m	11060	340	140	0	0	0	Right of door (center at 11060)
+# 
+# Back wall (Y=1040, same X positions as front)
+Wall_Back_L	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m	10510	1040	140	0	0	0	Back left (300cm piece)
+Wall_Back_R	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m	11010	1040	140	0	0	0	Back right (300cm piece)
+# 
+# Left wall (X=10310, between corners at Y: 390-990 = 600cm span)
+Wall_Left_1	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m	10310	540	140	0	0	90	Left wall piece 1
+Wall_Left_2	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m	10310	840	140	0	0	90	Left wall piece 2
+# 
+# Right wall (X=11210, same Y positions as left)
+Wall_Right_1	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m	11210	540	140	0	0	90	Right wall piece 1
+Wall_Right_2	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m	11210	840	140	0	0	90	Right wall piece 2

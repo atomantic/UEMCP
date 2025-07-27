@@ -1,0 +1,46 @@
+actor_name	asset_path	location_x	location_y	location_z	rotation_roll	rotation_pitch	rotation_yaw	notes
+# Foundation Details: Center at [10760, 690, 80], Size: 5000x5000, Top Surface: Z=140
+# House Size: 10m x 8m (1000cm x 800cm) centered on foundation
+# House Bounds: X: 10260-11260, Y: 290-1090
+# GROUND FLOOR - CORNERS (100x100cm each)
+Corner_GF_Front_Left	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner	10260	290	140	0	0	0	Front-left corner
+Corner_GF_Front_Right	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner	11260	290	140	0	0	-90	Front-right corner  
+Corner_GF_Back_Right	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner	11260	1090	140	0	0	180	Back-right corner
+Corner_GF_Back_Left	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner	10260	1090	140	0	0	90	Back-left corner
+# GROUND FLOOR - FRONT WALL (Y=290, facing negative Y)
+Front_Wall_Left	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m	10460	290	140	0	0	0	Left of door (200cm)
+Front_Door	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m_Door_Square	10760	290	140	0	0	0	Main entrance (300cm)
+Front_Wall_Right	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m	11060	290	140	0	0	0	Right of door (200cm)
+# GROUND FLOOR - BACK WALL (Y=1090)
+Back_Wall_Left	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m	10460	1090	140	0	0	0	Left section (200cm)
+Back_Wall_Center	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m_Window_Square	10660	1090	140	0	0	0	Window (200cm)
+Back_Wall_Right	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m	10960	1090	140	0	0	0	Right section (300cm)
+# GROUND FLOOR - LEFT WALL (X=10260)
+Left_Wall_Front	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m	10260	540	140	0	0	90	Front section (300cm)
+Left_Wall_Window	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m_Window_Square	10260	740	140	0	0	90	Window (200cm)
+Left_Wall_Back	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m	10260	940	140	0	0	90	Back section (200cm)
+# GROUND FLOOR - RIGHT WALL (X=11260)
+Right_Wall_Front	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m	11260	540	140	0	0	90	Front section (300cm)
+Right_Wall_Window	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m_Window_Square	11260	740	140	0	0	90	Window (200cm)
+Right_Wall_Back	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m	11260	940	140	0	0	90	Back section (200cm)
+# SECOND FLOOR - FLOOR TILES (10x8 grid of 1m tiles = 80 tiles total)
+# Sample floor tiles - showing pattern for first row
+Floor_2F_R1C1	/Game/ModularOldTown/Meshes/Ground/SM_Floor_1m	10310	340	422	0	0	0	Row 1 Col 1
+Floor_2F_R1C2	/Game/ModularOldTown/Meshes/Ground/SM_Floor_1m	10410	340	422	0	0	0	Row 1 Col 2
+Floor_2F_R1C3	/Game/ModularOldTown/Meshes/Ground/SM_Floor_1m	10510	340	422	0	0	0	Row 1 Col 3
+Floor_2F_R1C4	/Game/ModularOldTown/Meshes/Ground/SM_Floor_1m	10610	340	422	0	0	0	Row 1 Col 4
+Floor_2F_R1C5	/Game/ModularOldTown/Meshes/Ground/SM_Floor_1m	10710	340	422	0	0	0	Row 1 Col 5
+Floor_2F_R1C6	/Game/ModularOldTown/Meshes/Ground/SM_Floor_1m	10810	340	422	0	0	0	Row 1 Col 6
+Floor_2F_R1C7	/Game/ModularOldTown/Meshes/Ground/SM_Floor_1m	10910	340	422	0	0	0	Row 1 Col 7
+Floor_2F_R1C8	/Game/ModularOldTown/Meshes/Ground/SM_Floor_1m	11010	340	422	0	0	0	Row 1 Col 8
+Floor_2F_R1C9	/Game/ModularOldTown/Meshes/Ground/SM_Floor_1m	11110	340	422	0	0	0	Row 1 Col 9
+Floor_2F_R1C10	/Game/ModularOldTown/Meshes/Ground/SM_Floor_1m	11210	340	422	0	0	0	Row 1 Col 10
+# SECOND FLOOR - CORNERS (Z=422 = 140 base + 282 wall height)
+Corner_2F_Front_Left	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner	10260	290	422	0	0	0	2F Front-left
+Corner_2F_Front_Right	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner	11260	290	422	0	0	-90	2F Front-right
+Corner_2F_Back_Right	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner	11260	1090	422	0	0	180	2F Back-right
+Corner_2F_Back_Left	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner	10260	1090	422	0	0	90	2F Back-left
+# SECOND FLOOR - WALLS (similar pattern but more windows)
+Front_Wall_2F_Left	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m_Window_Square	10460	290	422	0	0	0	Window left
+Front_Wall_2F_Center	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m	10760	290	422	0	0	0	Center wall
+Front_Wall_2F_Right	/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_2m_Window_Square	11060	290	422	0	0	0	Window right

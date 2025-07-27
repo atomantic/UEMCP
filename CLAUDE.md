@@ -81,7 +81,7 @@ When making changes to the plugin:
 
 1. **Edit in git repository**:
    ```bash
-   # Make changes in /Users/antic/github.com/atomantic/UEMCP_dev/plugin/
+   # Make changes in ./plugin/
    ```
 
 2. **Reload in Unreal Engine** (Python console):
@@ -178,6 +178,42 @@ The project has a working implementation with the following MCP tools:
 - **Available Assets**: ModularOldTown building components in /Game/ModularOldTown/Meshes/
 
 ## Important Unreal Engine Conventions
+
+### Viewport Camera Control
+
+**CRITICAL**: Understanding viewport camera positioning:
+
+1. **Camera Rotation [Pitch, Yaw, Roll]**:
+   - **Pitch**: Tilt up/down (-90 = looking straight down, 0 = horizontal, 90 = looking straight up)
+   - **Yaw**: Turn left/right (0 = north, 90 = east, 180 = south, -90 = west)
+   - **Roll**: Tilt sideways (KEEP AT 0 for normal viewing - non-zero creates tilted horizon!)
+
+2. **Focusing on Actors**:
+   ```python
+   # Method 1: Use viewport_focus tool
+   viewport_focus({ actorName: 'HouseFoundation' })
+   
+   # Method 2: Use python_proxy for more control
+   target_actor = unreal.EditorLevelLibrary.get_actor_reference('ActorName')
+   unreal.EditorLevelLibrary.set_actor_selection_state(target_actor, True)
+   unreal.EditorLevelLibrary.focus_viewport_on_actors([target_actor])
+   ```
+
+3. **Common Camera Views**:
+   - **Top-down**: Rotation = [-90, 0, 0] (Pitch=-90, looking straight down)
+   - **Front view**: Rotation = [0, 0, 0] (horizontal, facing north)
+   - **Isometric**: Rotation = [-30, 45, 0] (angled down, turned northeast)
+   - **NEVER use Roll unless creating Dutch angle effects**
+
+4. **Setting Proper Views**:
+   ```python
+   # CORRECT top-down view
+   camera_location = unreal.Vector(10760, 690, 2000)  # Above target
+   camera_rotation = unreal.Rotator(-90, 0, 0)  # Pitch=-90, Yaw=0, Roll=0
+   
+   # WRONG (creates sideways view with tilted horizon)
+   camera_rotation = unreal.Rotator(0, 0, -90)  # This uses Roll instead of Pitch!
+   ```
 
 ### Rotation and Location Arrays
 **CRITICAL**: Understanding Unreal Engine rotation arrays:

@@ -2,7 +2,7 @@
 # Build script for UEMCP server
 
 echo "Building UEMCP server..."
-cd /Users/antic/github.com/atomantic/UEMCP_dev/server
+cd server
 
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then

@@ -62,8 +62,6 @@ logs/
 # Testing
 coverage/
 .nyc_output/
-test-*.js
-manual-test.md
 
 # Build outputs
 *.dll
