@@ -191,10 +191,28 @@ def execute_on_main_thread(command):
         elif cmd_type == 'level.actors':
             # Get all actors in level
             all_actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
-            actor_list = []
             
+            # Apply filter if provided
+            filter_text = params.get('filter', None)
+            if filter_text:
+                # Filter actors by name or class (case-insensitive partial match)
+                filtered_actors = []
+                for actor in all_actors:
+                    actor_name = actor.get_actor_label().lower()
+                    actor_class = actor.get_class().get_name().lower()
+                    filter_lower = filter_text.lower()
+                    
+                    if filter_lower in actor_name or filter_lower in actor_class:
+                        filtered_actors.append(actor)
+                
+                actors_to_process = filtered_actors
+            else:
+                actors_to_process = all_actors
+            
+            # Build actor list with limit
+            actor_list = []
             limit = params.get('limit', 30)
-            for i, actor in enumerate(all_actors):
+            for i, actor in enumerate(actors_to_process):
                 if i >= limit:
                     break
                     
@@ -212,7 +230,7 @@ def execute_on_main_thread(command):
             return {
                 'success': True,
                 'actors': actor_list,
-                'totalCount': len(all_actors),
+                'totalCount': len(actors_to_process),
                 'currentLevel': unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world().get_name()
             }
         
