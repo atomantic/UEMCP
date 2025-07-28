@@ -248,7 +248,7 @@ export const helpTool = {
       }
     }
   },
-  handler: async (params: unknown) => {
+  handler: async (params: unknown): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> => {
     const { tool, category } = params as HelpParams;
     
     try {

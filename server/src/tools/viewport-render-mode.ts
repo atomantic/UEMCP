@@ -3,7 +3,7 @@ import { PythonBridge } from '../services/python-bridge.js';
 export const viewportRenderModeTool = {
   definition: {
     name: 'viewport_render_mode',
-    description: 'Change viewport rendering. Wireframe best for debugging gaps/overlaps. viewport_render_mode({ mode: \"wireframe\" }). Options: lit/unlit/wireframe/detail_lighting/lighting_only/etc.',
+    description: 'Change viewport rendering. Wireframe best for debugging gaps/overlaps. viewport_render_mode({ mode: "wireframe" }). Options: lit/unlit/wireframe/detail_lighting/lighting_only/etc.',
     inputSchema: {
       type: 'object',
       properties: {

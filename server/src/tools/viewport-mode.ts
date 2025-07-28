@@ -3,7 +3,7 @@ import { PythonBridge } from '../services/python-bridge.js';
 export const viewportModeTool = {
   definition: {
     name: 'viewport_mode',
-    description: 'Position camera for standard views. viewport_mode({ mode: \"top\" }) = looking down. Options: top/front/side/left/right/back/perspective. Auto-centers on selected actors. Note: Positions camera only (UE limitation).',
+    description: 'Position camera for standard views. viewport_mode({ mode: "top" }) = looking down. Options: top/front/side/left/right/back/perspective. Auto-centers on selected actors. Note: Positions camera only (UE limitation).',
     inputSchema: {
       type: 'object',
       properties: {
