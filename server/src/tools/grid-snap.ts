@@ -49,7 +49,7 @@ export const gridSnapTool = {
         message += `\nGrid size set to ${args.gridSize} units`;
       }
       if (result.snappedActors && Number(result.snappedActors) > 0) {
-        message += `\nSnapped ${result.snappedActors} actors to grid`;
+        message += `\nSnapped ${String(result.snappedActors)} actors to grid`;
       }
 
       return {
