@@ -7,12 +7,13 @@ interface ActorModifyArgs {
   rotation?: [number, number, number];
   scale?: [number, number, number];
   folder?: string;
+  mesh?: string;
 }
 
 export const actorModifyTool = {
   definition: {
     name: 'actor_modify',
-    description: 'Modify actor transform/organization. Move: actor_modify({ name: "Wall", location: [100, 200, 0] }). Rotate: actor_modify({ name: "Corner", rotation: [0, 0, 90] }). Organize: actor_modify({ name: "Door", folder: "Building/Doors" })',
+    description: 'Modify actor properties. Move: actor_modify({ actorName: "Wall", location: [100, 200, 0] }). Rotate: actor_modify({ actorName: "Corner", rotation: [0, 0, 90] }). Change mesh: actor_modify({ actorName: "Wall", mesh: "/Game/Meshes/NewWall" }). Organize: actor_modify({ actorName: "Door", folder: "Building/Doors" })',
     inputSchema: {
       type: 'object',
       properties: {
@@ -44,6 +45,10 @@ export const actorModifyTool = {
         folder: {
           type: 'string',
           description: 'New folder path in World Outliner (e.g., "Estate/House")',
+        },
+        mesh: {
+          type: 'string',
+          description: 'New static mesh asset path (e.g., "/Game/Meshes/SM_Wall"). Only works for StaticMeshActors.',
         },
       },
       required: ['actorName'],

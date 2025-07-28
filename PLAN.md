@@ -98,6 +98,17 @@ Ground Floor Layout (Top View):
 - **Impact**: All placement calculations must account for half-dimensions
 - **Example**: A 300x100 wall at position (X,Y) extends from (X-150, Y-50) to (X+150, Y+50)
 
+#### 2. MCP actor_modify Mesh Replacement Bug 🐛
+- **Issue**: actor_modify tool reports success but mesh changes don't always apply
+- **Symptoms**: 
+  - Tool returns success status
+  - Logs show no errors
+  - level_actors shows old mesh still in use
+  - Direct python_proxy execution works correctly
+- **Workaround**: Use python_proxy for mesh replacement until fixed
+- **Root Cause**: Unknown - needs investigation
+- **Test Case**: Changing Wall_West_1 from SM_FlatWall_2m to SM_FlatWall_3m_SquareWin
+
 #### 2. Actor Naming Requirements 🏷️
 - **Problem**: Spawned actors get generic names like "UEMCP_Actor_1753576458"
 - **Solution**: Must provide meaningful names when spawning

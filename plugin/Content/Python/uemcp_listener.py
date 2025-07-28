@@ -728,6 +728,7 @@ def execute_on_main_thread(command):
             rotation = params.get('rotation', None)
             scale = params.get('scale', None)
             folder = params.get('folder', None)
+            mesh = params.get('mesh', None)
             
             try:
                 # Find actor by name
@@ -776,6 +777,35 @@ def execute_on_main_thread(command):
                 
                 if folder is not None:
                     found_actor.set_folder_path(folder)
+                
+                if mesh is not None:
+                    # Change the static mesh for StaticMeshActors
+                    mesh_component = found_actor.get_component_by_class(unreal.StaticMeshComponent)
+                    if mesh_component:
+                        # Debug logging
+                        current_mesh = mesh_component.static_mesh
+                        print(f"[actor_modify] Changing mesh for {actor_name}")
+                        print(f"[actor_modify] Current mesh: {current_mesh.get_path_name() if current_mesh else 'None'}")
+                        print(f"[actor_modify] Loading new mesh: {mesh}")
+                        
+                        new_mesh = unreal.EditorAssetLibrary.load_asset(mesh)
+                        if new_mesh:
+                            print(f"[actor_modify] Loaded mesh: {new_mesh.get_path_name()}")
+                            mesh_component.set_static_mesh(new_mesh)
+                            # Force update
+                            found_actor.modify()
+                            print(f"[actor_modify] Mesh change applied")
+                        else:
+                            print(f"[actor_modify] Failed to load mesh: {mesh}")
+                            return {
+                                'success': False,
+                                'error': f'Could not load mesh: {mesh}'
+                            }
+                    else:
+                        return {
+                            'success': False,
+                            'error': f'Actor {actor_name} does not have a StaticMeshComponent'
+                        }
                 
                 # Get updated transform
                 current_location = found_actor.get_actor_location()
@@ -1268,18 +1298,21 @@ def execute_on_main_thread(command):
                 }
         
         elif cmd_type == 'system.restart':
-            # Use the non-blocking restart from helpers
+            # Just signal stop - don't restart from within request handler to avoid crash
             try:
-                import uemcp_helpers
-                result = uemcp_helpers.restart_listener()
+                global server_running
+                
+                # Set flag to stop server after this request completes
+                server_running = False
+                unreal.log("UEMCP: Restart requested - listener will stop after this response")
                 
                 return {
-                    'success': result,
-                    'message': 'Hot reload completed!' if result else 'Restart failed - check console'
+                    'success': True,
+                    'message': 'Listener stopping. Please run restart_listener() in UE console to complete restart.'
                 }
                 
             except Exception as e:
-                return {'success': False, 'error': f'Failed to initiate restart: {str(e)}'}
+                return {'success': False, 'error': f'Failed to signal restart: {str(e)}'}
         
         else:
             return {
