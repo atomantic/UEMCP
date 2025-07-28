@@ -16,6 +16,8 @@ server_running = False
 server_thread = None
 httpd = None
 tick_handle = None
+restart_scheduled = False
+restart_countdown = 0
 
 # Import thread tracker
 try:
@@ -1298,21 +1300,19 @@ def execute_on_main_thread(command):
                 }
         
         elif cmd_type == 'system.restart':
-            # Just signal stop - don't restart from within request handler to avoid crash
+            # Schedule restart to happen after this request completes
             try:
-                global server_running
-                
-                # Set flag to stop server after this request completes
-                server_running = False
-                unreal.log("UEMCP: Restart requested - listener will stop after this response")
+                global restart_scheduled
+                restart_scheduled = True
+                unreal.log("UEMCP: Restart scheduled after current request completes")
                 
                 return {
                     'success': True,
-                    'message': 'Listener stopping. Please run restart_listener() in UE console to complete restart.'
+                    'message': 'Listener will restart automatically in ~2 seconds'
                 }
                 
             except Exception as e:
-                return {'success': False, 'error': f'Failed to signal restart: {str(e)}'}
+                return {'success': False, 'error': f'Failed to schedule restart: {str(e)}'}
         
         else:
             return {
@@ -1330,6 +1330,21 @@ def execute_on_main_thread(command):
 
 def process_commands(delta_time):
     """Process queued commands on the main thread"""
+    global restart_scheduled, restart_countdown
+    
+    # Handle scheduled restart
+    if restart_scheduled:
+        restart_countdown += delta_time
+        # Wait 2 seconds to ensure HTTP response is sent
+        if restart_countdown > 2.0:
+            restart_scheduled = False
+            restart_countdown = 0
+            unreal.log("UEMCP: Executing scheduled restart...")
+            # Perform the restart
+            import uemcp_helpers
+            uemcp_helpers.restart_listener()
+            return  # Exit early since we're restarting
+    
     processed = 0
     max_per_tick = 3  # Reduced from 10 to prevent audio buffer underrun
     
