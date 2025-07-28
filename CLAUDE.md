@@ -264,6 +264,16 @@ Common rotation examples for building:
 
 **Note**: The rotation array is [Roll, Pitch, Yaw], NOT [X, Y, Z] as the indices might suggest!
 
+### Correct Wall Rotations for ModularOldTown
+
+**CRITICAL**: The correct Yaw rotations for walls to face into the building:
+- **North walls**: Yaw = 270° (-90°) - faces south into building
+- **South walls**: Yaw = 90° - faces north into building  
+- **East walls**: Yaw = 180° - faces west into building
+- **West walls**: Yaw = 0° - faces east into building
+
+**Note**: The default wall orientation faces a specific direction, so these rotations ensure windows/doors face inward.
+
 ### Best Practices for Actor Placement
 
 **CRITICAL**: Always verify actor placement from multiple angles:

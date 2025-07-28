@@ -218,7 +218,14 @@ def execute_on_main_thread(command):
             
             # Create transform
             ue_location = unreal.Vector(float(location[0]), float(location[1]), float(location[2]))
-            ue_rotation = unreal.Rotator(float(rotation[0]), float(rotation[1]), float(rotation[2]))
+            
+            # Create rotation with explicit property setting to avoid constructor confusion
+            # Rotation array is [Pitch, Yaw, Roll]
+            ue_rotation = unreal.Rotator()
+            ue_rotation.pitch = float(rotation[0])  # Pitch (up/down)
+            ue_rotation.yaw = float(rotation[1])    # Yaw (left/right) 
+            ue_rotation.roll = float(rotation[2])   # Roll (tilt)
+            
             ue_scale = unreal.Vector(float(scale[0]), float(scale[1]), float(scale[2]))
             
             # Handle asset path or type
@@ -627,11 +634,13 @@ def execute_on_main_thread(command):
                     found_actor.set_actor_location(ue_location, False, False)
                 
                 if rotation is not None:
-                    ue_rotation = unreal.Rotator(
-                        float(rotation[0]), 
-                        float(rotation[1]), 
-                        float(rotation[2])
-                    )
+                    # Create rotation with explicit property setting to avoid constructor confusion
+                    # Rotation array is [Pitch, Yaw, Roll]
+                    ue_rotation = unreal.Rotator()
+                    ue_rotation.pitch = float(rotation[0])  # Pitch (up/down)
+                    ue_rotation.yaw = float(rotation[1])    # Yaw (left/right)
+                    ue_rotation.roll = float(rotation[2])   # Roll (tilt)
+                    
                     found_actor.set_actor_rotation(ue_rotation, False)
                 
                 if scale is not None:
