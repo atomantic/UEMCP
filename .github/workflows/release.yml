@@ -34,10 +34,6 @@ jobs:
         cd server
         tar -czf ../uemcp-server-${{ github.ref_name }}.tar.gz dist/ package.json package-lock.json
     
-    - name: Package Python Tools
-      run: |
-        tar -czf uemcp-python-${{ github.ref_name }}.tar.gz python/ requirements-dev.txt
-    
     - name: Package Plugin
       run: |
         # Create plugin directory structure
@@ -64,7 +60,6 @@ jobs:
         
         # Copy setup scripts
         cp init.js init.sh init.ps1 UEMCP-Full-${{ github.ref_name }}/
-        cp -r scripts UEMCP-Full-${{ github.ref_name }}/
         
         # Create zip
         zip -r UEMCP-Full-${{ github.ref_name }}.zip UEMCP-Full-${{ github.ref_name }}/
@@ -78,7 +73,6 @@ jobs:
       with:
         files: |
           uemcp-server-${{ github.ref_name }}.tar.gz
-          uemcp-python-${{ github.ref_name }}.tar.gz
           UEMCP-Plugin-${{ github.ref_name }}.zip
           UEMCP-Full-${{ github.ref_name }}.zip
           checksums-${{ github.ref_name }}.txt
@@ -101,7 +95,6 @@ jobs:
           #### Individual Components
           - **Plugin only**: `UEMCP-Plugin-${{ github.ref_name }}.zip`
           - **Server only**: `uemcp-server-${{ github.ref_name }}.tar.gz`
-          - **Python tools**: `uemcp-python-${{ github.ref_name }}.tar.gz`
           
           ### What's Changed
           See below for full changelog.

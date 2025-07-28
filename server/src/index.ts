@@ -5,7 +5,6 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { projectCreateTool } from './tools/project.js';
 import { projectInfoTool } from './tools/project-info.js';
 import { assetListTool } from './tools/asset-list.js';
 import { assetInfoTool } from './tools/asset-info.js';
@@ -82,7 +81,6 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       levelActorsTool.definition,
       levelOutlinerTool.definition,
       levelSaveTool.definition,
-      projectCreateTool.definition,
       projectInfoTool.definition,
       pythonProxyTool.definition,
       restartListenerTool.definition,
@@ -106,9 +104,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     let result;
     switch (name) {
-      case 'project_create':
-        result = await projectCreateTool.handler(args);
-        break;
       case 'project_info':
         result = await projectInfoTool.handler(args);
         break;
@@ -238,7 +233,6 @@ async function main(): Promise<void> {
       'level_actors',
       'level_outliner',
       'level_save',
-      'project_create',
       'project_info',
       'python_proxy',
       'restart_listener',

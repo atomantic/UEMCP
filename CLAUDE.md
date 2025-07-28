@@ -23,11 +23,8 @@ npm install
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Configure for a UE project
-python scripts/setup.py --project-path /path/to/ue/project
-
-# Build the UE plugin
-python scripts/build_plugin.py
+# The plugin is content-only and doesn't require building
+# Simply copy the plugin folder to your UE project's Plugins directory
 ```
 
 ### Running
@@ -56,7 +53,7 @@ python -m pytest tests/
 ```
 server/     - MCP server implementation (TypeScript)
 plugin/     - Unreal Engine plugin (Python-only, no C++)
-python/     - Python utilities for development (not used at runtime)
+python/     - Legacy Python utilities (deprecated, not included in releases)
 docs/       - Documentation
 tests/      - Test suites for all components
 ```
@@ -136,7 +133,6 @@ For Claude Desktop integration:
 ## Current Status
 
 The project has a working implementation with the following MCP tools:
-- `project_create` - Create new UE projects (mock implementation)
 - `project_info` - Get project information
 - `asset_list` - List and filter project assets
 - `asset_info` - Get asset dimensions and properties

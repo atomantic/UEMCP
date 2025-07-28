@@ -35,7 +35,6 @@ npx @modelcontextprotocol/inspector node <PATH_TO_UEMCP>/server/dist/index.js
 ## Current Status
 
 - ✅ Server starts successfully
-- ✅ Mock implementation for project.create tool
 - ✅ Proper MCP protocol implementation
 - ✅ Error handling
 

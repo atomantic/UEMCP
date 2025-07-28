@@ -47,7 +47,6 @@ server.stdin.write(JSON.stringify(init) + '\n');
 // Interactive command loop
 console.log('\nAvailable commands:');
 console.log('  list - List available tools');
-console.log('  create <name> <path> - Create a project');
 console.log('  exit - Exit the test client\n');
 
 rl.on('line', (input) => {
@@ -64,25 +63,6 @@ rl.on('line', (input) => {
       server.stdin.write(JSON.stringify(listRequest) + '\n');
       break;
 
-    case 'create':
-      if (args.length < 2) {
-        console.log('Usage: create <projectName> <projectPath>');
-        break;
-      }
-      const createRequest = {
-        jsonrpc: '2.0',
-        method: 'tools/call',
-        params: {
-          name: 'project.create',
-          arguments: {
-            projectName: args[0],
-            projectPath: args.slice(1).join(' ')
-          }
-        },
-        id: 3
-      };
-      server.stdin.write(JSON.stringify(createRequest) + '\n');
-      break;
 
     case 'exit':
       console.log('Exiting...');

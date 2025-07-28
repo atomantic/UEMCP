@@ -10,19 +10,25 @@ export const viewportFocusTool = {
         actorName: {
           type: 'string',
           description: 'Name of the actor to focus on'
+        },
+        preserveRotation: {
+          type: 'boolean',
+          description: 'Preserve current camera rotation (useful for maintaining top/side views)',
+          default: false
         }
       },
       required: ['actorName']
     }
   },
-  handler: async (args: { actorName: string }): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> => {
+  handler: async (args: { actorName: string; preserveRotation?: boolean }): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> => {
     const bridge = new PythonBridge();
     
     try {
       const result = await bridge.executeCommand({
         type: 'viewport.focus',
         params: {
-          actorName: args.actorName
+          actorName: args.actorName,
+          preserveRotation: args.preserveRotation || false
         }
       });
 

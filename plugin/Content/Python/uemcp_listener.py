@@ -158,9 +158,19 @@ def execute_on_main_thread(command):
         elif cmd_type == 'asset.list':
             path = params.get('path', '/Game')
             limit = params.get('limit', 20)
+            asset_type_filter = params.get('assetType', None)
             
             asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
             assets = asset_registry.get_assets_by_path(path, recursive=True)
+            
+            # Filter by asset type if specified
+            if asset_type_filter:
+                filtered_assets = []
+                for asset in assets:
+                    asset_type = str(asset.asset_class_path.asset_name) if hasattr(asset.asset_class_path, 'asset_name') else str(asset.asset_class_path)
+                    if asset_type == asset_type_filter:
+                        filtered_assets.append(asset)
+                assets = filtered_assets
             
             asset_list = []
             for i, asset in enumerate(assets):
@@ -168,7 +178,7 @@ def execute_on_main_thread(command):
                     break
                 asset_list.append({
                     'name': str(asset.asset_name),
-                    'type': str(asset.asset_class),
+                    'type': str(asset.asset_class_path.asset_name) if hasattr(asset.asset_class_path, 'asset_name') else str(asset.asset_class_path),
                     'path': str(asset.package_name)
                 })
             
@@ -785,6 +795,7 @@ def execute_on_main_thread(command):
         
         elif cmd_type == 'viewport.focus':
             actor_name = params.get('actorName', '')
+            preserve_rotation = params.get('preserveRotation', False)
             
             try:
                 # Find the actor by name
@@ -808,8 +819,10 @@ def execute_on_main_thread(command):
                 editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
                 editor_actor_subsystem.set_selected_level_actors([found_actor])
                 
-                # Focus on selected actors
-                # First, get the actor's location and bounds
+                # Get the editor subsystem
+                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+                
+                # Get actor's location and bounds
                 actor_location = found_actor.get_actor_location()
                 actor_bounds = found_actor.get_actor_bounds(only_colliding_components=False)
                 bounds_extent = actor_bounds[1]  # Box extent
@@ -818,16 +831,33 @@ def execute_on_main_thread(command):
                 max_extent = max(bounds_extent.x, bounds_extent.y, bounds_extent.z)
                 camera_distance = max_extent * 3  # View from 3x the largest dimension
                 
-                # Set camera to look at the actor from a nice angle
-                camera_offset = unreal.Vector(-camera_distance, -camera_distance * 0.5, camera_distance * 0.5)
-                camera_location = actor_location + camera_offset
-                
-                # Calculate rotation to look at actor
-                direction = actor_location - camera_location
-                camera_rotation = direction.rotation()
+                if preserve_rotation:
+                    # Get current camera rotation
+                    current_location, current_rotation = editor_subsystem.get_level_viewport_camera_info()
+                    
+                    # Check if we're in a top-down view (pitch close to -90)
+                    if abs(current_rotation.pitch + 90) < 5:  # Within 5 degrees of straight down
+                        # Keep top-down view, just move camera above actor
+                        camera_location = unreal.Vector(
+                            actor_location.x,
+                            actor_location.y,
+                            actor_location.z + camera_distance
+                        )
+                        camera_rotation = current_rotation  # Keep current rotation
+                    else:
+                        # For other views, calculate offset based on current rotation direction
+                        forward_vector = current_rotation.get_forward_vector()
+                        camera_location = actor_location - (forward_vector * camera_distance)
+                        camera_rotation = current_rotation  # Keep current rotation
+                else:
+                    # Original behavior - set camera to look at the actor from a nice angle
+                    camera_offset = unreal.Vector(-camera_distance, -camera_distance * 0.5, camera_distance * 0.5)
+                    camera_location = actor_location + camera_offset
+                    
+                    # Calculate rotation to look at actor
+                    camera_rotation = unreal.MathLibrary.find_look_at_rotation(camera_location, actor_location)
                 
                 # Set the viewport camera
-                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
                 editor_subsystem.set_level_viewport_camera_info(camera_location, camera_rotation)
                 
                 return {
@@ -847,6 +877,11 @@ def execute_on_main_thread(command):
             mode = params.get('mode', 'perspective').lower()
             
             try:
+                # NOTE: The Unreal Engine Python API doesn't expose direct viewport projection type switching
+                # (perspective vs orthographic). This tool positions the camera for standard views but
+                # maintains the current projection type. For true orthographic projection, users need to
+                # use the viewport controls in the Unreal Editor UI (Alt+G or viewport options menu).
+                
                 # Get viewport control
                 editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
                 viewport_client = editor_subsystem.get_level_viewport_camera_info()
@@ -908,15 +943,69 @@ def execute_on_main_thread(command):
                         'error': f'Invalid mode: {mode}. Valid modes: {", ".join(mode_map.keys())}'
                     }
                 
-                # For orthographic modes, set specific rotation
+                # For orthographic modes, set specific rotation and position
                 if mode != 'perspective' and mode_map[mode]:
                     rotation = mode_map[mode]['rotation']
-                    # Get current camera location
-                    current_loc = viewport_client[0]
                     
-                    # Set orthographic view with proper orientation
+                    # Check if any actors are selected
+                    selected_actors = unreal.EditorLevelLibrary.get_selected_level_actors()
+                    
+                    if selected_actors:
+                        # Calculate bounding box for all selected actors
+                        min_bounds = unreal.Vector(float('inf'), float('inf'), float('inf'))
+                        max_bounds = unreal.Vector(float('-inf'), float('-inf'), float('-inf'))
+                        
+                        for actor in selected_actors:
+                            actor_location = actor.get_actor_location()
+                            actor_bounds = actor.get_actor_bounds(only_colliding_components=False)
+                            bounds_extent = actor_bounds[1]
+                            
+                            # Update min/max bounds
+                            min_bounds.x = min(min_bounds.x, actor_location.x - bounds_extent.x)
+                            min_bounds.y = min(min_bounds.y, actor_location.y - bounds_extent.y)
+                            min_bounds.z = min(min_bounds.z, actor_location.z - bounds_extent.z)
+                            max_bounds.x = max(max_bounds.x, actor_location.x + bounds_extent.x)
+                            max_bounds.y = max(max_bounds.y, actor_location.y + bounds_extent.y)
+                            max_bounds.z = max(max_bounds.z, actor_location.z + bounds_extent.z)
+                        
+                        # Calculate center of all selected actors
+                        center = unreal.Vector(
+                            (min_bounds.x + max_bounds.x) / 2,
+                            (min_bounds.y + max_bounds.y) / 2,
+                            (min_bounds.z + max_bounds.z) / 2
+                        )
+                        
+                        # Calculate view distance based on bounds
+                        bounds_size = unreal.Vector(
+                            max_bounds.x - min_bounds.x,
+                            max_bounds.y - min_bounds.y,
+                            max_bounds.z - min_bounds.z
+                        )
+                        max_extent = max(bounds_size.x, bounds_size.y, bounds_size.z)
+                        view_distance = max_extent * 1.5  # Give some padding
+                        
+                        # Position camera based on view mode
+                        if mode == 'top':
+                            camera_location = unreal.Vector(center.x, center.y, center.z + view_distance)
+                        elif mode == 'bottom':
+                            camera_location = unreal.Vector(center.x, center.y, center.z - view_distance)
+                        elif mode == 'left':
+                            camera_location = unreal.Vector(center.x - view_distance, center.y, center.z)
+                        elif mode == 'right':
+                            camera_location = unreal.Vector(center.x + view_distance, center.y, center.z)
+                        elif mode == 'front':
+                            camera_location = unreal.Vector(center.x, center.y - view_distance, center.z)
+                        elif mode == 'back':
+                            camera_location = unreal.Vector(center.x, center.y + view_distance, center.z)
+                        else:
+                            camera_location = viewport_client[0]  # Keep current location
+                    else:
+                        # No actors selected, keep current location
+                        camera_location = viewport_client[0]
+                    
+                    # Set camera with proper orientation
                     editor_subsystem.set_level_viewport_camera_info(
-                        current_loc,
+                        camera_location,
                         rotation
                     )
                     

@@ -103,7 +103,6 @@ UEMCP provides these tools to Claude for controlling Unreal Engine:
 
 ### Project & Assets
 - **project_info** - Get current project information
-- **project_create** - Create new UE projects
 - **asset_list** - List and filter project assets
 - **asset_info** - Get detailed asset information (dimensions, materials, etc.)
 

@@ -3,7 +3,7 @@ import { PythonBridge } from '../services/python-bridge.js';
 export const viewportModeTool = {
   definition: {
     name: 'viewport_mode',
-    description: 'Switch viewport between perspective and orthographic views (Top, Bottom, Left, Right, Front, Back)',
+    description: 'Position camera for standard views (Top, Bottom, Left, Right, Front, Back). If actors are selected, centers the view on them. Note: This rotates the camera but does not change projection type. For true orthographic projection, use the viewport controls in the Unreal Editor UI.',
     inputSchema: {
       type: 'object',
       properties: {
