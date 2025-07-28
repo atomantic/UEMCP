@@ -1,6 +1,6 @@
 {
   "name": "uemcp-server",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "Unreal Engine Model Context Protocol Server",
   "main": "dist/index.js",
   "scripts": {
@@ -19,7 +19,11 @@
     "version:beta": "node ../scripts/bump-version.js --prerelease=beta",
     "version:alpha": "node ../scripts/bump-version.js --prerelease=alpha"
   },
-  "keywords": ["mcp", "unreal-engine", "ai-assistant"],
+  "keywords": [
+    "mcp",
+    "unreal-engine",
+    "ai-assistant"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
