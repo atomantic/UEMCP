@@ -62,6 +62,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'actor.spawn',
                     'actor.delete',
                     'actor.modify',
+                    'actor.duplicate',
                     'actor.organize',
                     'level.save',
                     'level.outliner',
@@ -70,7 +71,8 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'viewport.mode',
                     'viewport.focus',
                     'viewport.render_mode',
-                    'python.execute'
+                    'python.execute',
+                    'system.restart'
                 ],
                 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
             }
@@ -1330,7 +1332,7 @@ def execute_on_main_thread(command):
 
 def process_commands(delta_time):
     """Process queued commands on the main thread"""
-    global restart_scheduled, restart_countdown
+    global restart_scheduled, restart_countdown, server_running
     
     # Handle scheduled restart
     if restart_scheduled:
@@ -1339,11 +1341,14 @@ def process_commands(delta_time):
         if restart_countdown > 2.0:
             restart_scheduled = False
             restart_countdown = 0
-            unreal.log("UEMCP: Executing scheduled restart...")
-            # Perform the restart
-            import uemcp_helpers
-            uemcp_helpers.restart_listener()
-            return  # Exit early since we're restarting
+            unreal.log("UEMCP: Stopping listener for restart...")
+            # Just stop - don't restart to avoid crash
+            server_running = False
+            unreal.log("UEMCP: Listener stopped. To complete restart:")
+            unreal.log("UEMCP:   1. Run: import importlib")
+            unreal.log("UEMCP:   2. Run: importlib.reload(uemcp_listener)")
+            unreal.log("UEMCP:   3. Run: uemcp_listener.start_listener()")
+            return  # Exit early since we're stopping
     
     processed = 0
     max_per_tick = 3  # Reduced from 10 to prevent audio buffer underrun

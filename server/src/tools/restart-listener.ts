@@ -47,15 +47,16 @@ export const restartListenerTool = {
       
       if (result.success) {
         const messages = [
-          '🔄 Python listener restart scheduled!',
+          '🔄 Python listener stopping!',
           '',
-          'The listener will automatically:',
-          '1. Wait 2 seconds for this response to complete',
-          '2. Stop the current listener',
-          '3. Reload the Python module',
-          '4. Start a fresh listener',
+          'The listener will stop in ~2 seconds.',
           '',
-          'This should complete within 3-5 seconds.'
+          'To complete the restart, run these commands in UE Python console:',
+          '1. import importlib',
+          '2. importlib.reload(uemcp_listener)',
+          '3. uemcp_listener.start_listener()',
+          '',
+          'This manual process prevents UE from crashing.'
         ];
         
         if (result.message) {
