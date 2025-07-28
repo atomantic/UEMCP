@@ -10,7 +10,7 @@ interface AssetListArgs {
 export const assetListTool = {
   definition: {
     name: 'asset_list',
-    description: 'List assets in the Unreal Engine project',
+    description: 'List assets in the Unreal Engine project. Examples: asset_list({}) for all /Game assets, asset_list({ path: "/Game/ModularOldTown" }) for specific folder, asset_list({ assetType: "StaticMesh", limit: 50 }) for up to 50 static meshes',
     inputSchema: {
       type: 'object',
       properties: {

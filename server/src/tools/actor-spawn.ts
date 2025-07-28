@@ -13,7 +13,7 @@ interface ActorSpawnArgs {
 export const actorSpawnTool = {
   definition: {
     name: 'actor_spawn',
-    description: 'Spawn an actor in the level using an asset (mesh, blueprint, etc). IMPORTANT: For modular building pieces, verify placement with wireframe screenshots from multiple angles to check for gaps and overlaps.',
+    description: 'Spawn an actor in the level using an asset (mesh, blueprint, etc). Examples: actor_spawn({ assetPath: "/Game/Meshes/Cube" }) or actor_spawn({ assetPath: "/Game/BP_Door", location: [1000, 500, 0], rotation: [0, 0, 90], name: "MainDoor", folder: "Building/Doors" }). IMPORTANT: For modular building pieces, verify placement with wireframe screenshots from multiple angles to check for gaps and overlaps.',
     inputSchema: {
       type: 'object',
       properties: {
