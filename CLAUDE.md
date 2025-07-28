@@ -63,20 +63,6 @@ tests/      - Test suites for all components
 
 ## Plugin Development Workflow
 
-**IMPORTANT**: The plugin directory is symlinked from the git repository to the UE project:
-```bash
-# Symlink already exists:
-/Users/antic/Documents/Unreal Projects/Home/Plugins/UEMCP -> /Users/antic/github.com/atomantic/UEMCP_dev/plugin
-```
-
-This means:
-1. **Edit directly in git repository** - changes are immediately reflected in UE
-2. **No copying needed** - the symlink handles file synchronization
-3. **Just reload in UE** after making changes:
-   ```python
-   restart_listener()  # Reloads changes without restarting UE
-   ```
-
 When making changes to the plugin:
 
 1. **Edit in git repository**:

@@ -25,6 +25,7 @@ import { pythonProxyTool } from './tools/python-proxy.js';
 import { testConnectionTool } from './tools/test-connection.js';
 import { restartListenerTool } from './tools/restart-listener.js';
 import { ueLogsTool } from './tools/ue-logs.js';
+import { gridSnapTool } from './tools/grid-snap.js';
 import { logger } from './utils/logger.js';
 import { PythonBridge } from './services/python-bridge.js';
 import * as os from 'os';
@@ -91,6 +92,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       testConnectionTool.definition,
       restartListenerTool.definition,
       ueLogsTool.definition,
+      gridSnapTool.definition,
     ],
   };
 });
@@ -163,6 +165,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'ue_logs':
         result = await ueLogsTool.handler(args as { lines?: number; project?: string });
+        break;
+      case 'grid_snap':
+        result = await gridSnapTool.handler(args as { enabled?: boolean; gridSize?: number; snapToGrid?: boolean });
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);
