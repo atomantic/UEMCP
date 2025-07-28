@@ -24,7 +24,6 @@ import { pythonProxyTool } from './tools/python-proxy.js';
 import { testConnectionTool } from './tools/test-connection.js';
 import { restartListenerTool } from './tools/restart-listener.js';
 import { ueLogsTool } from './tools/ue-logs.js';
-import { gridSnapTool } from './tools/grid-snap.js';
 import { logger } from './utils/logger.js';
 import { PythonBridge } from './services/python-bridge.js';
 import * as os from 'os';
@@ -77,7 +76,6 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       actorSpawnTool.definition,
       assetInfoTool.definition,
       assetListTool.definition,
-      gridSnapTool.definition,
       levelActorsTool.definition,
       levelOutlinerTool.definition,
       levelSaveTool.definition,
@@ -161,9 +159,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'ue_logs':
         result = await ueLogsTool.handler(args as { lines?: number; project?: string });
         break;
-      case 'grid_snap':
-        result = await gridSnapTool.handler(args as { enabled?: boolean; gridSize?: number; snapToGrid?: boolean });
-        break;
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -229,7 +224,6 @@ async function main(): Promise<void> {
       'actor_spawn',
       'asset_info',
       'asset_list',
-      'grid_snap',
       'level_actors',
       'level_outliner',
       'level_save',

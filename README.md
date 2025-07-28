@@ -61,6 +61,8 @@ result = f"Screenshot saved to: {filepath}"
 
 Think of it like this: `python_proxy` is the powerful command line, while other tools are the convenient GUI buttons.
 
+📊 **[See detailed comparison of MCP tools vs python_proxy →](docs/mcp-tools-vs-python-proxy.md)** (average 80%+ code reduction!)
+
 > Note: This project was made because I wanted to have my own UE MCP since Epic does not have plans to create one (or at least has not alluded to one being on the roadmap)--and I wanted this to do some things that other WIP UE MCP projects didn't support. This is working for me on my macbook with UE 5.6. As I test it with other environments and unreal versions (I do have plans to do so), I will update it. If you happen to want to use it and find it doesn't work in another environment or version of unreal, please open a pull-request. This project is entirely coded with Claude Code so feel free to use the CLAUDE.md and other files in here that can aid in development and testing. Or file issues, and I (or claude, or codex) will take a look.
 
 ## 🚀 Quick Start (2 minutes)
@@ -127,7 +129,6 @@ UEMCP provides these tools to Claude for controlling Unreal Engine:
 - **test_connection** - Test connection to UE Python listener
 - **restart_listener** - Hot reload Python code changes
 - **ue_logs** - Read recent lines from UE console log file (useful for debugging)
-- **grid_snap** - Enable/disable grid snapping for precise modular placement
 
 ### Example: Using python_proxy for Complex Operations
 

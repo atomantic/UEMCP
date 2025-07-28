@@ -68,7 +68,6 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'viewport.mode',
                     'viewport.focus',
                     'viewport.render_mode',
-                    'grid.snap',
                     'python.execute'
                 ],
                 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
@@ -1067,92 +1066,6 @@ def execute_on_main_thread(command):
                     'success': True,
                     'mode': render_mode,
                     'message': f'Viewport render mode set to {render_mode}'
-                }
-                
-            except Exception as e:
-                return {'success': False, 'error': str(e)}
-        
-        elif cmd_type == 'grid.snap':
-            enabled = params.get('enabled', None)
-            grid_size = params.get('gridSize', 100)
-            snap_to_grid = params.get('snapToGrid', False)
-            
-            try:
-                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
-                level_editor = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
-                
-                # Configure grid settings
-                if enabled is not None:
-                    # Enable/disable grid snapping
-                    unreal.EditorLevelLibrary.set_level_viewport_info(
-                        unreal.Vector(0, 0, 0),
-                        unreal.Rotator(0, 0, 0),
-                        True  # This enables grid mode
-                    )
-                    
-                    # Set console variables for grid snapping
-                    if enabled:
-                        unreal.SystemLibrary.execute_console_command(
-                            None, 
-                            "Snap.EnableSnapping 1"
-                        )
-                        unreal.SystemLibrary.execute_console_command(
-                            None,
-                            f"Snap.GridSize {grid_size}"
-                        )
-                    else:
-                        unreal.SystemLibrary.execute_console_command(
-                            None,
-                            "Snap.EnableSnapping 0"
-                        )
-                
-                # Snap selected actors to grid if requested
-                snapped_count = 0
-                if snap_to_grid:
-                    selected_actors = unreal.EditorLevelLibrary.get_selected_level_actors()
-                    if not selected_actors:
-                        # If no selection, snap all ground floor pieces
-                        all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
-                        for actor in all_actors:
-                            try:
-                                label = actor.get_actor_label()
-                                loc = actor.get_actor_location()
-                                # Only snap ground floor pieces
-                                if abs(loc.z - 140) < 50 and any(x in label for x in ['Corner_F1', 'Wall_', 'Door_']):
-                                    # Snap to nearest grid position
-                                    new_x = round(loc.x / grid_size) * grid_size
-                                    new_y = round(loc.y / grid_size) * grid_size
-                                    new_z = round(loc.z / grid_size) * grid_size
-                                    
-                                    actor.set_actor_location(
-                                        unreal.Vector(new_x, new_y, new_z),
-                                        False,
-                                        False
-                                    )
-                                    snapped_count += 1
-                            except:
-                                pass
-                    else:
-                        # Snap selected actors
-                        for actor in selected_actors:
-                            loc = actor.get_actor_location()
-                            new_x = round(loc.x / grid_size) * grid_size
-                            new_y = round(loc.y / grid_size) * grid_size
-                            new_z = round(loc.z / grid_size) * grid_size
-                            
-                            actor.set_actor_location(
-                                unreal.Vector(new_x, new_y, new_z),
-                                False,
-                                False
-                            )
-                            snapped_count += 1
-                
-                return {
-                    'success': True,
-                    'enabled': enabled,
-                    'gridSize': grid_size,
-                    'snappedActors': snapped_count,
-                    'message': f'Grid size: {grid_size} units, Snapping: {"Enabled" if enabled else "Disabled" if enabled is not None else "Not changed"}'
                 }
                 
             except Exception as e:
