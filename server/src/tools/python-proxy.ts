@@ -3,13 +3,13 @@ import { PythonBridge } from '../services/python-bridge.js';
 export const pythonProxyTool = {
   definition: {
     name: 'python_proxy',
-    description: 'Execute Python code directly in Unreal Engine\'s Python environment. Provides access to the full Unreal Engine Python API.',
+    description: 'Execute arbitrary Python code directly in Unreal Engine\'s Python environment. Provides access to the full Unreal Engine Python API (unreal module) for complete editor control. Can perform any operation available in the UE Python console.',
     inputSchema: {
       type: 'object',
       properties: {
         code: {
           type: 'string',
-          description: 'Python code to execute. Can use the "unreal" module and all UE Python APIs. Assign to "result" or the last expression will be returned.'
+          description: 'Python code to execute. Has full access to the unreal module and all UE Python APIs. Can run any Python code including imports, loops, functions, etc. Assign to "result" variable or the last expression will be returned. Examples: manipulating actors, querying assets, modifying editor settings, automating workflows.'
         },
         context: {
           type: 'object',

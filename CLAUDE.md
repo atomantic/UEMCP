@@ -151,7 +151,7 @@ The project has a working implementation with the following MCP tools:
 - `viewport_mode` - Switch between perspective/orthographic views
 - `viewport_focus` - Focus viewport on specific actor
 - `viewport_render_mode` - Change rendering mode (wireframe, unlit, etc)
-- `python_proxy` - Execute arbitrary Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6)
+- `python_proxy` - Execute arbitrary Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6). Can run ANY Python code including imports, loops, functions, classes. Has complete access to the unreal module for editor automation, asset manipulation, level editing, etc.
 - `test_connection` - Test connection to Python listener
 - `restart_listener` - Restart Python listener for hot reload
 - `ue_logs` - Read recent lines from UE console log file
@@ -182,6 +182,49 @@ The project has a working implementation with the following MCP tools:
    # Method 2: Use python_proxy for more control
    target_actor = unreal.EditorLevelLibrary.get_actor_reference('ActorName')
    unreal.EditorLevelLibrary.set_actor_selection_state(target_actor, True)
+
+### Python Proxy Examples
+
+The `python_proxy` tool provides unlimited Python execution capabilities:
+
+```python
+# Example 1: Complex actor manipulation
+import unreal
+import math
+
+# Find all actors in a radius and rotate them
+center = unreal.Vector(0, 0, 0)
+all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+
+for actor in all_actors:
+    loc = actor.get_actor_location()
+    distance = (loc - center).size()
+    
+    if distance < 1000:
+        # Rotate based on distance
+        rotation = actor.get_actor_rotation()
+        rotation.yaw += distance * 0.1
+        actor.set_actor_rotation(rotation)
+
+# Example 2: Batch asset operations
+assets = unreal.EditorAssetLibrary.list_assets("/Game/MyFolder")
+for asset_path in assets:
+    asset = unreal.EditorAssetLibrary.load_asset(asset_path)
+    # Process each asset...
+
+# Example 3: Custom editor automation
+def place_actors_in_grid(asset_path, grid_size=5, spacing=200):
+    """Place actors in a grid pattern"""
+    for x in range(grid_size):
+        for y in range(grid_size):
+            location = unreal.Vector(x * spacing, y * spacing, 0)
+            unreal.EditorLevelLibrary.spawn_actor_from_object(
+                unreal.EditorAssetLibrary.load_asset(asset_path),
+                location
+            )
+
+place_actors_in_grid("/Game/MyMesh", 3, 300)
+```
    unreal.EditorLevelLibrary.focus_viewport_on_actors([target_actor])
    ```
 
@@ -365,49 +408,6 @@ viewport_render_mode({ mode: 'lit' })
 - Clear structural details and edges
 - Better for debugging placement and alignment
 - Removes visual clutter from materials/lighting
-
-## Claude Sub-Agents
-
-Custom sub-agents are available in the `/claude-agents/` directory to help with specialized tasks:
-
-### Available Agents
-
-1. **`/uemcp-test-runner`** - Automated testing of UEMCP functionality
-   - Runs comprehensive test suites for all MCP tools
-   - Validates Python listener connectivity
-   - Tests actor spawn/modify/delete operations
-   - Usage: `/uemcp-test-runner`
-
-2. **`/ue-builder`** - Expert in constructing complex structures
-   - Plans and executes multi-story building construction
-   - Handles corner rotations and cardinal directions correctly
-   - Detects and fixes gaps in modular construction
-   - Usage: `/ue-builder "Build a 2-story house"` or `/ue-builder --verify`
-
-3. **`/mcp-tool-developer`** - Develops new MCP tools
-   - Analyzes UE Python API for new tool opportunities
-   - Generates MCP tool implementations
-   - Creates tests and documentation
-   - Usage: `/mcp-tool-developer "Create material management tools"`
-
-4. **`/ue-debugger`** - Visual debugging and diagnostics
-   - Analyzes actor placement issues
-   - Creates debug visualizations
-   - Traces Python execution errors
-   - Usage: `/ue-debugger "Walls have gaps"`
-
-5. **`/project-scaffolder`** - Quick project setup
-   - Creates new UE projects with UEMCP integration
-   - Sets up folder structures
-   - Configures version control
-   - Usage: `/project-scaffolder --template "architectural-viz"`
-
-### Using Sub-Agents
-
-To use a sub-agent, invoke it with the Task tool:
-```
-Task(description="Build house", prompt="/ue-builder 'Create a two-story house'", subagent_type="general-purpose")
-```
 
 ## Code Style Guidelines
 

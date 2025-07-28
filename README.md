@@ -6,6 +6,61 @@
 
 UEMCP bridges AI assistants with Unreal Engine, enabling intelligent control of game development workflows through the Model Context Protocol (MCP).
 
+## 🎯 Key Feature: Full Python Access in Editor Mode
+
+**The `python_proxy` tool provides complete, unrestricted access to Unreal Engine's Python API.** This means AI assistants can execute ANY Python code within the UE editor - from simple queries to complex automation scripts. All other MCP tools are essentially convenience wrappers around common operations that could be done through `python_proxy`.
+
+### Why have other tools if python_proxy can do everything?
+
+1. **Efficiency**: Specific tools like `actor_spawn` or `viewport_screenshot` are optimized shortcuts for common tasks that remove the need for your AI to write larger amounts of python code.
+2. **Clarity**: Named tools make AI intent clearer (e.g., "spawn an actor" vs "execute Python code")
+3. **Error Handling**: Dedicated tools provide better validation and error messages
+4. **Performance**: Less overhead than parsing and executing arbitrary Python for simple operations
+5. **Discoverability**: AI assistants can easily see available operations without knowing the UE Python API
+
+### Example: Taking a Screenshot
+
+**Using the convenient `viewport_screenshot` mcp tool:**
+```javascript
+// One line, clear intent, automatic file handling
+viewport_screenshot({ width: 1920, height: 1080, quality: 80 })
+```
+
+**Using `python_proxy` for the same task:**
+```python
+# Much more complex, requires knowing UE Python API
+import unreal
+import os
+import time
+
+# Get project paths
+project_path = unreal.Paths.project_saved_dir()
+screenshot_dir = os.path.join(project_path, "Screenshots", "MacEditor")
+
+# Ensure directory exists
+if not os.path.exists(screenshot_dir):
+    os.makedirs(screenshot_dir)
+
+# Generate filename with timestamp
+timestamp = int(time.time() * 1000)
+filename = f"uemcp_screenshot_{timestamp}.png"
+filepath = os.path.join(screenshot_dir, filename)
+
+# Take screenshot with proper settings
+unreal.AutomationLibrary.take_high_res_screenshot(
+    1920, 1080,
+    filepath,
+    camera=None,
+    capture_hdr=False,
+    comparison_tolerance=unreal.ComparisonTolerance.LOW
+)
+
+# Would need additional error handling, JPEG conversion for quality, etc.
+result = f"Screenshot saved to: {filepath}"
+```
+
+Think of it like this: `python_proxy` is the powerful command line, while other tools are the convenient GUI buttons.
+
 > Note: This project was made because I wanted to have my own UE MCP since Epic does not have plans to create one (or at least has not alluded to one being on the roadmap)--and I wanted this to do some things that other WIP UE MCP projects didn't support. This is working for me on my macbook with UE 5.6. As I test it with other environments and unreal versions (I do have plans to do so), I will update it. If you happen to want to use it and find it doesn't work in another environment or version of unreal, please open a pull-request. This project is entirely coded with Claude Code so feel free to use the CLAUDE.md and other files in here that can aid in development and testing. Or file issues, and I (or claude, or codex) will take a look.
 
 ## 🚀 Quick Start (2 minutes)
@@ -69,10 +124,36 @@ UEMCP provides these tools to Claude for controlling Unreal Engine:
 - **viewport_render_mode** - Change rendering mode (wireframe, unlit, etc.)
 
 ### Advanced
-- **python_proxy** - Execute Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6)
+- **python_proxy** ⭐ - Execute ANY Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6). This is the most powerful tool - it can do everything the other tools can do and more!
 - **test_connection** - Test connection to UE Python listener
 - **restart_listener** - Hot reload Python code changes
 - **ue_logs** - Read recent lines from UE console log file (useful for debugging)
+- **grid_snap** - Enable/disable grid snapping for precise modular placement
+
+### Example: Using python_proxy for Complex Operations
+
+```python
+# With python_proxy, you can do anything you could do in UE's Python console:
+import unreal
+
+# Batch operations
+actors = unreal.EditorLevelLibrary.get_all_level_actors()
+for actor in actors:
+    if "Old" in actor.get_actor_label():
+        actor.destroy_actor()
+
+# Complex asset queries
+materials = unreal.EditorAssetLibrary.list_assets("/Game/Materials", recursive=True)
+for mat_path in materials:
+    material = unreal.EditorAssetLibrary.load_asset(mat_path)
+    # Analyze or modify material properties...
+
+# Editor automation
+def auto_layout_actors(spacing=500):
+    selected = unreal.EditorLevelLibrary.get_selected_level_actors()
+    for i, actor in enumerate(selected):
+        actor.set_actor_location(unreal.Vector(i * spacing, 0, 0))
+```
 
 ## 📋 Prerequisites
 

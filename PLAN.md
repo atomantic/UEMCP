@@ -47,6 +47,9 @@ The final architecture differs from the original plan:
 
 ## House Building Plan and Details
 
+### Map Reference: Content/Maps/HomeWorld
+Our test project map is located at Content/Maps/HomeWorld. The HouseFoundation actor provides the base for our building construction.
+
 ### Important: Unreal Engine Coordinate System
 **Note**: UE's coordinate system is counterintuitive!
 - **X- = NORTH** (X decreases going North)
@@ -133,22 +136,46 @@ Ground Floor Layout (Top View):
 
 ### ModularOldTown Asset Reference
 
+#### Analysis from Old_Town Map
+After studying the ModularOldTown/Maps/Old_Town example map, key observations:
+
+1. **Building Construction Pattern**:
+   - Buildings use a combination of corner pieces and wall segments
+   - Corners are placed first to establish building footprint
+   - Walls fill the gaps between corners with precise 300cm intervals
+   - Multiple floor levels stack directly on top of each other (Z+282 per floor)
+
+2. **Common Building Components**:
+   - **SM_FlatWall_3m**: Standard 3m wall segment
+   - **SM_FlatWall_1m_Corner**: Corner pieces for building edges
+   - **SM_FlatWall_3m_SquareDoor**: Wall with door opening
+   - **SM_FlatWall_3m_ArchedDoorWin**: Wall with arched door and window
+   - **SM_FlatWall_3m_SquareDWin**: Wall with square door and window
+   - **SM_Floor_2m/1m**: Floor tiles for interior surfaces
+   - **SM_SimpleBalcony_A**: Decorative balcony elements
+
+3. **Naming Convention in Old_Town**:
+   - Walls: SM_FlatWall_3m2, SM_FlatWall_3m3 (numbered instances)
+   - Corners: SM_FlatWall_1m_Corner2, SM_FlatWall_1m_Corner3
+   - Floors: SM_Floor_2m10, SM_Floor_2m11 (sequential numbering)
+
 #### Standard Dimensions
-| Asset Type | Dimensions (cm) | Grid Size |
-|------------|-----------------|-----------|
-| Corner | 100 x 100 x 282 | 1m x 1m |
-| Wall 2m | 200 x 100 x 282 | 2m x 1m |
-| Wall 3m | 300 x 100 x 282 | 3m x 1m |
-| Floor 1m | 100 x 100 x 7 | 1m x 1m |
+| Asset Type | Dimensions (cm) | Grid Size | Notes |
+|------------|-----------------|-----------|-------|
+| Corner (1m) | 100 x 100 x 282 | 1m x 1m | Used at all building corners |
+| Wall 2m | 200 x 100 x 282 | 2m x 1m | For smaller openings |
+| Wall 3m | 300 x 100 x 282 | 3m x 1m | Standard wall segment |
+| Floor 1m | 100 x 100 x ~7 | 1m x 1m | Thin floor tiles |
+| Floor 2m | 200 x 200 x ~7 | 2m x 2m | Larger floor sections |
 
 #### Rotation Rules
 - **North-South walls** (along X-axis): `[0, 0, 0]`
 - **East-West walls** (along Y-axis): `[0, 0, -90]`
-- **Corner rotations**:
-  - Front-Left: `[0, 0, 0]`
-  - Front-Right: `[0, 0, -90]`
-  - Back-Right: `[0, 0, 180]`
-  - Back-Left: `[0, 0, 90]`
+- **Corner rotations** (based on Old_Town observations):
+  - NE Corner: `[0, 0, -90]` (faces into building)
+  - SE Corner: `[0, 0, 180]` or `[0, 0, 0]` depending on orientation
+  - SW Corner: `[0, 0, 90]`
+  - NW Corner: `[0, 0, 0]`
 
 ### Technical Fixes Applied
 
@@ -174,6 +201,50 @@ const wallX = foundation.x - (houseWidth/2) + cornerSize + (wallWidth/2);
 2. Calculate precise positions with corner insets
 3. Verify with wireframe screenshots
 4. Adjust as needed
+
+### Enhanced Architectural Plan for HomeWorld House
+
+Based on the Old_Town analysis, here's our refined plan for the house on HouseFoundation:
+
+#### Design Philosophy
+- Use modular construction patterns from Old_Town
+- Mix stone walls (SM_FlatStoneWall_*) for ground floor strength
+- Use regular walls (SM_FlatWall_*) for upper floors
+- Include architectural variety with different window and door types
+
+#### Ground Floor Enhancement (Current Focus)
+1. **Replace plain walls with feature walls**:
+   - Front: Use SM_FlatWall_3m_SquareDoor for main entrance
+   - Sides: Mix SM_FlatWall_3m_SquareWin for windows
+   - Back: Consider SM_FlatWall_3m_ArchedWin for character
+
+2. **Add architectural details**:
+   - Place SM_SimpleBalcony_A above main entrance
+   - Use varied wall textures (stone vs plaster)
+   - Consider asymmetric window placement for visual interest
+
+#### Second Floor Design
+1. **Structure**:
+   - Same corner configuration as ground floor
+   - More windows for residential feel
+   - Mix of SM_FlatWall_2m_SquareWin and SM_FlatWall_3m_ArchedWin
+   - Balcony on front or side using SM_SimpleBalcony_A
+
+2. **Floor Construction**:
+   - Use SM_Floor_2m tiles for efficiency (200x200 grid)
+   - Fill edges with SM_Floor_1m tiles as needed
+   - Total floor area: 10m x 8m = 40-50 floor tiles
+
+#### Roof Design
+1. **Components** (if available in ModularOldTown):
+   - SM_Roof_3m_Top for main coverage
+   - SM_Roof_1m_Edge for perimeter details
+   - Corner pieces for proper termination
+
+2. **Alternative** (if roof pieces unavailable):
+   - Create flat roof with SM_Floor tiles
+   - Add low perimeter walls (SM_FlatWall_1m if exists)
+   - Place decorative elements on roof
 
 ### Completion Plan
 
@@ -382,6 +453,187 @@ actor.set_actor_rotation(unreal.Rotator(0, 90, 0))
 4. Calculate expected vs actual positions
 5. Use actor_modify to fix issues
 ```
+
+## Phase 5: FAB Asset Integration - Import and Usage Validation
+
+### Overview
+
+**Objective**: Enable UEMCP to import and use FAB marketplace assets that users have downloaded, providing a streamlined workflow for using FAB content in projects.
+
+**Important Discovery**: Direct FAB marketplace API access is not available through Unreal Engine's Python API. Users must manually download assets from FAB, then we can automate the import and usage.
+
+**Revised Goals**:
+1. Create a blank UE project
+2. Install UEMCP plugin
+3. User manually downloads FAB assets to local folder
+4. Use Claude Code to import downloaded FAB assets
+5. Place and manipulate imported assets in the level
+6. Document the complete workflow for new users
+
+### Fresh Project Setup Flow
+
+#### Step 1: Create Blank Unreal Engine Project
+```bash
+# User creates new blank project in UE 5.4+
+# Project Name: TestFAB
+# Location: /path/to/TestFAB
+# Template: Blank
+# Blueprint/C++: Either (plugin works with both)
+```
+
+#### Step 2: Install UEMCP Plugin
+```bash
+# Clone UEMCP repository
+git clone https://github.com/[org]/UEMCP.git
+
+# Run setup script to configure for the new project
+cd UEMCP
+python scripts/setup.py --project-path /path/to/TestFAB
+
+# Build and install plugin
+python scripts/build_plugin.py
+```
+
+#### Step 3: Start Claude Code with UEMCP
+```bash
+# Start the MCP server
+npm start
+
+# In UE Python console, start the listener
+from uemcp_helpers import *
+start_listener()
+```
+
+#### Step 4: FAB Asset Import Workflow
+
+**User Prompt Example**:
+"I've downloaded some furniture assets from FAB to ~/Downloads/FAB/Furniture. Import them and place them in my level"
+
+**Expected Claude Code Actions**:
+1. Use `asset_import` tool to scan the download folder
+2. Import assets with proper settings (collision, materials, etc.)
+3. Use `asset_list` to verify successful import
+4. Use `actor_spawn` to place assets in the level
+5. Use `viewport_screenshot` to show results
+
+### New MCP Tools Required
+
+#### 1. Enhanced Asset Import Tool
+```typescript
+// asset_import - Import downloaded assets
+{
+  sourcePath: string,
+  targetPath: string,
+  importOptions?: {
+    generateLightmapUVs?: boolean,
+    autoGenerateCollision?: boolean,
+    materialImportMethod?: string
+  }
+}
+```
+
+### Implementation Plan
+
+#### Phase 5.1: Asset Import Enhancement
+1. **Enhance import tool**: Support various asset formats
+2. **Handle dependencies**: Textures, materials, etc.
+3. **Import validation**: Verify successful import
+4. **Error handling**: Clear messages for import failures
+
+#### Phase 5.2: Folder Scanning & Batch Import
+1. **Scan local folders**: Detect downloaded FAB assets
+2. **Batch import**: Import multiple assets at once
+3. **Progress tracking**: Show import progress
+4. **Asset organization**: Auto-organize by type
+
+#### Phase 5.3: Documentation & Examples
+1. **Getting Started Guide**: Step-by-step fresh project setup
+2. **FAB Import Guide**: How to import downloaded FAB assets
+3. **Example prompts**: Common import workflows
+4. **Best practices**: Folder organization for FAB downloads
+
+### Expected User Experience
+
+```
+User: "I just downloaded some medieval furniture from FAB to ~/Downloads/FAB/Medieval. Import them into my project and place a few pieces"
+
+Claude Code:
+1. I'll scan the folder for FAB assets
+   [Uses asset_import to scan ~/Downloads/FAB/Medieval]
+   
+2. Found these assets to import:
+   - SM_Medieval_Table.fbx (Static Mesh)
+   - SM_Medieval_Chair.fbx (Static Mesh)
+   - T_Medieval_Wood_D.png (Texture)
+   - M_Medieval_Wood.uasset (Material)
+
+3. Importing assets with collision generation...
+   [Uses asset_import with proper settings]
+   
+4. Import successful! Assets are now in /Game/FAB/Medieval/
+   
+5. Placing a table and chairs in your level
+   [Uses actor_spawn for each asset]
+   
+6. Here's your medieval furniture setup:
+   [Uses viewport_screenshot]
+```
+
+### Success Metrics
+
+- **Time to First Asset**: < 5 minutes from blank project to placed FAB asset
+- **Success Rate**: 90%+ successful FAB downloads and imports
+- **User Satisfaction**: Clear workflow, helpful error messages
+- **Asset Variety**: Support for meshes, materials, blueprints
+- **Documentation Quality**: New users can follow without assistance
+
+### Technical Considerations
+
+#### Import Pipeline Implementation
+- Use `unreal.AssetImportTask` for file imports
+- Support FBX, OBJ, and other common 3D formats
+- Handle texture dependencies automatically
+- Generate collision on import for static meshes
+- Organize imports into logical folder structure
+
+#### Import Pipeline Challenges
+- Asset format compatibility
+- Texture path resolution
+- Material setup
+- LOD handling
+- Collision generation
+
+#### Error Scenarios
+- Import format not supported
+- Missing texture dependencies
+- Invalid file paths
+- Permission issues
+- Memory limitations for large assets
+- Naming conflicts with existing assets
+
+### Development Priority
+
+This phase should be prioritized after core MCP functionality is stable because:
+1. **High user value**: Streamlines FAB asset workflow
+2. **Practical approach**: Works with existing FAB download process
+3. **Moderate complexity**: Uses existing UE import APIs
+4. **Clear scope**: Import and placement automation
+
+### Integration with Existing Tools
+
+The FAB import feature will enhance existing tools:
+- `asset_import`: New tool for importing downloaded assets
+- `asset_list`: Will show imported FAB assets
+- `actor_spawn`: Can use imported FAB assets directly
+- `python_proxy`: Can handle custom import workflows using AssetImportTask
+
+### Key Technical Findings
+
+Based on exploration of the UE Python API:
+1. **No FAB API Access**: Cannot search or download from FAB marketplace programmatically
+2. **Import Capabilities**: `AssetImportTask` and `AssetToolsHelpers` are available for importing
+3. **Workflow**: Download manually → Import via MCP → Use in level
+4. **ModularOldTown**: Already exists in the Home project at `/Game/ModularOldTown/`
 
 ## Phase 1: Foundation & Scaffolding (Week 1-2)
 
