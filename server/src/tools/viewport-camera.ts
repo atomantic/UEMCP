@@ -27,7 +27,7 @@ export const viewportCameraTool = {
           items: { type: 'number' },
           minItems: 3,
           maxItems: 3,
-          description: 'Camera rotation [pitch, yaw, roll] in degrees',
+          description: 'Camera rotation [roll, pitch, yaw] in degrees',
         },
         focusActor: {
           type: 'string',

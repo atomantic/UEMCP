@@ -32,7 +32,7 @@ export const actorModifyTool = {
           items: { type: 'number' },
           minItems: 3,
           maxItems: 3,
-          description: 'New rotation [pitch, yaw, roll] in degrees',
+          description: 'New rotation [roll, pitch, yaw] in degrees',
         },
         scale: {
           type: 'array',
