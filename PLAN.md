@@ -25,7 +25,7 @@ This document outlines the implementation plan for the Unreal Engine Model Conte
 ### Architecture Changes
 
 The final architecture differs from the original plan:
-- **No C++ compilation needed** - Plugin is content-only with Python scripts
+- **No C++ compilation needed** - Plugin is content-only with Python scripts. We will add C++ later when we need to control a built game/scene.
 - **HTTP bridge instead of direct Python** - More reliable communication
 - **Simplified deployment** - Just copy plugin folder to UE project
 
@@ -36,66 +36,231 @@ The final architecture differs from the original plan:
 **Objective**: Build an elaborate house on top of the HouseFoundation in the Home Unreal Project using ModularOldTown assets and other free Fab assets. The primary mission is to discover MCP limitations and enhance the plugin/server capabilities to match what a human can do with the Unreal Engine editor.
 
 **Key Principles**:
-1. **MCP-First Development**: When encountering limitations, prioritize fixing/extending MCP functionality over working around constraints
+1. **MCP-First Development**: When encountering limitations, prioritize fixing/extending MCP functionality over working around constraints. Utilize mcp tools as much as possible, including the python_proxy tool to utilize the full Unreal Engine Python API. If these are insufficient or inefficient, make new custom mcp tool interfaces.
 2. **Visual Verification**: Have human operator verify progress at key stages through screenshots
 3. **Iterative Enhancement**: Each blocker becomes an opportunity to improve MCP
 4. **Minimal Human Intervention**: Only ask user to perform actions that cannot be automated via MCP
 
 ### House Building Progress
 
-**Current Status**: Ground floor in progress ⚠️
+**Current Status**: Ground floor complete with correct cardinal naming ✅
 
-The detailed house building plan and progress tracking has been moved to:
-📁 **[house-building-scripts/PLAN.md](house-building-scripts/PLAN.md)**
+## House Building Plan and Details
 
-This includes:
-- Current build status with identified issues
-- Actor naming and folder organization requirements
-- Architectural specifications and layout
-- Key lessons learned (pivot points, viewport control, asset paths)
-- ModularOldTown asset reference with dimensions
-- Technical fixes and solutions
-- Completion plan for remaining floors
-- Helper scripts documentation
+### Important: Unreal Engine Coordinate System
+**Note**: UE's coordinate system is counterintuitive!
+- **X- = NORTH** (X decreases going North)
+- **X+ = SOUTH** (X increases going South)  
+- **Y- = EAST** (Y decreases going East)
+- **Y+ = WEST** (Y increases going West)
+- **Z+ = UP** (Z increases going Up)
 
-### Summary of House Building Phases
+### What's Been Built
+- **4 corner pieces** properly positioned and named with cardinal directions:
+  - Corner_F1_NE at [10260, 260] (North-East: X-, Y-)
+  - Corner_F1_SE at [11260, 260] (South-East: X+, Y-)
+  - Corner_F1_SW at [11260, 1060] (South-West: X+, Y+)
+  - Corner_F1_NW at [10260, 1060] (North-West: X-, Y+)
+- **11 wall pieces** but with gaps and placed incorrectly
+- **1 door** not positioned correctly
+- **Foundation** at [10760, 660, 80]
+- **All actors properly named** (e.g., Wall_Front_1, Corner_F1_SE)
+- **All actors organized** in Estate/House/GroundFloor folders
+- **Correct corner rotations** with sharp angles pointing outward (SE=0°)
 
-#### ⚠️ Phase 4.1: Foundation & Ground Floor - IN PROGRESS
-- Multiple wall and corner pieces placed but with issues:
-  - Wall gaps between segments
-  - Corner rotation problems
-  - Generic actor names (UEMCP_Actor_*)
-  - No folder organization
-- Created comprehensive helper scripts and verification tools
-- Identified need for actor naming and organization features
+### Original Design Specification
 
-#### ⏳ Phase 4.2: Multi-Story Construction - NEXT
-- Add floor/ceiling separator (80 tiles)
-- Duplicate ground floor pattern for second story
-- Add more windows on upper floor
+#### House Parameters
+- **Foundation Location**: [10760, 690, 80] (already placed in scene)
+- **Total Size**: 10m x 8m (1000cm x 800cm)
+- **Floors**: 2 stories + roof
+- **Grid Unit**: 100cm (1 meter)
+- **Wall Height**: 282cm per floor
 
-#### 📋 Phase 4.3-4.5: Remaining Work
-- Roof structure with proper angles
-- Interior walls and stairs
-- Exterior details and environment
+#### Architectural Layout
+```
+Ground Floor Layout (Top View):
 
-See the detailed plan for specific coordinates, scripts, and implementation details.
+    Corner_F1_NW ------------ Wall_F1_N_* ------------ Corner_F1_NE
+           |                                                |
+     Wall_F1_W_*                                        Wall_F1_E_*
+           |                                                |
+    Corner_F1_SW -- Wall_F1_S_* + Door + Wall_F1_S_* -- Corner_F1_SE
+```
+
+### Key Lessons Learned
+
+#### 1. Actor Pivot Points ⚠️
+- **Critical Discovery**: ModularOldTown assets use CENTER pivot points, not corner pivots
+- **Impact**: All placement calculations must account for half-dimensions
+- **Example**: A 300x100 wall at position (X,Y) extends from (X-150, Y-50) to (X+150, Y+50)
+
+#### 2. Actor Naming Requirements 🏷️
+- **Problem**: Spawned actors get generic names like "UEMCP_Actor_1753576458"
+- **Solution**: Must provide meaningful names when spawning
+- **Naming Convention**:
+  - Unique: `[Type]_F[FloorNumber]_[Cardinality]` (e.g. Corner_F1_SW)
+  - Repeating: `[Type]_F[FloorNumber]_[Cardinality]_[Number]` (e.g. Wall_F1_S_1)
+
+#### 3. Folder Organization Requirements 📁
+- **Requirement**: All house actors must be organized in folder structure
+- **Path**: `Estate/House/[Component]`
+- **Structure**:
+  ```
+  Estate/
+  └── House/
+      ├── GroundFloor/
+      │   ├── Walls/
+      │   ├── Corners/
+      │   └── Doors/
+      ├── SecondFloor/
+      └── Roof/
+  ```
+- **Implementation**: Use `folder` parameter in actor_spawn
+
+#### 4. Viewport Camera Control 📸
+- **Rotation Array**: [Pitch, Yaw, Roll] - NOT [X, Y, Z]
+- **Common Mistake**: Using Roll instead of Pitch creates tilted horizon
+- **Correct Views**:
+  - Top-down: `[-90, 0, 0]` (Pitch=-90)
+  - Perspective: `[-30, 45, 0]` (Pitch=-30, Yaw=45)
+  - NEVER modify Roll unless creating Dutch angle
+
+#### 5. Asset Path Discoveries 📁
+- **Window walls**: Use `SM_FlatWall_2m_SquareWin` (not Window_Square)
+- **Door walls**: Use `SM_FlatWall_3m_SquareDoor` (not Door_Square)
+- **All paths**: Must include subfolder like `/Walls/` or `/Ground/`
+
+### ModularOldTown Asset Reference
+
+#### Standard Dimensions
+| Asset Type | Dimensions (cm) | Grid Size |
+|------------|-----------------|-----------|
+| Corner | 100 x 100 x 282 | 1m x 1m |
+| Wall 2m | 200 x 100 x 282 | 2m x 1m |
+| Wall 3m | 300 x 100 x 282 | 3m x 1m |
+| Floor 1m | 100 x 100 x 7 | 1m x 1m |
+
+#### Rotation Rules
+- **North-South walls** (along X-axis): `[0, 0, 0]`
+- **East-West walls** (along Y-axis): `[0, 0, -90]`
+- **Corner rotations**:
+  - Front-Left: `[0, 0, 0]`
+  - Front-Right: `[0, 0, -90]`
+  - Back-Right: `[0, 0, 180]`
+  - Back-Left: `[0, 0, 90]`
+
+### Technical Fixes Applied
+
+#### 1. Viewport API Updates
+- Fixed deprecated `editor_set_camera_look_at_location` calls
+- Updated to use `UnrealEditorSubsystem()` methods
+- Removed invalid wireframe mode method calls
+
+#### 2. Wall Placement Algorithm
+```javascript
+// Account for center pivot and corner inset
+const cornerSize = 100;
+const wallThickness = 100;
+const inset = cornerSize / 2;
+
+// Example: Front wall placement
+const frontY = foundation.y - (houseDepth/2) + (wallThickness/2);
+const wallX = foundation.x - (houseWidth/2) + cornerSize + (wallWidth/2);
+```
+
+#### 3. Gap Elimination Strategy
+1. Delete overlapping walls
+2. Calculate precise positions with corner insets
+3. Verify with wireframe screenshots
+4. Adjust as needed
+
+### Completion Plan
+
+#### Phase 0: Fix Current Issues (Complete) ✅
+1. **Clean up misplaced actors**
+   - ✅ Deleted actors at Z=-1000
+   - ✅ Identified and removed duplicate/overlapping pieces
+
+2. **Fix actor naming and organization**
+   - ✅ Renamed all UEMCP_Actor_* to proper names
+   - ✅ Moved all house actors to Estate/House folder structure
+   - ✅ Used actor_organize tool
+
+3. **Fix wall gaps and rotations**
+   - ✅ Identified gap locations
+   - ✅ Adjusted wall positions for seamless connections
+   - ✅ Fixed corner rotations
+
+4. **Verify ground floor completion**
+   - ✅ Took screenshots from multiple angles
+   - ✅ Ensured all walls connect properly
+   - ✅ Checked corner alignments
+
+#### Phase 1: Second Floor (Next)
+1. **Floor/Ceiling Separator**
+   - Place SM_Floor_1m tiles (100x100) in 10x8 grid
+   - Total: 80 floor pieces at Z = 140 + 282 = 422
+   - Use proper naming: `Floor_Tile_[X]_[Y]`
+   - Organize in `Estate/House/SecondFloor/Floor`
+
+2. **Second Floor Walls**
+   - Duplicate ground floor pattern
+   - More windows, fewer solid walls
+   - Same corner configuration
+   - Proper naming and organization
+
+#### Phase 2: Roof Structure
+1. **Roof Base**
+   - SM_Roof_3m_Top pieces for main coverage
+   - SM_Roof_1m_Edge for perimeter
+
+2. **Roof Details**
+   - Corner pieces for proper angles
+   - Chimneys if available
+   - Decorative elements
+
+#### Phase 3: Details & Polish
+1. **Interior Elements**
+   - Interior walls for rooms
+   - Stairs between floors
+   - Basic furniture placement
+
+2. **Exterior Enhancement**
+   - Balconies on second floor
+   - Window shutters
+   - Garden/fence around house
 
 ### MCP Enhancement Priority List
 
 **Critical Features** (Block house construction):
 1. **Asset Snapping System**: Detect and use socket points for precise placement
+   - Implement `actor_spawn_snapped` with grid and socket snapping
+   - Add snap tolerance and validation
 2. **Asset Query Enhancement**: Get dimensions, sockets, collision bounds
+   - Extend `asset_info` with socket information
+   - Add bounding box and pivot point data
 3. **Batch Operations**: Place multiple similar assets efficiently
-4. **Undo/Redo System**: Recover from placement errors
-5. **Asset Search**: Find compatible assets by type/tag/socket
+   - Implement `actor_spawn_array` for patterns
+   - Add `actor_spawn_batch` for multiple placements
+4. **Actor Reference Fix**: Reliable actor identification
+   - Add `actor_get_info` to get actors by display name
+   - Implement actor tagging system
+5. **Placement Validation**: Detect gaps and overlaps
+   - Add `placement_validate` tool
+   - Include collision detection
 
 **Important Features** (Improve workflow):
-1. **Blueprint Actor Spawning**: Spawn interactive elements
-2. **Material Instance Creation**: Customize asset appearance
-3. **Viewport Navigation**: Better camera control for inspection
+1. **Viewport Control Fix**: Repair broken viewport tools
+   - Fix `viewport_mode` Python API calls
+   - Fix `viewport_render_mode` implementation
+   - Fix `viewport_focus` camera methods
+2. **Blueprint Actor Spawning**: Spawn interactive elements
+3. **Material Instance Creation**: Customize asset appearance
 4. **Selection Groups**: Work with multiple actors together
-5. **Copy/Paste/Duplicate**: Repeat successful patterns
+5. **Grid Snap Tool**: Enable/disable grid snapping
+   - Implement `grid_snap` with configurable grid size
+   - Add snap-to-grid for existing actors
 
 **Nice-to-Have Features** (Polish):
 1. **Lighting Preview**: See lighting changes in real-time
@@ -103,6 +268,7 @@ See the detailed plan for specific coordinates, scripts, and implementation deta
 3. **Weather/Time of Day**: Environmental testing
 4. **Performance Metrics**: Track frame rate and complexity
 5. **Export/Import**: Save house as reusable asset
+6. **Measurement Tool**: Measure distances between actors
 
 ### Development Workflow
 
@@ -131,6 +297,14 @@ Based on available assets in `/Game/ModularOldTown/Meshes/`:
 - Decorative elements
 - Structural supports
 
+**Example Map Available**: The ModularOldTown package includes `/Content/ModularOldTown/Maps/Old_Town` - a complete example town demonstrating proper usage of all assets. This map is valuable for:
+- Learning correct asset placement and rotation patterns
+- Understanding how modular pieces connect seamlessly
+- Discovering creative combinations and architectural patterns
+- Copying specific actor configurations for reuse
+
+**Tip**: Open the Old_Town map to inspect how professionals use these assets, then apply similar patterns to your house construction.
+
 ### House Building Experiment Status
 
 The house building experiment has yielded valuable insights and improvements:
@@ -139,7 +313,6 @@ The house building experiment has yielded valuable insights and improvements:
 - Ground floor fully constructed with proper alignment
 - Critical viewport control issues fixed
 - Actor placement mathematics corrected for center pivots
-- Comprehensive helper scripts created
 - All gaps eliminated between modular pieces
 
 **📊 Discovered Issues & Solutions**:
@@ -148,15 +321,67 @@ The house building experiment has yielded valuable insights and improvements:
 3. **Asset paths missing subfolders** - Added /Walls/, /Ground/ paths
 4. **Mathematical placement failures** - Corrected for center pivots
 5. **Screenshot detection timing** - Identified file system lag
+6. **Python API method inconsistencies** - `get_actor_label()` works but `get_actor_reference()` doesn't
+7. **Actor reference system issues** - Must use display names, not internal references
+8. **Viewport control limitations** - Several viewport tools have broken Python API calls
+9. **No snap-to-grid functionality** - Manual placement requires exact coordinates
+10. **No placement validation** - Can't detect gaps or overlaps programmatically
 
-**📁 Resources Created**:
-- `house-building-scripts/` - All helper scripts and data files
-- `house-building-scripts/PLAN.md` - Detailed build documentation
-- `modular_dimensions.json` - Asset dimension database
-- Multiple verification and fix scripts
+**Success Metrics**:
+- ✅ Ground floor complete with no gaps
+- ✅ All actors have meaningful names
+- ✅ All actors organized in Estate/House folders
+- ⬜ Second floor with windows
+- ⬜ Roof properly attached
+- ⬜ Interior details added
+- ⬜ MCP enhancements documented and implemented
 
-For detailed implementation, coordinates, and next steps, see:
-📄 **[house-building-scripts/PLAN.md](house-building-scripts/PLAN.md)**
+**Immediate Next Steps**:
+1. **Test Second Floor Placement** - Use floor tile placement algorithm
+2. **Verify Current State** - Check ground floor completion
+3. **Continue Construction** - Follow Phase 1-3 plan above
+4. **Document New Issues** - Track any MCP limitations discovered
+
+### Best Practices Discovered
+
+#### 1. Always Use Multiple Verification Methods
+```python
+# After placing actors:
+1. Take perspective screenshot
+2. Switch to wireframe mode
+3. Take top-down screenshot
+4. List actors to verify names
+5. Check positions mathematically
+```
+
+#### 2. Modular Building Patterns
+- Walls are typically 300 units (3m) wide
+- Corners need specific rotations (0, 90, 180, 270)
+- Always place corners first, then fill walls
+- Door/window pieces replace wall segments
+
+#### 3. Python API Workarounds
+```python
+# Finding actors by display name (since get_actor_reference doesn't work):
+def get_actor_by_display_name(name):
+    for actor in unreal.EditorLevelLibrary.get_all_level_actors():
+        if actor.get_actor_label() == name:
+            return actor
+    return None
+
+# Setting rotation (use set_actor_rotation instead of broken methods):
+actor.set_actor_rotation(unreal.Rotator(0, 90, 0))
+```
+
+#### 4. Debugging Workflow
+```python
+# When something looks wrong:
+1. Check actor list and positions
+2. Use python_proxy to inspect transforms
+3. Take wireframe screenshots
+4. Calculate expected vs actual positions
+5. Use actor_modify to fix issues
+```
 
 ## Phase 1: Foundation & Scaffolding (Week 1-2)
 
@@ -204,12 +429,12 @@ UEMCP/
 ```
 
 **Tasks**:
-- [ ] Initialize Node.js project with TypeScript
-- [ ] Set up Python virtual environment and packaging
-- [ ] Create UE plugin structure
-- [ ] Configure build tools (npm scripts, Python setup.py)
-- [ ] Set up testing frameworks (Jest for TS, pytest for Python)
-- [ ] Create basic CI/CD workflow
+- ✅ Initialize Node.js project with TypeScript
+- ✅ Set up Python virtual environment and packaging
+- ✅ Create UE plugin structure
+- ✅ Configure build tools (npm scripts, Python setup.py)
+- ✅ Set up testing frameworks (Jest for TS, pytest for Python)
+- ✅ Create basic CI/CD workflow
 
 ### 1.2 MCP Server Foundation
 
@@ -240,7 +465,7 @@ export class UEMCPServer {
 - Integration tests with simple ping/pong operations
 
 **Tasks**:
-- [ ] Implement basic MCP protocol handlers
+- ✅ Implement basic MCP protocol handlers
 - [ ] Create tool registration system
 - [ ] Add logging and error handling
 - [ ] Write comprehensive unit tests
@@ -282,7 +507,7 @@ class UEPythonBridge:
 - Command execution validation
 
 **Tasks**:
-- [ ] Create UE Python API wrapper
+- ✅ Create UE Python API wrapper
 - [ ] Implement mock UE environment for testing
 - [ ] Add command validation and error handling
 - [ ] Write unit tests with mocks
@@ -319,7 +544,7 @@ export class ProjectInfoTool implements MCPTool {
 - Validation of MCP protocol compliance
 
 **Tasks**:
-- [ ] Implement Priority 1 tools
+- ✅ Implement Priority 1 tools
 - [ ] Create comprehensive test suite for each tool
 - [ ] Add input validation and error handling
 - [ ] Document tool APIs
@@ -390,7 +615,7 @@ public:
 ```
 
 **Tasks**:
-- [ ] Create basic plugin structure
+- ✅ Create basic plugin structure
 - [ ] Implement essential subsystem
 - [ ] Add Blueprint function library
 - [ ] Create plugin packaging script
@@ -521,6 +746,32 @@ class MockUnrealModule:
 3. **Blueprint Editing**: Creation only, no graph editing
 4. **Material Editing**: No material instance creation
 5. **Undo/Redo**: No operation history
+6. **Actor Reference System**: `get_actor_reference()` doesn't work with display names
+7. **Viewport Control**: Several viewport methods have broken Python API calls
+8. **Placement Validation**: No collision detection or gap analysis
+9. **Limited Asset Info**: No socket, bounds, or pivot information
+10. **Poor Error Recovery**: Generic error messages with no diagnostics
+
+### Python API Issues & Workarounds
+
+**Problem Areas**:
+- `get_actor_reference()` fails with friendly names
+- `editor_play_in_viewport()` doesn't exist
+- `editor_set_camera_look_at_location()` deprecated
+
+**Working Solutions**:
+```python
+# Use get_actor_label() to find actors by name
+for actor in unreal.EditorLevelLibrary.get_all_level_actors():
+    if actor.get_actor_label() == "Wall_Front_1":
+        # Found the actor
+
+# Use set_actor_rotation() for transforms
+actor.set_actor_rotation(unreal.Rotator(0, 90, 0))
+
+# For viewport control, use LevelEditorSubsystem
+viewport = unreal.LevelEditorSubsystem.get_viewport()
+```
 
 ### Architecture Benefits
 
