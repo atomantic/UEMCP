@@ -128,7 +128,7 @@ UEMCP provides 20 tools to Claude for controlling Unreal Engine:
 ### Advanced
 - **python_proxy** ⭐ - Execute ANY Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6). This is the most powerful tool - it can do everything the other tools can do and more!
 - **test_connection** - Test connection to UE Python listener
-- **restart_listener** - Hot reload Python code changes
+- **restart_listener** - Stop listener for hot reload (requires manual restart - see Development section)
 - **ue_logs** - Read recent lines from UE console log file (useful for debugging)
 
 ### Help & Documentation
@@ -279,14 +279,30 @@ Benefits of symlinking:
 - ✅ Version control friendly
 
 ```bash
-# In UE Python console, reload changes without restarting:
-restart_listener()  # Hot reload your changes
-
-# Available helpers:
+# Available helpers in UE Python console:
 status()            # Check if running
 stop_listener()     # Stop listener
 start_listener()    # Start listener
 ```
+
+### Hot Reloading Code Changes
+
+**Important**: Due to UE's Python environment, `restart_listener()` requires manual completion to prevent crashes:
+
+```python
+# Step 1: Run restart_listener() - this stops the server
+restart_listener()
+
+# Step 2: Complete the restart manually (prevents crashes)
+import importlib
+importlib.reload(uemcp_listener)
+uemcp_listener.start_listener()
+```
+
+This two-step process is necessary because:
+- Reloading Python modules while they're running can crash UE
+- The HTTP server can't safely restart itself while handling requests
+- Manual completion ensures a clean restart in a fresh Python context
 
 ### Adding New Tools
 1. Add command handler in `plugin/Content/Python/uemcp_listener.py`
