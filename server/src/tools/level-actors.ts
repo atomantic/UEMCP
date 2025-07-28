@@ -43,6 +43,9 @@ export const levelActorsTool = {
           name: string;
           class: string;
           location?: { x: number; y: number; z: number };
+          rotation?: { roll: number; pitch: number; yaw: number };
+          scale?: { x: number; y: number; z: number };
+          assetPath?: string;
         }>) || [];
         const totalCount = (result.totalCount as number) || actors.length;
         const currentLevel = (result.currentLevel as string) || 'Unknown';
@@ -66,6 +69,15 @@ export const levelActorsTool = {
             text += `• ${actor.name} (${actor.class})\n`;
             if (actor.location) {
               text += `  Location: [${actor.location.x}, ${actor.location.y}, ${actor.location.z}]\n`;
+            }
+            if (actor.rotation) {
+              text += `  Rotation: [${actor.rotation.roll}, ${actor.rotation.pitch}, ${actor.rotation.yaw}]\n`;
+            }
+            if (actor.scale) {
+              text += `  Scale: [${actor.scale.x}, ${actor.scale.y}, ${actor.scale.z}]\n`;
+            }
+            if (actor.assetPath) {
+              text += `  Asset: ${actor.assetPath}\n`;
             }
           });
         }

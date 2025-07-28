@@ -110,6 +110,7 @@ UEMCP provides these tools to Claude for controlling Unreal Engine:
 
 ### Level Editing
 - **actor_spawn** - Spawn actors from any mesh or blueprint
+- **actor_duplicate** - Duplicate existing actors with optional offset
 - **actor_delete** - Delete actors by name
 - **actor_modify** - Change actor transform and organization
 - **actor_organize** - Organize actors into World Outliner folders

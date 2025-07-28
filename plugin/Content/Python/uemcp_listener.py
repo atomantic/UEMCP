@@ -217,15 +217,36 @@ def execute_on_main_thread(command):
                     break
                     
                 location = actor.get_actor_location()
-                actor_list.append({
+                rotation = actor.get_actor_rotation()
+                scale = actor.get_actor_scale3d()
+                
+                actor_data = {
                     'name': actor.get_actor_label(),
                     'class': actor.get_class().get_name(),
                     'location': {
                         'x': float(location.x),
                         'y': float(location.y),
                         'z': float(location.z)
+                    },
+                    'rotation': {
+                        'roll': float(rotation.roll),
+                        'pitch': float(rotation.pitch),
+                        'yaw': float(rotation.yaw)
+                    },
+                    'scale': {
+                        'x': float(scale.x),
+                        'y': float(scale.y),
+                        'z': float(scale.z)
                     }
-                })
+                }
+                
+                # Get asset path for static mesh actors
+                if hasattr(actor, 'static_mesh_component'):
+                    mesh_component = actor.static_mesh_component
+                    if mesh_component and mesh_component.static_mesh:
+                        actor_data['assetPath'] = mesh_component.static_mesh.get_path_name().split(':')[0]
+                
+                actor_list.append(actor_data)
             
             return {
                 'success': True,
@@ -233,6 +254,80 @@ def execute_on_main_thread(command):
                 'totalCount': len(actors_to_process),
                 'currentLevel': unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world().get_name()
             }
+        
+        elif cmd_type == 'actor.duplicate':
+            # Duplicate an existing actor
+            source_name = params.get('sourceName')
+            new_name = params.get('name')
+            offset = params.get('offset', {'x': 0, 'y': 0, 'z': 0})
+            
+            if not source_name:
+                return {'success': False, 'error': 'sourceName parameter is required'}
+            
+            # Find source actor
+            all_actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
+            source_actor = None
+            
+            for actor in all_actors:
+                if actor.get_actor_label() == source_name:
+                    source_actor = actor
+                    break
+            
+            if not source_actor:
+                return {'success': False, 'error': f'Source actor "{source_name}" not found'}
+            
+            # Get source properties
+            source_location = source_actor.get_actor_location()
+            source_rotation = source_actor.get_actor_rotation()
+            source_scale = source_actor.get_actor_scale3d()
+            
+            # Calculate new location with offset
+            new_location = unreal.Vector(
+                source_location.x + offset.get('x', 0),
+                source_location.y + offset.get('y', 0),
+                source_location.z + offset.get('z', 0)
+            )
+            
+            # Duplicate based on actor type
+            if hasattr(source_actor, 'static_mesh_component'):
+                mesh_component = source_actor.static_mesh_component
+                if mesh_component and mesh_component.static_mesh:
+                    # Spawn new actor with same mesh
+                    new_actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
+                        mesh_component.static_mesh,
+                        new_location,
+                        source_rotation
+                    )
+                    
+                    if new_actor:
+                        # Set scale
+                        new_actor.set_actor_scale3d(source_scale)
+                        
+                        # Set name
+                        if new_name:
+                            new_actor.set_actor_label(new_name)
+                        else:
+                            # Auto-generate name
+                            new_actor.set_actor_label(f"{source_name}_Copy")
+                        
+                        # Copy folder path
+                        source_folder = source_actor.get_folder_path()
+                        if source_folder:
+                            new_actor.set_folder_path(source_folder)
+                        
+                        unreal.log(f"UEMCP: Duplicated actor {source_name} to {new_actor.get_actor_label()}")
+                        
+                        return {
+                            'success': True,
+                            'actorName': new_actor.get_actor_label(),
+                            'location': {
+                                'x': float(new_location.x),
+                                'y': float(new_location.y),
+                                'z': float(new_location.z)
+                            }
+                        }
+            
+            return {'success': False, 'error': 'Failed to duplicate actor'}
         
         elif cmd_type == 'actor.create' or cmd_type == 'actor.spawn':
             # Support both legacy 'type' parameter and new 'assetPath' parameter

@@ -12,6 +12,7 @@ import { actorSpawnTool } from './tools/actor-spawn.js';
 import { actorDeleteTool } from './tools/actor-delete.js';
 import { actorModifyTool } from './tools/actor-modify.js';
 import { actorOrganizeTool } from './tools/actor-organize.js';
+import { actorDuplicateTool } from './tools/actor-duplicate.js';
 import { levelActorsTool } from './tools/level-actors.js';
 import { levelSaveTool } from './tools/level-save.js';
 import { levelOutlinerTool } from './tools/level-outliner.js';
@@ -71,6 +72,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
   return {
     tools: [
       actorDeleteTool.definition,
+      actorDuplicateTool.definition,
       actorModifyTool.definition,
       actorOrganizeTool.definition,
       actorSpawnTool.definition,
@@ -116,6 +118,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'actor_delete':
         result = await actorDeleteTool.handler(args);
+        break;
+      case 'actor_duplicate':
+        result = await actorDuplicateTool.handler(args);
         break;
       case 'actor_modify':
         result = await actorModifyTool.handler(args);
@@ -219,6 +224,7 @@ async function main(): Promise<void> {
     logger.info('  MCP Protocol: stdio');
     logger.info('  Available Tools: ' + [
       'actor_delete',
+      'actor_duplicate',
       'actor_modify',
       'actor_organize',
       'actor_spawn',

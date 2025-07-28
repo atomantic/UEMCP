@@ -116,6 +116,40 @@ The whole process takes about 2-3 seconds and doesn't freeze UE.
 4. **Sync Pattern**: Always sync changes between UE project and git repository
 5. **Line Endings**: Always use LF (Unix-style) line endings, never CRLF (Windows-style)
 
+## CRITICAL: MCP Tool Development Philosophy
+
+**DO NOT TOLERATE BROKEN OR INCOMPLETE MCP TOOLS!**
+
+When you encounter a situation where an MCP tool cannot accomplish what you need:
+
+1. **NEVER resort to python_proxy as a workaround** - This defeats the purpose of having dedicated tools
+2. **ALWAYS improve or create MCP tools** instead of writing complex Python code at runtime
+3. **Identify patterns** - If you're using python_proxy for something, it's a sign we need a new tool
+
+### Examples of when to create/fix tools:
+
+❌ **WRONG**: Using python_proxy to get actor's asset path and rotation
+✅ **RIGHT**: Enhance `level_actors` or create `actor_info` tool to return complete actor details
+
+❌ **WRONG**: Using python_proxy to duplicate an actor
+✅ **RIGHT**: Create `actor_duplicate` tool or enhance `actor_spawn` to accept a source actor
+
+❌ **WRONG**: Using python_proxy to get material information
+✅ **RIGHT**: Create `material_info` or enhance `asset_info` for materials
+
+### Benefits of proper MCP tools:
+- **85% less code** on average (see docs/mcp-tools-vs-python-proxy.md)
+- **Better error handling** with meaningful messages
+- **Type safety** and parameter validation
+- **Consistent API** across all operations
+- **Self-documenting** with clear parameter descriptions
+
+### When to use python_proxy:
+- **One-off debugging** or exploration
+- **Testing new functionality** before creating a tool
+- **Complex multi-step operations** that don't fit a single tool pattern
+- **Never for common operations** that could be tools
+
 ## Important Configuration
 
 For Claude Desktop integration:
