@@ -101,7 +101,7 @@ node init.js --claude-code --project "/path/to/project.uproject" --no-interactiv
 
 ## 🛠 Available Tools
 
-UEMCP provides these tools to Claude for controlling Unreal Engine:
+UEMCP provides 19 tools to Claude for controlling Unreal Engine:
 
 ### Project & Assets
 - **project_info** - Get current project information

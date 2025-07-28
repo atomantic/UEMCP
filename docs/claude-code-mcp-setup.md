@@ -110,28 +110,16 @@ claude mcp remove uemcp
 
 ## Available Tools
 
-Once connected, UEMCP provides these tools:
+Once connected, UEMCP provides 19 tools organized into categories:
 
-### Project & Assets
-- **project_info** - Get project information
-- **asset_list** - List and filter assets
-- **asset_info** - Get asset details
+- **Project & Asset Management** - Query and inspect UE project resources
+- **Level Editing** - Create, modify, and organize actors in the level
+- **Viewport Control** - Camera, rendering, and screenshot capabilities
+- **Advanced/System** - Direct Python execution and system utilities
 
-### Level Editing
-- **actor_spawn** - Spawn actors in the level
-- **actor_delete** - Delete actors
-- **actor_modify** - Modify actor properties
-- **level_actors** - List level actors
-- **level_save** - Save the current level
+For the complete list of tools and their descriptions, see the [Available Tools section in the main README](../README.md#-available-tools).
 
-### Viewport Control
-- **viewport_screenshot** - Capture screenshots
-- **viewport_camera** - Control camera
-- **viewport_focus** - Focus on actors
-
-### Advanced
-- **python_proxy** - Execute Python in UE
-- **restart_listener** - Restart Python listener
+For detailed code comparisons showing how these tools save 85% of code compared to raw Python, see the [MCP Tools vs Python Proxy documentation](mcp-tools-vs-python-proxy.md).
 
 ## Usage Examples
 

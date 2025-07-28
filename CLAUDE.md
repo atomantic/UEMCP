@@ -166,25 +166,16 @@ For Claude Desktop integration:
 
 ## Current Status
 
-The project has a working implementation with the following MCP tools:
-- `project_info` - Get project information
-- `asset_list` - List and filter project assets
-- `asset_info` - Get asset dimensions and properties
-- `actor_spawn` - Spawn actors with folder organization
-- `actor_delete` - Delete actors by name
-- `actor_modify` - Modify actor transforms and folder paths
-- `level_actors` - List actors in the current level
-- `level_save` - Save the current level
-- `level_outliner` - Get World Outliner folder structure
-- `viewport_screenshot` - Capture viewport screenshots
-- `viewport_camera` - Control viewport camera position
-- `viewport_mode` - Switch between perspective/orthographic views
-- `viewport_focus` - Focus viewport on specific actor
-- `viewport_render_mode` - Change rendering mode (wireframe, unlit, etc)
-- `python_proxy` - Execute arbitrary Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6). Can run ANY Python code including imports, loops, functions, classes. Has complete access to the unreal module for editor automation, asset manipulation, level editing, etc.
-- `test_connection` - Test connection to Python listener
-- `restart_listener` - Restart Python listener for hot reload
-- `ue_logs` - Read recent lines from UE console log file
+The project has a working implementation with 19 MCP tools organized into categories:
+
+- **Project & Asset Management** - Query and inspect UE project resources
+- **Level Editing** - Create, modify, and organize actors in the level
+- **Viewport Control** - Camera, rendering, and screenshot capabilities
+- **Advanced/System** - Direct Python execution and system utilities
+
+For the complete list of tools and their descriptions, see the [Available Tools section in README.md](../README.md#-available-tools).
+
+For detailed code comparisons showing how MCP tools reduce code by 85% on average compared to python_proxy, see [docs/mcp-tools-vs-python-proxy.md](../docs/mcp-tools-vs-python-proxy.md).
 
 ## Current Working Environment
 
