@@ -735,14 +735,18 @@ def execute_on_main_thread(command):
                         return {'success': False, 'error': 'Location required when not focusing on an actor'}
                     
                     if rotation is not None:
-                        current_rot = unreal.Rotator(
-                            float(rotation[0]),  # Pitch
-                            float(rotation[1]),  # Yaw
-                            float(rotation[2])   # Roll
-                        )
+                        # IMPORTANT: Create Rotator by setting properties explicitly
+                        # to avoid Roll/Pitch/Yaw confusion from constructor
+                        current_rot = unreal.Rotator()
+                        current_rot.pitch = float(rotation[0])  # Pitch (up/down)
+                        current_rot.yaw = float(rotation[1])    # Yaw (left/right)
+                        current_rot.roll = float(rotation[2])   # Roll (tilt)
                     else:
                         # Default rotation looking forward and slightly down
-                        current_rot = unreal.Rotator(-30, 0, 0)
+                        current_rot = unreal.Rotator()
+                        current_rot.pitch = -30.0  # Look slightly down
+                        current_rot.yaw = 0.0      # Face north
+                        current_rot.roll = 0.0     # No tilt
                     
                     # Set the viewport camera using UnrealEditorSubsystem
                     editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
@@ -834,20 +838,58 @@ def execute_on_main_thread(command):
             
             try:
                 # Get viewport control
-                
-                # Get current viewport client using UnrealEditorSubsystem
                 editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
                 viewport_client = editor_subsystem.get_level_viewport_camera_info()
+                
+                # Create proper rotations by setting properties explicitly
+                # IMPORTANT: Using Rotator(a,b,c) constructor causes Roll issues!
+                # Must set pitch, yaw, roll properties directly
+                
+                # Top view rotation
+                top_rotation = unreal.Rotator()
+                top_rotation.pitch = -90.0  # Look straight down
+                top_rotation.yaw = 0.0      # Face north
+                top_rotation.roll = 0.0     # NO TILT!
+                
+                # Bottom view rotation
+                bottom_rotation = unreal.Rotator()
+                bottom_rotation.pitch = 90.0   # Look straight up
+                bottom_rotation.yaw = 0.0      # Face north  
+                bottom_rotation.roll = 0.0     # NO TILT!
+                
+                # Left view rotation
+                left_rotation = unreal.Rotator()
+                left_rotation.pitch = 0.0      # Look horizontal
+                left_rotation.yaw = 90.0       # Face west
+                left_rotation.roll = 0.0       # NO TILT!
+                
+                # Right view rotation
+                right_rotation = unreal.Rotator()
+                right_rotation.pitch = 0.0     # Look horizontal
+                right_rotation.yaw = -90.0     # Face east
+                right_rotation.roll = 0.0      # NO TILT!
+                
+                # Front view rotation  
+                front_rotation = unreal.Rotator()
+                front_rotation.pitch = 0.0     # Look horizontal
+                front_rotation.yaw = 0.0       # Face north
+                front_rotation.roll = 0.0      # NO TILT!
+                
+                # Back view rotation
+                back_rotation = unreal.Rotator()
+                back_rotation.pitch = 0.0      # Look horizontal
+                back_rotation.yaw = 180.0      # Face south
+                back_rotation.roll = 0.0       # NO TILT!
                 
                 # Map mode names to viewport types and orientations
                 mode_map = {
                     'perspective': None,  # Default perspective mode
-                    'top': {'type': 'ORTHO_TOP_DOWN', 'rotation': unreal.Rotator(-90, 0, 0)},
-                    'bottom': {'type': 'ORTHO_BOTTOM_UP', 'rotation': unreal.Rotator(90, 0, 0)},
-                    'left': {'type': 'ORTHO_YZ', 'rotation': unreal.Rotator(0, 90, 0)},
-                    'right': {'type': 'ORTHO_NEGATIVE_YZ', 'rotation': unreal.Rotator(0, -90, 0)},
-                    'front': {'type': 'ORTHO_XZ', 'rotation': unreal.Rotator(0, 0, 0)},
-                    'back': {'type': 'ORTHO_NEGATIVE_XZ', 'rotation': unreal.Rotator(0, 180, 0)}
+                    'top': {'type': 'ORTHO_TOP_DOWN', 'rotation': top_rotation},
+                    'bottom': {'type': 'ORTHO_BOTTOM_UP', 'rotation': bottom_rotation},
+                    'left': {'type': 'ORTHO_YZ', 'rotation': left_rotation},
+                    'right': {'type': 'ORTHO_NEGATIVE_YZ', 'rotation': right_rotation},
+                    'front': {'type': 'ORTHO_XZ', 'rotation': front_rotation},
+                    'back': {'type': 'ORTHO_NEGATIVE_XZ', 'rotation': back_rotation}
                 }
                 
                 if mode not in mode_map:
@@ -863,15 +905,13 @@ def execute_on_main_thread(command):
                     current_loc = viewport_client[0]
                     
                     # Set orthographic view with proper orientation
-                    # Set viewport camera for orthographic view using UnrealEditorSubsystem
                     editor_subsystem.set_level_viewport_camera_info(
                         current_loc,
                         rotation
                     )
                     
-                    # Note: UE Python API doesn't directly expose viewport type switching
-                    # This sets rotation to match orthographic views
-                    unreal.log(f"UEMCP: Set viewport rotation for {mode} view")
+                    # Log the actual rotation values for debugging
+                    unreal.log(f"UEMCP: Set viewport {mode} view - Pitch={rotation.pitch:.1f}°, Yaw={rotation.yaw:.1f}°, Roll={rotation.roll:.1f}°")
                 
                 return {
                     'success': True,

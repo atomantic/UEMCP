@@ -215,6 +215,20 @@ The project has a working implementation with the following MCP tools:
    camera_rotation = unreal.Rotator(0, 0, -90)  # This uses Roll instead of Pitch!
    ```
 
+5. **IMPORTANT - Rotator Constructor Bug**:
+   The `unreal.Rotator(a, b, c)` constructor has confusing parameter ordering that can cause Roll issues.
+   **Always set rotation properties explicitly** to avoid problems:
+   ```python
+   # CORRECT - Set properties explicitly
+   rotation = unreal.Rotator()
+   rotation.pitch = -90.0  # Look down
+   rotation.yaw = 0.0      # Face north
+   rotation.roll = 0.0     # No tilt
+   
+   # AVOID - Constructor can cause Roll confusion
+   rotation = unreal.Rotator(-90, 0, 0)  # May set Roll=-90 instead of Pitch=-90!
+   ```
+
 ### Coordinate System
 **CRITICAL**: Unreal Engine's coordinate system is counterintuitive:
 - **X- = NORTH** (X decreases going North)
@@ -355,6 +369,49 @@ viewport_render_mode({ mode: 'lit' })
 - Clear structural details and edges
 - Better for debugging placement and alignment
 - Removes visual clutter from materials/lighting
+
+## Claude Sub-Agents
+
+Custom sub-agents are available in the `/claude-agents/` directory to help with specialized tasks:
+
+### Available Agents
+
+1. **`/uemcp-test-runner`** - Automated testing of UEMCP functionality
+   - Runs comprehensive test suites for all MCP tools
+   - Validates Python listener connectivity
+   - Tests actor spawn/modify/delete operations
+   - Usage: `/uemcp-test-runner`
+
+2. **`/ue-builder`** - Expert in constructing complex structures
+   - Plans and executes multi-story building construction
+   - Handles corner rotations and cardinal directions correctly
+   - Detects and fixes gaps in modular construction
+   - Usage: `/ue-builder "Build a 2-story house"` or `/ue-builder --verify`
+
+3. **`/mcp-tool-developer`** - Develops new MCP tools
+   - Analyzes UE Python API for new tool opportunities
+   - Generates MCP tool implementations
+   - Creates tests and documentation
+   - Usage: `/mcp-tool-developer "Create material management tools"`
+
+4. **`/ue-debugger`** - Visual debugging and diagnostics
+   - Analyzes actor placement issues
+   - Creates debug visualizations
+   - Traces Python execution errors
+   - Usage: `/ue-debugger "Walls have gaps"`
+
+5. **`/project-scaffolder`** - Quick project setup
+   - Creates new UE projects with UEMCP integration
+   - Sets up folder structures
+   - Configures version control
+   - Usage: `/project-scaffolder --template "architectural-viz"`
+
+### Using Sub-Agents
+
+To use a sub-agent, invoke it with the Task tool:
+```
+Task(description="Build house", prompt="/ue-builder 'Create a two-story house'", subagent_type="general-purpose")
+```
 
 ## Code Style Guidelines
 
