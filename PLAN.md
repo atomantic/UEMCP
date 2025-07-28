@@ -122,11 +122,11 @@ Ground Floor Layout (Top View):
 - **Implementation**: Use `folder` parameter in actor_spawn
 
 #### 4. Viewport Camera Control 📸
-- **Rotation Array**: [Pitch, Yaw, Roll] - NOT [X, Y, Z]
-- **Common Mistake**: Using Roll instead of Pitch creates tilted horizon
+- **Rotation Array**: [Roll, Pitch, Yaw] - Same as [X, Y, Z] rotations
+- **Common Mistake**: Setting Roll (first value) instead of Yaw (third value) creates tilted horizon
 - **Correct Views**:
-  - Top-down: `[-90, 0, 0]` (Pitch=-90)
-  - Perspective: `[-30, 45, 0]` (Pitch=-30, Yaw=45)
+  - Top-down: `[0, -90, 0]` (Pitch=-90)
+  - Perspective: `[0, -30, 45]` (Pitch=-30, Yaw=45)
   - NEVER modify Roll unless creating Dutch angle
 
 #### 5. Asset Path Discoveries 📁
@@ -169,8 +169,25 @@ After studying the ModularOldTown/Maps/Old_Town example map, key observations:
 | Floor 2m | 200 x 200 x ~7 | 2m x 2m | Larger floor sections |
 
 #### Rotation Rules
-- **North-South walls** (along X-axis): `[0, 0, 0]`
-- **East-West walls** (along Y-axis): `[0, 0, -90]`
+
+**ROTATION FORMAT - FIXED TO MATCH UNREAL ENGINE**: 
+- **Correct Format**: The rotation array is [Roll, Pitch, Yaw] = [X, Y, Z] as per Unreal Engine standard
+- **Previous Issue**: Python listener was using [Pitch, Yaw, Roll] which caused confusion
+- **Now Fixed**: All tools now use [Roll, Pitch, Yaw] consistently
+
+**CORRECT APPROACH FOR WALLS**:
+- **Always use [0, 0, Yaw]** - Only modify the third value (Yaw) for wall orientation
+- **Roll and Pitch must be 0** - Non-zero values cause walls to tilt or lay flat
+- **Wall Yaw values**:
+  - North walls (facing south): Yaw = -90 (or 270)
+  - South walls (facing north): Yaw = 90
+  - East walls (facing west): Yaw = 180  
+  - West walls (facing east): Yaw = 0
+  - **Note**: These may vary based on the default orientation of the mesh
+
+**Safe rotation patterns**:
+- **North-South walls** (along X-axis): `[0, 0, 0]` or `[0, 0, 180]`
+- **East-West walls** (along Y-axis): `[0, 0, -90]` or `[0, 0, 90]`
 - **Corner rotations** (based on Old_Town observations):
   - NE Corner: `[0, 0, -90]` (faces into building)
   - SE Corner: `[0, 0, 180]` or `[0, 0, 0]` depending on orientation

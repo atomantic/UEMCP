@@ -221,11 +221,11 @@ def execute_on_main_thread(command):
             ue_location = unreal.Vector(float(location[0]), float(location[1]), float(location[2]))
             
             # Create rotation with explicit property setting to avoid constructor confusion
-            # Rotation array is [Pitch, Yaw, Roll]
+            # Rotation array is [Roll, Pitch, Yaw] = [X, Y, Z] as per Unreal Engine standard
             ue_rotation = unreal.Rotator()
-            ue_rotation.pitch = float(rotation[0])  # Pitch (up/down)
-            ue_rotation.yaw = float(rotation[1])    # Yaw (left/right) 
-            ue_rotation.roll = float(rotation[2])   # Roll (tilt)
+            ue_rotation.roll = float(rotation[0])   # Roll (X axis rotation)
+            ue_rotation.pitch = float(rotation[1])  # Pitch (Y axis rotation) 
+            ue_rotation.yaw = float(rotation[2])    # Yaw (Z axis rotation)
             
             ue_scale = unreal.Vector(float(scale[0]), float(scale[1]), float(scale[2]))
             
@@ -636,11 +636,11 @@ def execute_on_main_thread(command):
                 
                 if rotation is not None:
                     # Create rotation with explicit property setting to avoid constructor confusion
-                    # Rotation array is [Pitch, Yaw, Roll]
+                    # Rotation array is [Roll, Pitch, Yaw] = [X, Y, Z] as per Unreal Engine standard
                     ue_rotation = unreal.Rotator()
-                    ue_rotation.pitch = float(rotation[0])  # Pitch (up/down)
-                    ue_rotation.yaw = float(rotation[1])    # Yaw (left/right)
-                    ue_rotation.roll = float(rotation[2])   # Roll (tilt)
+                    ue_rotation.roll = float(rotation[0])   # Roll (X axis rotation)
+                    ue_rotation.pitch = float(rotation[1])  # Pitch (Y axis rotation)
+                    ue_rotation.yaw = float(rotation[2])    # Yaw (Z axis rotation)
                     
                     found_actor.set_actor_rotation(ue_rotation, False)
                 
@@ -746,11 +746,11 @@ def execute_on_main_thread(command):
                     
                     if rotation is not None:
                         # IMPORTANT: Create Rotator by setting properties explicitly
-                        # to avoid Roll/Pitch/Yaw confusion from constructor
+                        # Rotation array is [Roll, Pitch, Yaw] = [X, Y, Z] as per Unreal Engine standard
                         current_rot = unreal.Rotator()
-                        current_rot.pitch = float(rotation[0])  # Pitch (up/down)
-                        current_rot.yaw = float(rotation[1])    # Yaw (left/right)
-                        current_rot.roll = float(rotation[2])   # Roll (tilt)
+                        current_rot.roll = float(rotation[0])   # Roll (X axis rotation)
+                        current_rot.pitch = float(rotation[1])  # Pitch (Y axis rotation)
+                        current_rot.yaw = float(rotation[2])    # Yaw (Z axis rotation)
                     else:
                         # Default rotation looking forward and slightly down
                         current_rot = unreal.Rotator()
