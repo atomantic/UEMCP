@@ -80,13 +80,13 @@ Most modular assets use **center pivot points**, not corner pivots. This means:
 ### Camera Positioning
 The viewport camera uses [Location, Rotation] where:
 - Location: [X, Y, Z] position in world space
-- Rotation: [Pitch, Yaw, Roll] in degrees
+- Rotation: [Roll, Pitch, Yaw] in degrees
 
 ### Common Camera Views
 ```python
 # Top-down view
 camera_location = [X, Y, 1500]  # High above target
-camera_rotation = [-90, 0, 0]   # Pitch=-90, looking straight down
+camera_rotation = [0, -90, 0]   # Pitch=-90, looking straight down
 
 # Isometric view
 camera_location = [X-500, Y-500, 800]

@@ -169,7 +169,7 @@ The project has a working implementation with the following MCP tools:
 
 **CRITICAL**: Understanding viewport camera positioning:
 
-1. **Camera Rotation [Pitch, Yaw, Roll]**:
+1. **Camera Rotation [Roll, Pitch, Yaw]**:
    - **Pitch**: Tilt up/down (-90 = looking straight down, 0 = horizontal, 90 = looking straight up)
    - **Yaw**: Turn left/right (0 = north, 90 = east, 180 = south, -90 = west)
    - **Roll**: Tilt sideways (KEEP AT 0 for normal viewing - non-zero creates tilted horizon!)

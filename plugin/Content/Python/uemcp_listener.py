@@ -664,7 +664,7 @@ def execute_on_main_thread(command):
                     'success': True,
                     'actorName': actor_name,
                     'location': [current_location.x, current_location.y, current_location.z],
-                    'rotation': [current_rotation.pitch, current_rotation.yaw, current_rotation.roll],
+                    'rotation': [current_rotation.roll, current_rotation.pitch, current_rotation.yaw],
                     'scale': [current_scale.x, current_scale.y, current_scale.z],
                     'message': f'Modified actor: {actor_name}'
                 }
@@ -853,7 +853,7 @@ def execute_on_main_thread(command):
                 
                 # Create proper rotations by setting properties explicitly
                 # IMPORTANT: Using Rotator(a,b,c) constructor causes Roll issues!
-                # Must set pitch, yaw, roll properties directly
+                # Must set roll, pitch, yaw properties directly
                 
                 # Top view rotation
                 top_rotation = unreal.Rotator()
