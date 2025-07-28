@@ -240,12 +240,12 @@ async function main(): Promise<void> {
     ].join(', '));
     logger.info('='.repeat(60));
     
-    // Set up periodic health check (every 30 seconds)
+    // Set up periodic health check (every 5 seconds for faster reconnection)
     const healthCheckInterval = setInterval(() => {
       checkConnection().catch(err => {
         logger.debug('Health check failed', { error: err instanceof Error ? err.message : String(err) });
       });
-    }, 30000);
+    }, 5000);
     
     // Set up graceful shutdown
     const shutdown = (): void => {

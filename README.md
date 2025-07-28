@@ -190,6 +190,19 @@ export UE_PROJECT_PATH="/path/to/your/project"
 
 ## 💡 Usage Examples
 
+### Important: Workflow with Claude Code
+
+When using UEMCP with Claude Code (`claude -c`), the proper workflow is:
+
+1. **Start Unreal Engine first** with your project open
+2. **Then launch Claude Code** - it will automatically start the MCP server and connect
+3. **If you restart Unreal Engine**, the MCP server will automatically reconnect
+   - The server runs health checks every 5 seconds for quick reconnection
+   - It will detect when UE goes offline and comes back online within seconds
+   - You'll see connection status in the Claude Code logs
+
+**Note**: The MCP server is resilient to UE restarts - you don't need to restart Claude Code when restarting Unreal Engine. The connection will automatically restore once UE is running again.
+
 ### Natural Language Commands
 Ask Claude:
 - "Show me all wall meshes in the ModularOldTown folder"

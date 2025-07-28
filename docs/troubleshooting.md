@@ -21,7 +21,28 @@ dir %APPDATA%\Claude\claude_desktop_config.json
 
 ## Common Issues
 
-### Claude Desktop Issues
+### Claude Desktop / Claude Code Issues
+
+#### "Connection Lost When Restarting Unreal Engine"
+
+**Note:** The MCP server is designed to handle Unreal Engine restarts gracefully!
+
+**How it works:**
+- The server runs health checks every 5 seconds
+- When UE stops, the server logs the disconnection but keeps running
+- When UE starts again, the server automatically reconnects within seconds
+- You'll see status updates in the Claude Code logs
+
+**What you DON'T need to do:**
+- ❌ Don't restart Claude Code when restarting UE
+- ❌ Don't manually restart the MCP server
+- ❌ Don't worry about "connection lost" messages
+
+**What you SHOULD do:**
+1. Start Unreal Engine first with your project
+2. Then launch Claude Code (`claude -c`)
+3. If you restart UE, just wait a few seconds for auto-reconnection
+4. Watch the logs for "✓ Python listener connected" message
 
 #### "Claude doesn't see UEMCP tools"
 
