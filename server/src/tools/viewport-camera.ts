@@ -11,7 +11,7 @@ interface ViewportCameraArgs {
 export const viewportCameraTool = {
   definition: {
     name: 'viewport_camera',
-    description: 'Control the viewport camera position and orientation',
+    description: 'Set viewport camera position/rotation. Top-down: viewport_camera({ rotation: [0, -90, 0] }). Look at point: viewport_camera({ location: [1000, 1000, 500] }). For views & coordinate system: help({ tool: "viewport_camera" })',
     inputSchema: {
       type: 'object',
       properties: {
@@ -20,14 +20,14 @@ export const viewportCameraTool = {
           items: { type: 'number' },
           minItems: 3,
           maxItems: 3,
-          description: 'Camera location [x, y, z]',
+          description: 'Camera location [X, Y, Z]. X-=North, Y-=East, Z+=Up',
         },
         rotation: {
           type: 'array',
           items: { type: 'number' },
           minItems: 3,
           maxItems: 3,
-          description: 'Camera rotation [roll, pitch, yaw] in degrees',
+          description: 'Camera rotation [Roll, Pitch, Yaw]. Pitch=-90 for top-down. Keep Roll=0 to avoid tilted horizon!',
         },
         focusActor: {
           type: 'string',

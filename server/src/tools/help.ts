@@ -231,7 +231,7 @@ unreal.EditorLevelLibrary.save_current_level()
 export const helpTool = {
   definition: {
     name: 'help',
-    description: 'Get help and examples for UEMCP tools',
+    description: 'Get comprehensive help, examples, coordinate system, workflows. START HERE! help({}) shows everything. help({ tool: "actor_spawn" }) for specific tools. help({ category: "viewport" }) for tool groups.',
     inputSchema: {
       type: 'object',
       properties: {

@@ -12,7 +12,7 @@ interface ActorModifyArgs {
 export const actorModifyTool = {
   definition: {
     name: 'actor_modify',
-    description: 'Modify an existing actor\'s transform (location, rotation, scale)',
+    description: 'Modify actor transform/organization. Move: actor_modify({ name: "Wall", location: [100, 200, 0] }). Rotate: actor_modify({ name: "Corner", rotation: [0, 0, 90] }). Organize: actor_modify({ name: "Door", folder: "Building/Doors" })',
     inputSchema: {
       type: 'object',
       properties: {
@@ -25,14 +25,14 @@ export const actorModifyTool = {
           items: { type: 'number' },
           minItems: 3,
           maxItems: 3,
-          description: 'New world location [x, y, z]',
+          description: 'New world location [X, Y, Z] where X-=North, Y-=East, Z+=Up',
         },
         rotation: {
           type: 'array',
           items: { type: 'number' },
           minItems: 3,
           maxItems: 3,
-          description: 'New rotation [roll, pitch, yaw] in degrees',
+          description: 'New rotation [Roll, Pitch, Yaw] in degrees. Yaw=turn, Pitch=up/down, Roll=tilt',
         },
         scale: {
           type: 'array',
