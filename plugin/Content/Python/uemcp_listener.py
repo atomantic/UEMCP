@@ -1533,24 +1533,19 @@ def stop_listener():
     unreal.log("UEMCP: Stopping listener...")
     server_running = False
     
-    # Shutdown HTTP server
+    # Close the server socket without calling shutdown() to avoid blocking
     if httpd:
         try:
-            # First shutdown the server
-            httpd.shutdown()
-            # Then close the socket
+            # Just close the socket - don't call shutdown() which blocks
             httpd.server_close()
             # Set to None to ensure it's garbage collected
             httpd = None
         except Exception as e:
-            unreal.log_warning(f"UEMCP: Error shutting down server: {e}")
+            unreal.log_warning(f"UEMCP: Error closing server: {e}")
     
-    # Wait for thread to finish (with timeout to prevent hanging)
+    # Don't wait for thread - just let it die naturally
     if server_thread and server_thread.is_alive():
-        # Don't wait too long - this can hang UE
-        server_thread.join(timeout=0.5)
-        if server_thread.is_alive():
-            unreal.log_warning("UEMCP: Server thread did not stop cleanly")
+        unreal.log("UEMCP: Server thread will stop shortly")
     
     # Unregister tick callback
     if tick_handle:
