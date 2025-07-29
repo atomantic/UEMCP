@@ -75,6 +75,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'viewport.focus',
                     'viewport.render_mode',
                     'viewport.bounds',
+                    'viewport.fit',
                     'python.execute',
                     'system.restart'
                 ],
@@ -1311,6 +1312,153 @@ def execute_on_main_thread(command):
                         'fov': fov
                     },
                     'isTopDown': is_top_down
+                }
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+        
+        elif cmd_type == 'viewport.fit':
+            actors = params.get('actors', [])
+            filter_pattern = params.get('filter', '')
+            padding = params.get('padding', 20) / 100.0  # Convert percentage to factor
+            
+            try:
+                # Get all actors to check
+                editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+                all_actors = editor_actor_utils.get_all_level_actors()
+                
+                # Filter actors based on provided criteria
+                target_actors = []
+                
+                if actors:
+                    # Find specific actors by name
+                    for actor in all_actors:
+                        if actor.get_actor_label() in actors:
+                            target_actors.append(actor)
+                elif filter_pattern:
+                    # Filter by pattern
+                    for actor in all_actors:
+                        if filter_pattern.lower() in actor.get_actor_label().lower():
+                            target_actors.append(actor)
+                
+                if not target_actors:
+                    return {
+                        'success': False,
+                        'error': 'No actors found matching criteria'
+                    }
+                
+                # Calculate bounding box for all target actors
+                min_bounds = unreal.Vector(float('inf'), float('inf'), float('inf'))
+                max_bounds = unreal.Vector(float('-inf'), float('-inf'), float('-inf'))
+                
+                for actor in target_actors:
+                    actor_location = actor.get_actor_location()
+                    actor_bounds = actor.get_actor_bounds(only_colliding_components=False)
+                    bounds_extent = actor_bounds[1]
+                    
+                    # Update min/max bounds
+                    min_bounds.x = min(min_bounds.x, actor_location.x - bounds_extent.x)
+                    min_bounds.y = min(min_bounds.y, actor_location.y - bounds_extent.y)
+                    min_bounds.z = min(min_bounds.z, actor_location.z - bounds_extent.z)
+                    max_bounds.x = max(max_bounds.x, actor_location.x + bounds_extent.x)
+                    max_bounds.y = max(max_bounds.y, actor_location.y + bounds_extent.y)
+                    max_bounds.z = max(max_bounds.z, actor_location.z + bounds_extent.z)
+                
+                # Calculate center and size
+                bounds_center = unreal.Vector(
+                    (min_bounds.x + max_bounds.x) / 2,
+                    (min_bounds.y + max_bounds.y) / 2,
+                    (min_bounds.z + max_bounds.z) / 2
+                )
+                bounds_size = unreal.Vector(
+                    max_bounds.x - min_bounds.x,
+                    max_bounds.y - min_bounds.y,
+                    max_bounds.z - min_bounds.z
+                )
+                
+                # Get current camera info to preserve rotation if in special view
+                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+                current_location, current_rotation = editor_subsystem.get_level_viewport_camera_info()
+                
+                # Check if we're in a standard view (top, front, etc)
+                is_top_down = abs(current_rotation.pitch + 90) < 5
+                is_front_view = abs(current_rotation.pitch) < 5 and abs(current_rotation.yaw) < 5
+                is_side_view = abs(current_rotation.pitch) < 5 and (abs(abs(current_rotation.yaw) - 90) < 5)
+                
+                # Calculate camera distance based on bounds and FOV
+                max_extent = max(bounds_size.x, bounds_size.y, bounds_size.z)
+                base_distance = max_extent * (1.0 + padding)
+                
+                if is_top_down:
+                    # For top-down view, position camera above center
+                    camera_distance = max(bounds_size.x, bounds_size.y) * (1.0 + padding)
+                    camera_location = unreal.Vector(
+                        bounds_center.x,
+                        bounds_center.y,
+                        bounds_center.z + camera_distance
+                    )
+                    camera_rotation = current_rotation  # Keep top-down rotation
+                elif is_front_view:
+                    # Front view - position south of center
+                    camera_distance = max(bounds_size.x, bounds_size.z) * (1.5 + padding)
+                    camera_location = unreal.Vector(
+                        bounds_center.x,
+                        bounds_center.y - camera_distance,
+                        bounds_center.z
+                    )
+                    camera_rotation = current_rotation  # Keep front rotation
+                elif is_side_view:
+                    # Side view - position east or west
+                    camera_distance = max(bounds_size.y, bounds_size.z) * (1.5 + padding)
+                    if current_rotation.yaw > 0:  # Looking west
+                        camera_location = unreal.Vector(
+                            bounds_center.x - camera_distance,
+                            bounds_center.y,
+                            bounds_center.z
+                        )
+                    else:  # Looking east
+                        camera_location = unreal.Vector(
+                            bounds_center.x + camera_distance,
+                            bounds_center.y,
+                            bounds_center.z
+                        )
+                    camera_rotation = current_rotation  # Keep side rotation
+                else:
+                    # Default perspective view - position at nice angle
+                    camera_offset = unreal.Vector(
+                        -base_distance * 0.7,
+                        -base_distance * 0.7,
+                        base_distance * 0.5
+                    )
+                    camera_location = bounds_center + camera_offset
+                    
+                    # Calculate rotation to look at center
+                    camera_rotation = unreal.MathLibrary.find_look_at_rotation(camera_location, bounds_center)
+                
+                # Set the viewport camera
+                editor_subsystem.set_level_viewport_camera_info(camera_location, camera_rotation)
+                
+                # Also select the actors
+                editor_actor_subsystem.set_selected_level_actors(target_actors)
+                
+                return {
+                    'success': True,
+                    'actorCount': len(target_actors),
+                    'bounds': {
+                        'min': {'x': min_bounds.x, 'y': min_bounds.y, 'z': min_bounds.z},
+                        'max': {'x': max_bounds.x, 'y': max_bounds.y, 'z': max_bounds.z},
+                        'center': {'x': bounds_center.x, 'y': bounds_center.y, 'z': bounds_center.z},
+                        'size': {'x': bounds_size.x, 'y': bounds_size.y, 'z': bounds_size.z}
+                    },
+                    'camera': {
+                        'location': {'x': camera_location.x, 'y': camera_location.y, 'z': camera_location.z},
+                        'rotation': {
+                            'pitch': camera_rotation.pitch,
+                            'yaw': camera_rotation.yaw,
+                            'roll': camera_rotation.roll
+                        }
+                    },
+                    'message': f'Fitted {len(target_actors)} actors in viewport'
                 }
                 
             except Exception as e:

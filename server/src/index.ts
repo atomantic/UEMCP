@@ -22,6 +22,7 @@ import { viewportModeTool } from './tools/viewport-mode.js';
 import { viewportFocusTool } from './tools/viewport-focus.js';
 import { viewportRenderModeTool } from './tools/viewport-render-mode.js';
 import { viewportBoundsTool } from './tools/viewport-bounds.js';
+import { viewportFitTool } from './tools/viewport-fit.js';
 import { pythonProxyTool } from './tools/python-proxy.js';
 import { testConnectionTool } from './tools/test-connection.js';
 import { restartListenerTool } from './tools/restart-listener.js';
@@ -91,6 +92,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       ueLogsTool.definition,
       viewportBoundsTool.definition,
       viewportCameraTool.definition,
+      viewportFitTool.definition,
       viewportFocusTool.definition,
       viewportModeTool.definition,
       viewportRenderModeTool.definition,
@@ -158,6 +160,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'viewport_bounds':
         result = await viewportBoundsTool.handler(args);
+        break;
+      case 'viewport_fit':
+        result = await viewportFitTool.handler(args);
         break;
       case 'python_proxy':
         result = await pythonProxyTool.handler(args as { code: string; context?: Record<string, unknown> });
@@ -250,6 +255,7 @@ async function main(): Promise<void> {
       'ue_logs',
       'viewport_bounds',
       'viewport_camera',
+      'viewport_fit',
       'viewport_focus',
       'viewport_mode',
       'viewport_render_mode',

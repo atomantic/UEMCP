@@ -8,7 +8,7 @@ interface HelpParams {
 const toolCategories = {
   'project': ['project_info', 'asset_list', 'asset_info'],
   'level': ['actor_spawn', 'actor_duplicate', 'actor_delete', 'actor_modify', 'actor_organize', 'level_actors', 'level_save', 'level_outliner'],
-  'viewport': ['viewport_screenshot', 'viewport_camera', 'viewport_mode', 'viewport_focus', 'viewport_render_mode', 'viewport_bounds'],
+  'viewport': ['viewport_screenshot', 'viewport_camera', 'viewport_mode', 'viewport_focus', 'viewport_render_mode', 'viewport_bounds', 'viewport_fit'],
   'advanced': ['python_proxy', 'test_connection', 'restart_listener', 'ue_logs'],
   'help': ['help']
 };
@@ -96,6 +96,12 @@ const toolExamples: Record<string, string[]> = {
     'Get viewport info: viewport_bounds({})',
     'Returns visible area boundaries and camera info',
     'Useful for understanding what\'s currently in view'
+  ],
+  'viewport_fit': [
+    'Fit specific actors: viewport_fit({ actors: ["Wall_1", "Door_1"] })',
+    'Fit by filter: viewport_fit({ filter: "Wall" })',
+    'With padding: viewport_fit({ filter: "House", padding: 30 })',
+    'Auto-adjusts camera to show all specified actors'
   ],
   'python_proxy': [
     'Execute any Python: python_proxy({ code: "import unreal\\nprint(unreal.EditorLevelLibrary.get_all_level_actors())" })',
