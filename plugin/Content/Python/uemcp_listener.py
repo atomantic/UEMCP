@@ -7,6 +7,7 @@ import json
 import threading
 import time
 import os
+import sys
 import socket
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import queue
@@ -1555,15 +1556,29 @@ def stop_listener():
     httpd = None
     server_thread = None
     
-    # Force free the port if still in use
+    # Give the thread a moment to actually stop
+    time.sleep(0.2)
+    
+    # Force free the port - always do this to ensure clean shutdown
     try:
         import uemcp_port_utils
         if uemcp_port_utils.is_port_in_use(8765):
             unreal.log("UEMCP: Forcing port 8765 cleanup...")
             uemcp_port_utils.force_free_port_silent(8765)
-            time.sleep(0.5)
-    except:
-        pass
+        else:
+            # Even if port appears free, try to kill any lingering processes
+            try:
+                if sys.platform == "darwin":  # macOS
+                    os.system("lsof -ti:8765 | xargs kill -9 2>/dev/null")
+                elif sys.platform == "win32":  # Windows
+                    os.system('FOR /F "tokens=5" %P IN (\'netstat -ano ^| findstr :8765\') DO TaskKill /F /PID %P 2>nul')
+            except:
+                pass
+    except Exception as e:
+        unreal.log_warning(f"UEMCP: Error during port cleanup: {e}")
+    
+    # Brief pause after cleanup
+    time.sleep(0.3)
     
     unreal.log("UEMCP: Listener stopped")
     return True
