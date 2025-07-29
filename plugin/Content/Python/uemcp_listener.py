@@ -1637,7 +1637,7 @@ def cleanup_all_threads():
 
 def start_listener(port=8765):
     """Start the HTTP listener with main thread processing"""
-    global server_running, server_thread, httpd, tick_handle
+    global server_running, server_thread, tick_handle
     
     # Always clean up any existing threads first
     cleanup_all_threads()
@@ -1713,7 +1713,7 @@ def start_listener(port=8765):
     
     # Start HTTP server
     def run_server():
-        global httpd, server_running
+        global httpd
         try:
             # Create custom server class with SO_REUSEADDR
             class ReuseAddrHTTPServer(HTTPServer):

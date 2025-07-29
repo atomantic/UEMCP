@@ -22,7 +22,7 @@ def add_httpd_server(httpd):
 
 def cleanup_all():
     """Clean up all tracked threads and servers"""
-    global _all_server_threads, _all_httpd_servers
+    global _all_server_threads
     
     unreal.log(f"UEMCP: Cleaning up {len(_all_server_threads)} threads and {len(_all_httpd_servers)} servers")
     
