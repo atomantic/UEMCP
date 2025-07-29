@@ -3,7 +3,7 @@ import { PythonBridge } from '../services/python-bridge.js';
 export const pythonProxyTool = {
   definition: {
     name: 'python_proxy',
-    description: 'Execute arbitrary Python code directly in Unreal Engine\'s Python environment. Provides access to the full Unreal Engine Python API (unreal module) for complete editor control. Can perform any operation available in the UE Python console.',
+    description: 'Execute ANY Python code in UE. Full unreal module access! Example: python_proxy({ code: "import unreal\\nactors = unreal.EditorLevelLibrary.get_all_level_actors()" }). Perfect for complex operations MCP tools don\'t cover. See help({ tool: "python_proxy" }) for power user tips.',
     inputSchema: {
       type: 'object',
       properties: {

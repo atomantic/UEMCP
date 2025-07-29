@@ -7,12 +7,13 @@ interface ActorModifyArgs {
   rotation?: [number, number, number];
   scale?: [number, number, number];
   folder?: string;
+  mesh?: string;
 }
 
 export const actorModifyTool = {
   definition: {
     name: 'actor_modify',
-    description: 'Modify an existing actor\'s transform (location, rotation, scale)',
+    description: 'Modify actor properties. Move: actor_modify({ actorName: "Wall", location: [100, 200, 0] }). Rotate: actor_modify({ actorName: "Corner", rotation: [0, 0, 90] }). Change mesh: actor_modify({ actorName: "Wall", mesh: "/Game/Meshes/NewWall" }). Organize: actor_modify({ actorName: "Door", folder: "Building/Doors" })',
     inputSchema: {
       type: 'object',
       properties: {
@@ -25,14 +26,14 @@ export const actorModifyTool = {
           items: { type: 'number' },
           minItems: 3,
           maxItems: 3,
-          description: 'New world location [x, y, z]',
+          description: 'New world location [X, Y, Z] where X-=North, Y-=East, Z+=Up',
         },
         rotation: {
           type: 'array',
           items: { type: 'number' },
           minItems: 3,
           maxItems: 3,
-          description: 'New rotation [roll, pitch, yaw] in degrees',
+          description: 'New rotation [Roll, Pitch, Yaw] in degrees. Yaw=turn, Pitch=up/down, Roll=tilt',
         },
         scale: {
           type: 'array',
@@ -44,6 +45,10 @@ export const actorModifyTool = {
         folder: {
           type: 'string',
           description: 'New folder path in World Outliner (e.g., "Estate/House")',
+        },
+        mesh: {
+          type: 'string',
+          description: 'New static mesh asset path (e.g., "/Game/Meshes/SM_Wall"). Only works for StaticMeshActors.',
         },
       },
       required: ['actorName'],

@@ -8,7 +8,7 @@ interface AssetInfoArgs {
 export const assetInfoTool = {
   definition: {
     name: 'asset_info',
-    description: 'Get detailed information about an asset including dimensions and sockets',
+    description: 'Get asset details (dimensions, materials, etc). asset_info({ assetPath: "/Game/Meshes/SM_Wall" }) returns bounding box size. Essential for calculating placement!',
     inputSchema: {
       type: 'object',
       properties: {

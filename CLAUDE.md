@@ -28,11 +28,25 @@ pip install -r requirements.txt
 ```
 
 ### Running
+
+**IMPORTANT**: When using Claude Code (`claude -c`), the MCP server starts automatically! You do NOT need to run `npm start` manually.
+
+The MCP server is managed by Claude Code and will:
+- Start automatically when you launch Claude Code
+- Connect to the UE Python listener on port 8765
+- Reconnect automatically if UE restarts
+- Show connection status in Claude Code logs
+
+**Only run these manually if:**
+- You're testing the server outside of Claude Code
+- You're debugging server issues
+- You made changes to the server code and need to rebuild
+
 ```bash
-# Start MCP server
+# For testing/debugging only (NOT needed with Claude Code):
 npm start
 
-# Start with debug logging
+# With debug logging:
 DEBUG=uemcp:* npm start
 ```
 
@@ -116,6 +130,23 @@ The whole process takes about 2-3 seconds and doesn't freeze UE.
 4. **Sync Pattern**: Always sync changes between UE project and git repository
 5. **Line Endings**: Always use LF (Unix-style) line endings, never CRLF (Windows-style)
 
+## MCP Tool Usage with Claude Code
+
+**IMPORTANT**: When using Claude Code, the MCP tools are already available! You do NOT need to:
+- Start the MCP server (it's automatic)
+- Check if tools are available (they are)
+- Create test scripts to use tools (just call them directly)
+
+**Correct workflow:**
+1. Use MCP tools directly in your responses
+2. The tools will execute and return results
+3. If a tool fails, check the UE Python listener is running
+
+**Common mistakes to avoid:**
+- Don't create test scripts - use tools directly
+- Don't try to start the server - it's already running
+- Don't check tool availability - Claude Code handles this
+
 ## CRITICAL: MCP Tool Development Philosophy
 
 **DO NOT TOLERATE BROKEN OR INCOMPLETE MCP TOOLS!**
@@ -149,6 +180,51 @@ When you encounter a situation where an MCP tool cannot accomplish what you need
 - **Testing new functionality** before creating a tool
 - **Complex multi-step operations** that don't fit a single tool pattern
 - **Never for common operations** that could be tools
+
+## Custom Design Scripts
+
+For specific UE project design and development tasks, create custom scripts that build on top of MCP tools:
+
+### When to Create Custom Scripts:
+- **Project-specific workflows** (e.g., analyzing Old Town map patterns)
+- **Complex building procedures** (e.g., multi-story construction automation)
+- **Design exploration** (e.g., testing different layout configurations)
+- **Asset analysis** (e.g., cataloging available pieces for building)
+
+### Script Organization:
+```bash
+scripts/              # Custom project scripts
+├── analyze_old_town.js    # Analyze building patterns
+├── build_house_plan.js    # Generate house from specifications
+├── copy_building.js       # Copy buildings between maps
+└── explore_assets.js      # Catalog and explore available assets
+```
+
+### Example Script Pattern:
+```javascript
+// scripts/analyze_old_town.js
+import { mcp } from '../utils/mcp-client.js';
+
+async function analyzeOldTown() {
+  // Use MCP tools to analyze the map
+  const actors = await mcp.level_actors({ filter: 'Wall' });
+  
+  // Process and analyze patterns
+  const patterns = analyzePatterns(actors);
+  
+  // Generate building plan
+  return generatePlan(patterns);
+}
+```
+
+### Running Scripts:
+```bash
+# From project root
+node scripts/analyze_old_town.js
+node scripts/build_house_plan.js --floors 2 --style medieval
+```
+
+**Note**: These scripts are project-specific and not part of the core UEMCP tools. They demonstrate how to build complex workflows on top of the MCP foundation.
 
 ## Important Configuration
 

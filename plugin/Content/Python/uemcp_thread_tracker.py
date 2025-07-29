@@ -22,20 +22,33 @@ def add_httpd_server(httpd):
 
 def cleanup_all():
     """Clean up all tracked threads and servers"""
+    global _all_server_threads, _all_httpd_servers
+    
     unreal.log(f"UEMCP: Cleaning up {len(_all_server_threads)} threads and {len(_all_httpd_servers)} servers")
     
-    # Just close sockets, don't call shutdown() which blocks
+    # Force close all server sockets
     for httpd in _all_httpd_servers:
         try:
+            # Close the socket immediately
+            if hasattr(httpd, 'socket'):
+                httpd.socket.close()
             httpd.server_close()
         except:
             pass
+    
+    # Clear the list
     _all_httpd_servers.clear()
     
-    # Wait briefly for threads to finish
+    # Don't wait for threads - they'll die when sockets close
+    dead_threads = []
     for thread in _all_server_threads:
-        if thread.is_alive():
-            thread.join(timeout=0.5)
-    _all_server_threads.clear()
+        if not thread.is_alive():
+            dead_threads.append(thread)
+    
+    # Only keep alive threads (should be none after socket close)
+    _all_server_threads = [t for t in _all_server_threads if t.is_alive()]
+    
+    if _all_server_threads:
+        unreal.log_warning(f"UEMCP: {len(_all_server_threads)} threads still alive after cleanup")
     
     unreal.log("UEMCP: Cleanup complete")

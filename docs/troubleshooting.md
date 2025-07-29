@@ -223,6 +223,33 @@ pip3 install -r requirements-ci.txt   # Excludes unreal module
 **Solution:**
 1. Check `Config/DefaultEngine.ini` in your UE project
 2. Remove any line referencing `init_unreal_simple.py`
+
+#### "Unreal Engine crashes when running restart_listener()"
+
+**Symptoms:**
+- UE crashes immediately when calling `restart_listener()`
+- May happen from Python console or through MCP tool
+
+**Cause:**
+- Python modules cannot be safely reloaded while code from those modules is executing
+- The HTTP server cannot restart itself while handling requests
+
+**Solution:**
+Use the manual two-step restart process:
+```python
+# Step 1: Stop the listener
+restart_listener()  # This just stops the server
+
+# Step 2: Complete restart manually
+import importlib
+importlib.reload(uemcp_listener)
+uemcp_listener.start_listener()
+```
+
+**Alternative:** If you just need to reload code changes:
+1. Save your Python files
+2. Use the manual restart steps above
+3. Your changes will be loaded with the fresh module
 3. The correct startup is handled by `init_unreal.py`
 
 #### "Deprecation warnings for EditorLevelLibrary"

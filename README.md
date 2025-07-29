@@ -101,7 +101,7 @@ node init.js --claude-code --project "/path/to/project.uproject" --no-interactiv
 
 ## 🛠 Available Tools
 
-UEMCP provides 19 tools to Claude for controlling Unreal Engine:
+UEMCP provides 20 tools to Claude for controlling Unreal Engine:
 
 ### Project & Assets
 - **project_info** - Get current project information
@@ -128,8 +128,14 @@ UEMCP provides 19 tools to Claude for controlling Unreal Engine:
 ### Advanced
 - **python_proxy** ⭐ - Execute ANY Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6). This is the most powerful tool - it can do everything the other tools can do and more!
 - **test_connection** - Test connection to UE Python listener
-- **restart_listener** - Hot reload Python code changes
+- **restart_listener** - Stop listener for hot reload (requires manual restart - see Development section)
 - **ue_logs** - Read recent lines from UE console log file (useful for debugging)
+
+### Help & Documentation
+- **help** 📚 - Get inline help and examples for all UEMCP tools. This is your **starting point** for learning UEMCP!
+  - `help({})` - Overview with categories and common workflows
+  - `help({ tool: "actor_spawn" })` - Detailed examples for specific tools
+  - `help({ category: "viewport" })` - List all tools in a category
 
 ### Example: Using python_proxy for Complex Operations
 
@@ -191,9 +197,26 @@ export UE_PROJECT_PATH="/path/to/your/project"
 
 ## 💡 Usage Examples
 
+### Getting Started with Help
+
+**The `help` tool is self-documenting!** Start here:
+
+```javascript
+// First command to run - shows all tools and workflows
+help({})
+
+// Learn about specific tools
+help({ tool: "actor_spawn" })
+help({ tool: "python_proxy" })
+
+// Explore by category
+help({ category: "level" })     // All level editing tools
+help({ category: "viewport" })  // Camera and rendering tools
+```
+
 ### Important: Workflow with Claude Code
 
-When using UEMCP with Claude Code (`claude -c`), the proper workflow is:
+When using UEMCP with Claude Code, the proper workflow is:
 
 1. **Start Unreal Engine first** with your project open
 2. **Then launch Claude Code** - it will automatically start the MCP server and connect
@@ -202,7 +225,7 @@ When using UEMCP with Claude Code (`claude -c`), the proper workflow is:
    - It will detect when UE goes offline and comes back online within seconds
    - You'll see connection status in the Claude Code logs
 
-**Note**: The MCP server is resilient to UE restarts - you don't need to restart Claude Code when restarting Unreal Engine. The connection will automatically restore once UE is running again.
+**Note**: The MCP server is (theoretically) resilient to UE restarts - you don't need to restart Claude Code when restarting Unreal Engine. The connection will automatically restore once UE is running again.
 
 ### Natural Language Commands
 Ask Claude:
@@ -256,14 +279,30 @@ Benefits of symlinking:
 - ✅ Version control friendly
 
 ```bash
-# In UE Python console, reload changes without restarting:
-restart_listener()  # Hot reload your changes
-
-# Available helpers:
+# Available helpers in UE Python console:
 status()            # Check if running
 stop_listener()     # Stop listener
 start_listener()    # Start listener
 ```
+
+### Hot Reloading Code Changes
+
+**Important**: Due to UE's Python environment, `restart_listener()` requires manual completion to prevent crashes:
+
+```python
+# Step 1: Run restart_listener() - this stops the server
+restart_listener()
+
+# Step 2: Complete the restart manually (prevents crashes)
+import importlib
+importlib.reload(uemcp_listener)
+uemcp_listener.start_listener()
+```
+
+This two-step process is necessary because:
+- Reloading Python modules while they're running can crash UE
+- The HTTP server can't safely restart itself while handling requests
+- Manual completion ensures a clean restart in a fresh Python context
 
 ### Adding New Tools
 1. Add command handler in `plugin/Content/Python/uemcp_listener.py`

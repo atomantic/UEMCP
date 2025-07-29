@@ -40,7 +40,7 @@ async function compressImage(inputPath: string, quality: number = 60): Promise<s
 export const viewportScreenshotTool = {
   definition: {
     name: 'viewport_screenshot',
-    description: 'Take a screenshot of the current viewport',
+    description: 'Capture viewport screenshot. Quick: viewport_screenshot({}). High-quality: viewport_screenshot({ width: 1920, height: 1080, compress: false }). Use wireframe mode first for debugging placement!',
     inputSchema: {
       type: 'object',
       properties: {

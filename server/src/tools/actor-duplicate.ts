@@ -14,7 +14,7 @@ interface ActorDuplicateArgs {
 export const actorDuplicateTool = {
   definition: {
     name: 'actor_duplicate',
-    description: 'Duplicate an existing actor with optional offset',
+    description: 'Duplicate an existing actor with optional offset. Perfect for building floors/sections. Example: actor_duplicate({ sourceName: "Wall_F1", name: "Wall_F2", offset: { z: 300 } }). See help() for workflows.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -28,7 +28,7 @@ export const actorDuplicateTool = {
         },
         offset: {
           type: 'object',
-          description: 'Position offset from source actor',
+          description: 'Position offset from source actor [X,Y,Z]. X-=North, Y-=East, Z+=Up',
           properties: {
             x: {
               type: 'number',

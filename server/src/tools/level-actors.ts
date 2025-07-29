@@ -9,7 +9,7 @@ interface LevelActorsArgs {
 export const levelActorsTool = {
   definition: {
     name: 'level_actors',
-    description: 'List actors in the current level',
+    description: 'List level actors with properties (location, rotation, scale, asset). Examples: level_actors({}) for all, level_actors({ filter: "Wall" }) for walls only. Returns positions where X-=North, Y-=East. Great for verifying placement!',
     inputSchema: {
       type: 'object',
       properties: {

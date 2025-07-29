@@ -47,14 +47,15 @@ export const restartListenerTool = {
       
       if (result.success) {
         const messages = [
-          '🔄 Python listener restart initiated!',
+          '🔄 Python listener restarting!',
           '',
-          'The server will stop shortly. To complete hot reload:',
-          '1. Wait 1-2 seconds for server to stop',
-          '2. Run in UE Python console: reload_module()',
-          '3. Run in UE Python console: start_listener()',
+          'The listener will automatically:',
+          '1. Stop the current listener',
+          '2. Wait for cleanup',
+          '3. Reload the Python module',
+          '4. Start a fresh listener',
           '',
-          'This non-blocking approach prevents UE from freezing.'
+          'This should complete within 5-10 seconds.'
         ];
         
         if (result.message) {

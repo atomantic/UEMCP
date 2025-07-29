@@ -3,7 +3,7 @@ import { PythonBridge } from '../services/python-bridge.js';
 export const viewportFocusTool = {
   definition: {
     name: 'viewport_focus',
-    description: 'Focus the viewport on a specific actor (equivalent to selecting and pressing F)',
+    description: 'Focus viewport on specific actor. viewport_focus({ actorName: "Wall_01" }). Use preserveRotation: true to keep current view angle. Great for inspecting placement.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -13,7 +13,7 @@ export const viewportFocusTool = {
         },
         preserveRotation: {
           type: 'boolean',
-          description: 'Preserve current camera rotation (useful for maintaining top/side views)',
+          description: 'Keep current camera angles (useful for maintaining top-down or side views)',
           default: false
         }
       },

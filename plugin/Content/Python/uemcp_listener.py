@@ -7,7 +7,9 @@ import json
 import threading
 import time
 import os
+import sys
 import socket
+import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import queue
 
@@ -16,6 +18,8 @@ server_running = False
 server_thread = None
 httpd = None
 tick_handle = None
+restart_scheduled = False
+restart_countdown = 0
 
 # Import thread tracker
 try:
@@ -60,6 +64,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'actor.spawn',
                     'actor.delete',
                     'actor.modify',
+                    'actor.duplicate',
                     'actor.organize',
                     'level.save',
                     'level.outliner',
@@ -68,7 +73,8 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'viewport.mode',
                     'viewport.focus',
                     'viewport.render_mode',
-                    'python.execute'
+                    'python.execute',
+                    'system.restart'
                 ],
                 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
             }
@@ -728,6 +734,7 @@ def execute_on_main_thread(command):
             rotation = params.get('rotation', None)
             scale = params.get('scale', None)
             folder = params.get('folder', None)
+            mesh = params.get('mesh', None)
             
             try:
                 # Find actor by name
@@ -776,6 +783,35 @@ def execute_on_main_thread(command):
                 
                 if folder is not None:
                     found_actor.set_folder_path(folder)
+                
+                if mesh is not None:
+                    # Change the static mesh for StaticMeshActors
+                    mesh_component = found_actor.get_component_by_class(unreal.StaticMeshComponent)
+                    if mesh_component:
+                        # Debug logging
+                        current_mesh = mesh_component.static_mesh
+                        print(f"[actor_modify] Changing mesh for {actor_name}")
+                        print(f"[actor_modify] Current mesh: {current_mesh.get_path_name() if current_mesh else 'None'}")
+                        print(f"[actor_modify] Loading new mesh: {mesh}")
+                        
+                        new_mesh = unreal.EditorAssetLibrary.load_asset(mesh)
+                        if new_mesh:
+                            print(f"[actor_modify] Loaded mesh: {new_mesh.get_path_name()}")
+                            mesh_component.set_static_mesh(new_mesh)
+                            # Force update
+                            found_actor.modify()
+                            print(f"[actor_modify] Mesh change applied")
+                        else:
+                            print(f"[actor_modify] Failed to load mesh: {mesh}")
+                            return {
+                                'success': False,
+                                'error': f'Could not load mesh: {mesh}'
+                            }
+                    else:
+                        return {
+                            'success': False,
+                            'error': f'Actor {actor_name} does not have a StaticMeshComponent'
+                        }
                 
                 # Get updated transform
                 current_location = found_actor.get_actor_location()
@@ -1268,18 +1304,20 @@ def execute_on_main_thread(command):
                 }
         
         elif cmd_type == 'system.restart':
-            # Use the non-blocking restart from helpers
+            # Schedule restart to happen on main thread via tick handler
             try:
-                import uemcp_helpers
-                result = uemcp_helpers.restart_listener()
+                global restart_scheduled, restart_countdown
+                restart_scheduled = True
+                restart_countdown = 0
+                unreal.log("UEMCP: Restart scheduled")
                 
                 return {
-                    'success': result,
-                    'message': 'Hot reload completed!' if result else 'Restart failed - check console'
+                    'success': True,
+                    'message': 'Listener will restart automatically in a few seconds'
                 }
                 
             except Exception as e:
-                return {'success': False, 'error': f'Failed to initiate restart: {str(e)}'}
+                return {'success': False, 'error': f'Failed to schedule restart: {str(e)}'}
         
         else:
             return {
@@ -1297,6 +1335,21 @@ def execute_on_main_thread(command):
 
 def process_commands(delta_time):
     """Process queued commands on the main thread"""
+    global restart_scheduled, restart_countdown
+    
+    # Handle scheduled restart on main thread
+    if restart_scheduled:
+        restart_countdown += delta_time
+        # Wait 2 seconds to ensure HTTP response is sent
+        if restart_countdown > 2.0:
+            restart_scheduled = False
+            restart_countdown = 0
+            unreal.log("UEMCP: Executing restart on main thread...")
+            # Use the working restart function
+            import uemcp_helpers
+            uemcp_helpers.restart_listener()
+            return  # Exit early since we're restarting
+    
     processed = 0
     max_per_tick = 3  # Reduced from 10 to prevent audio buffer underrun
     
@@ -1345,18 +1398,44 @@ def start_listener(port=8765):
     # Always clean up any existing threads first
     cleanup_all_threads()
     
+    # Wait a bit for cleanup
+    time.sleep(1.0)
+    
+    # More aggressive cleanup - force kill Python's own process on the port
+    try:
+        if sys.platform == "darwin":
+            # Get the PID using the port
+            result = subprocess.run(['lsof', '-ti:8765'], capture_output=True, text=True)
+            if result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    try:
+                        # Don't kill our own process
+                        if int(pid) != os.getpid():
+                            os.kill(int(pid), 9)
+                            unreal.log(f"UEMCP: Killed process {pid} on port 8765")
+                    except:
+                        pass
+                time.sleep(1.0)
+    except Exception as e:
+        unreal.log_warning(f"UEMCP: Error during port cleanup: {e}")
+    
     if server_running:
         unreal.log_warning("UEMCP Listener is already running!")
         return False
     
     # Check if port is already in use
-    import socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    test_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    if hasattr(socket, 'SO_REUSEPORT'):
+        test_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    
     try:
-        sock.bind(('localhost', port))
+        test_sock.bind(('', port))
+        test_sock.close()  # Success - close test socket
     except OSError:
         # Port is in use, try to clean it up automatically
-        sock.close()  # Close our test socket first
+        test_sock.close()  # Close our test socket first
         try:
             import uemcp_port_utils
             pid, process_name = uemcp_port_utils.find_process_using_port(port)
@@ -1369,7 +1448,7 @@ def start_listener(port=8765):
                     # Try to bind again
                     test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     try:
-                        test_sock.bind(('localhost', port))
+                        test_sock.bind(('', port))
                         test_sock.close()
                         # Port is now free, continue with startup
                     except OSError:
@@ -1386,7 +1465,7 @@ def start_listener(port=8765):
             return False
     finally:
         # Always close the socket to prevent resource warnings
-        sock.close()
+        test_sock.close()
     
     # Start HTTP server
     def run_server():
@@ -1397,8 +1476,11 @@ def start_listener(port=8765):
                 allow_reuse_address = True
                 
                 def server_bind(self):
-                    # Set SO_REUSEADDR before binding
+                    # Set socket options for better reuse
                     self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    # Also set SO_REUSEPORT if available (macOS/Linux)
+                    if hasattr(socket, 'SO_REUSEPORT'):
+                        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
                     super().server_bind()
                 
                 def serve_forever(self, poll_interval=0.5):
@@ -1411,8 +1493,8 @@ def start_listener(port=8765):
                     except:
                         pass
             
-            # Create server with reuse enabled
-            httpd = ReuseAddrHTTPServer(('localhost', port), UEMCPHandler)
+            # Create server with reuse enabled - bind to all interfaces
+            httpd = ReuseAddrHTTPServer(('', port), UEMCPHandler)
             httpd.timeout = 0.5  # Set timeout so handle_request doesn't block forever
             
             # Track the httpd server externally
@@ -1471,29 +1553,24 @@ def stop_listener():
                 time.sleep(0.5)
         except:
             pass
-        return
+        return True
     
     unreal.log("UEMCP: Stopping listener...")
     server_running = False
     
-    # Shutdown HTTP server
+    # Close the server socket without calling shutdown() to avoid blocking
     if httpd:
         try:
-            # First shutdown the server
-            httpd.shutdown()
-            # Then close the socket
+            # Just close the socket - don't call shutdown() which blocks
             httpd.server_close()
             # Set to None to ensure it's garbage collected
             httpd = None
         except Exception as e:
-            unreal.log_warning(f"UEMCP: Error shutting down server: {e}")
+            unreal.log_warning(f"UEMCP: Error closing server: {e}")
     
-    # Wait for thread to finish (with timeout to prevent hanging)
+    # Don't wait for thread - just let it die naturally
     if server_thread and server_thread.is_alive():
-        # Don't wait too long - this can hang UE
-        server_thread.join(timeout=0.5)
-        if server_thread.is_alive():
-            unreal.log_warning("UEMCP: Server thread did not stop cleanly")
+        unreal.log("UEMCP: Server thread will stop shortly")
     
     # Unregister tick callback
     if tick_handle:
@@ -1503,17 +1580,45 @@ def stop_listener():
     httpd = None
     server_thread = None
     
-    # Force free the port if still in use
+    # Give the thread more time to stop
+    time.sleep(0.5)
+    
+    # Force kill any process on port 8765
+    try:
+        if sys.platform == "darwin":  # macOS
+            # Find and kill any process using port 8765
+            result = os.system("lsof -ti:8765 | xargs kill -9 2>/dev/null")
+            if result == 0:
+                unreal.log("UEMCP: Killed process on port 8765")
+            time.sleep(0.5)  # Wait for OS to release port
+            
+            # Double-check and try again if needed
+            check_result = os.system("lsof -ti:8765 2>/dev/null")
+            if check_result == 0:
+                # Port still in use, try harder
+                os.system("lsof -ti:8765 | xargs kill -9 2>/dev/null")
+                time.sleep(0.5)
+                
+        elif sys.platform == "win32":  # Windows
+            os.system('FOR /F "tokens=5" %P IN (\'netstat -ano ^| findstr :8765\') DO TaskKill /F /PID %P 2>nul')
+            time.sleep(0.5)
+            
+    except Exception as e:
+        unreal.log_warning(f"UEMCP: Error during port cleanup: {e}")
+    
+    # Final check using port utils
     try:
         import uemcp_port_utils
         if uemcp_port_utils.is_port_in_use(8765):
-            unreal.log("UEMCP: Forcing port 8765 cleanup...")
+            unreal.log_warning("UEMCP: Port 8765 still in use after cleanup attempt")
+            # Try one more time with force_free
             uemcp_port_utils.force_free_port_silent(8765)
-            time.sleep(0.5)
+            time.sleep(0.3)
     except:
         pass
     
     unreal.log("UEMCP: Listener stopped")
+    return True
 
 # Module info - minimal output when imported
 pass

@@ -25,6 +25,7 @@ import { pythonProxyTool } from './tools/python-proxy.js';
 import { testConnectionTool } from './tools/test-connection.js';
 import { restartListenerTool } from './tools/restart-listener.js';
 import { ueLogsTool } from './tools/ue-logs.js';
+import { helpTool } from './tools/help.js';
 import { logger } from './utils/logger.js';
 import { PythonBridge } from './services/python-bridge.js';
 import * as os from 'os';
@@ -78,6 +79,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       actorSpawnTool.definition,
       assetInfoTool.definition,
       assetListTool.definition,
+      helpTool.definition,
       levelActorsTool.definition,
       levelOutlinerTool.definition,
       levelSaveTool.definition,
@@ -163,6 +165,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'ue_logs':
         result = await ueLogsTool.handler(args as { lines?: number; project?: string });
+        break;
+      case 'help':
+        result = await helpTool.handler(args as { tool?: string; category?: string });
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);

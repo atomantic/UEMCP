@@ -13,7 +13,7 @@ interface ActorSpawnArgs {
 export const actorSpawnTool = {
   definition: {
     name: 'actor_spawn',
-    description: 'Spawn an actor in the level using an asset (mesh, blueprint, etc). IMPORTANT: For modular building pieces, verify placement with wireframe screenshots from multiple angles to check for gaps and overlaps.',
+    description: 'Spawn an actor in the level. Location [X,Y,Z] where X-=North/X+=South, Y-=East/Y+=West, Z+=Up. Rotation [Roll,Pitch,Yaw] in degrees. Examples: actor_spawn({ assetPath: "/Game/Meshes/Cube" }) or actor_spawn({ assetPath: "/Game/Wall", location: [1000, 500, 0], rotation: [0, 0, 90] }). For coordinate system, rotations & workflows: help({ tool: "actor_spawn" })',
     inputSchema: {
       type: 'object',
       properties: {
@@ -26,7 +26,7 @@ export const actorSpawnTool = {
           items: { type: 'number' },
           minItems: 3,
           maxItems: 3,
-          description: 'World location [x, y, z] (default: [0, 0, 0])',
+          description: 'World location [X, Y, Z] where X-=North, Y-=East, Z+=Up (default: [0, 0, 0])',
           default: [0, 0, 0],
         },
         rotation: {
@@ -34,7 +34,7 @@ export const actorSpawnTool = {
           items: { type: 'number' },
           minItems: 3,
           maxItems: 3,
-          description: 'Rotation [roll, pitch, yaw] in degrees. For walls: [0,0,0] for X-axis, [0,0,-90] for Y-axis. Corner pieces often need [0,0,90] or similar.',
+          description: 'Rotation [Roll, Pitch, Yaw] in degrees. Roll=tilt, Pitch=up/down, Yaw=turn. Common: [0,0,90]=90° turn. See help() for details.',
           default: [0, 0, 0],
         },
         scale: {
