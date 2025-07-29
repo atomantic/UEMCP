@@ -18,6 +18,8 @@ server_running = False
 server_thread = None
 httpd = None
 tick_handle = None
+restart_scheduled = False
+restart_countdown = 0
 
 # Import thread tracker
 try:
@@ -1302,28 +1304,20 @@ def execute_on_main_thread(command):
                 }
         
         elif cmd_type == 'system.restart':
-            # Use the restart_listener function that works
+            # Schedule restart to happen on main thread via tick handler
             try:
-                import uemcp_helpers
-                
-                # Schedule the restart to happen after this response
-                def delayed_restart():
-                    time.sleep(0.5)  # Brief delay to ensure response is sent
-                    uemcp_helpers.restart_listener()
-                
-                # Run in a thread to avoid blocking the response
-                import threading
-                restart_thread = threading.Thread(target=delayed_restart)
-                restart_thread.daemon = True
-                restart_thread.start()
+                global restart_scheduled, restart_countdown
+                restart_scheduled = True
+                restart_countdown = 0
+                unreal.log("UEMCP: Restart scheduled")
                 
                 return {
                     'success': True,
-                    'message': 'Listener will restart automatically'
+                    'message': 'Listener will restart automatically in a few seconds'
                 }
                 
             except Exception as e:
-                return {'success': False, 'error': f'Failed to initiate restart: {str(e)}'}
+                return {'success': False, 'error': f'Failed to schedule restart: {str(e)}'}
         
         else:
             return {
@@ -1341,6 +1335,21 @@ def execute_on_main_thread(command):
 
 def process_commands(delta_time):
     """Process queued commands on the main thread"""
+    global restart_scheduled, restart_countdown
+    
+    # Handle scheduled restart on main thread
+    if restart_scheduled:
+        restart_countdown += delta_time
+        # Wait 2 seconds to ensure HTTP response is sent
+        if restart_countdown > 2.0:
+            restart_scheduled = False
+            restart_countdown = 0
+            unreal.log("UEMCP: Executing restart on main thread...")
+            # Use the working restart function
+            import uemcp_helpers
+            uemcp_helpers.restart_listener()
+            return  # Exit early since we're restarting
+    
     processed = 0
     max_per_tick = 3  # Reduced from 10 to prevent audio buffer underrun
     
