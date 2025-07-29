@@ -12,9 +12,12 @@ import os
 def restart_listener():
     """Restart the listener - manual two-step process to prevent crashes"""
     try:
-        # First, just stop the listener
-        if stop_listener():
-            unreal.log("UEMCP: Listener stopped.")
+        import uemcp_listener
+        
+        # Check if running
+        if hasattr(uemcp_listener, 'server_running') and uemcp_listener.server_running:
+            # Stop the listener properly
+            uemcp_listener.stop_listener()
             unreal.log("UEMCP: To complete restart, run these commands:")
             unreal.log("UEMCP:   1. import importlib")
             unreal.log("UEMCP:   2. importlib.reload(uemcp_listener)")
@@ -23,7 +26,6 @@ def restart_listener():
         else:
             # Not running, just start it
             unreal.log("UEMCP: Listener not running, starting fresh...")
-            import uemcp_listener
             return uemcp_listener.start_listener()
             
     except Exception as e:
@@ -60,16 +62,14 @@ def start_listener():
         return False
 
 def stop_listener():
-    """Stop the listener (non-blocking)"""
+    """Stop the listener properly"""
     try:
         import uemcp_listener
-        # Just set the flag
-        if hasattr(uemcp_listener, 'server_running'):
-            uemcp_listener.server_running = False
-            unreal.log("UEMCP: Stop signal sent to listener")
-            return True
+        # Call the actual stop function
+        if hasattr(uemcp_listener, 'stop_listener'):
+            return uemcp_listener.stop_listener()
         else:
-            unreal.log("UEMCP: Listener not running")
+            unreal.log("UEMCP: Listener module not loaded properly")
             return False
     except Exception as e:
         unreal.log_error(f"UEMCP: Error stopping listener: {e}")

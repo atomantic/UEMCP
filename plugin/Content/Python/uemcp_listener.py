@@ -1342,8 +1342,8 @@ def process_commands(delta_time):
             restart_scheduled = False
             restart_countdown = 0
             unreal.log("UEMCP: Stopping listener for restart...")
-            # Just stop - don't restart to avoid crash
-            server_running = False
+            # Call the proper stop function to clean up properly
+            stop_listener()
             unreal.log("UEMCP: Listener stopped. To complete restart:")
             unreal.log("UEMCP:   1. Run: import importlib")
             unreal.log("UEMCP:   2. Run: importlib.reload(uemcp_listener)")
@@ -1511,7 +1511,11 @@ def start_listener(port=8765):
 
 def stop_listener():
     """Stop the listener and cleanup"""
-    global server_running, httpd, tick_handle, server_thread
+    global server_running, httpd, tick_handle, server_thread, restart_scheduled, restart_countdown
+    
+    # Reset restart flags
+    restart_scheduled = False
+    restart_countdown = 0
     
     if not server_running:
         unreal.log("UEMCP: Listener is not running")
@@ -1524,7 +1528,7 @@ def stop_listener():
                 time.sleep(0.5)
         except:
             pass
-        return
+        return True
     
     unreal.log("UEMCP: Stopping listener...")
     server_running = False
@@ -1567,6 +1571,7 @@ def stop_listener():
         pass
     
     unreal.log("UEMCP: Listener stopped")
+    return True
 
 # Module info - minimal output when imported
 pass
