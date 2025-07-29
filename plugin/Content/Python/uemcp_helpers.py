@@ -55,6 +55,10 @@ def status():
 def start_listener():
     """Start the listener"""
     try:
+        # First ensure port is free
+        force_kill_port()
+        time.sleep(0.5)
+        
         import uemcp_listener
         return uemcp_listener.start_listener()
     except Exception as e:

@@ -1556,29 +1556,42 @@ def stop_listener():
     httpd = None
     server_thread = None
     
-    # Give the thread a moment to actually stop
-    time.sleep(0.2)
+    # Give the thread more time to stop
+    time.sleep(0.5)
     
-    # Force free the port - always do this to ensure clean shutdown
+    # Force kill any process on port 8765
     try:
-        import uemcp_port_utils
-        if uemcp_port_utils.is_port_in_use(8765):
-            unreal.log("UEMCP: Forcing port 8765 cleanup...")
-            uemcp_port_utils.force_free_port_silent(8765)
-        else:
-            # Even if port appears free, try to kill any lingering processes
-            try:
-                if sys.platform == "darwin":  # macOS
-                    os.system("lsof -ti:8765 | xargs kill -9 2>/dev/null")
-                elif sys.platform == "win32":  # Windows
-                    os.system('FOR /F "tokens=5" %P IN (\'netstat -ano ^| findstr :8765\') DO TaskKill /F /PID %P 2>nul')
-            except:
-                pass
+        if sys.platform == "darwin":  # macOS
+            # Find and kill any process using port 8765
+            result = os.system("lsof -ti:8765 | xargs kill -9 2>/dev/null")
+            if result == 0:
+                unreal.log("UEMCP: Killed process on port 8765")
+            time.sleep(0.5)  # Wait for OS to release port
+            
+            # Double-check and try again if needed
+            check_result = os.system("lsof -ti:8765 2>/dev/null")
+            if check_result == 0:
+                # Port still in use, try harder
+                os.system("lsof -ti:8765 | xargs kill -9 2>/dev/null")
+                time.sleep(0.5)
+                
+        elif sys.platform == "win32":  # Windows
+            os.system('FOR /F "tokens=5" %P IN (\'netstat -ano ^| findstr :8765\') DO TaskKill /F /PID %P 2>nul')
+            time.sleep(0.5)
+            
     except Exception as e:
         unreal.log_warning(f"UEMCP: Error during port cleanup: {e}")
     
-    # Brief pause after cleanup
-    time.sleep(0.3)
+    # Final check using port utils
+    try:
+        import uemcp_port_utils
+        if uemcp_port_utils.is_port_in_use(8765):
+            unreal.log_warning("UEMCP: Port 8765 still in use after cleanup attempt")
+            # Try one more time with force_free
+            uemcp_port_utils.force_free_port_silent(8765)
+            time.sleep(0.3)
+    except:
+        pass
     
     unreal.log("UEMCP: Listener stopped")
     return True
