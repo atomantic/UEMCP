@@ -18,11 +18,27 @@ def restart_listener():
         if hasattr(uemcp_listener, 'server_running') and uemcp_listener.server_running:
             # Stop the listener properly
             uemcp_listener.stop_listener()
-            unreal.log("UEMCP: To complete restart, run these commands:")
-            unreal.log("UEMCP:   1. import importlib")
-            unreal.log("UEMCP:   2. importlib.reload(uemcp_listener)")
-            unreal.log("UEMCP:   3. uemcp_listener.start_listener()")
-            return True
+            unreal.log("UEMCP: Listener stopped. Waiting for cleanup...")
+            
+            # Wait longer for everything to clean up
+            time.sleep(3.0)
+            
+            # Now try to restart
+            unreal.log("UEMCP: Attempting automatic restart...")
+            
+            # Reload the module
+            import importlib
+            importlib.reload(uemcp_listener)
+            
+            # Start fresh
+            if uemcp_listener.start_listener():
+                unreal.log("UEMCP: ✓ Listener restarted successfully!")
+                return True
+            else:
+                unreal.log("UEMCP: Failed to restart. Manual steps:")
+                unreal.log("UEMCP:   1. Run: force_kill_port()")
+                unreal.log("UEMCP:   2. Run: start_listener()")
+                return False
         else:
             # Not running, just start it
             unreal.log("UEMCP: Listener not running, starting fresh...")

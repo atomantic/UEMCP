@@ -9,6 +9,7 @@ import time
 import os
 import sys
 import socket
+import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import queue
 
@@ -1399,18 +1400,44 @@ def start_listener(port=8765):
     # Always clean up any existing threads first
     cleanup_all_threads()
     
+    # Wait a bit for cleanup
+    time.sleep(1.0)
+    
+    # More aggressive cleanup - force kill Python's own process on the port
+    try:
+        if sys.platform == "darwin":
+            # Get the PID using the port
+            result = subprocess.run(['lsof', '-ti:8765'], capture_output=True, text=True)
+            if result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    try:
+                        # Don't kill our own process
+                        if int(pid) != os.getpid():
+                            os.kill(int(pid), 9)
+                            unreal.log(f"UEMCP: Killed process {pid} on port 8765")
+                    except:
+                        pass
+                time.sleep(1.0)
+    except Exception as e:
+        unreal.log_warning(f"UEMCP: Error during port cleanup: {e}")
+    
     if server_running:
         unreal.log_warning("UEMCP Listener is already running!")
         return False
     
     # Check if port is already in use
-    import socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    test_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    if hasattr(socket, 'SO_REUSEPORT'):
+        test_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    
     try:
-        sock.bind(('localhost', port))
+        test_sock.bind(('', port))
+        test_sock.close()  # Success - close test socket
     except OSError:
         # Port is in use, try to clean it up automatically
-        sock.close()  # Close our test socket first
+        test_sock.close()  # Close our test socket first
         try:
             import uemcp_port_utils
             pid, process_name = uemcp_port_utils.find_process_using_port(port)
@@ -1423,7 +1450,7 @@ def start_listener(port=8765):
                     # Try to bind again
                     test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     try:
-                        test_sock.bind(('localhost', port))
+                        test_sock.bind(('', port))
                         test_sock.close()
                         # Port is now free, continue with startup
                     except OSError:
@@ -1440,7 +1467,7 @@ def start_listener(port=8765):
             return False
     finally:
         # Always close the socket to prevent resource warnings
-        sock.close()
+        test_sock.close()
     
     # Start HTTP server
     def run_server():
@@ -1451,8 +1478,11 @@ def start_listener(port=8765):
                 allow_reuse_address = True
                 
                 def server_bind(self):
-                    # Set SO_REUSEADDR before binding
+                    # Set socket options for better reuse
                     self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    # Also set SO_REUSEPORT if available (macOS/Linux)
+                    if hasattr(socket, 'SO_REUSEPORT'):
+                        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
                     super().server_bind()
                 
                 def serve_forever(self, poll_interval=0.5):
@@ -1465,8 +1495,8 @@ def start_listener(port=8765):
                     except:
                         pass
             
-            # Create server with reuse enabled
-            httpd = ReuseAddrHTTPServer(('localhost', port), UEMCPHandler)
+            # Create server with reuse enabled - bind to all interfaces
+            httpd = ReuseAddrHTTPServer(('', port), UEMCPHandler)
             httpd.timeout = 0.5  # Set timeout so handle_request doesn't block forever
             
             # Track the httpd server externally
