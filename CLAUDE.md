@@ -67,7 +67,6 @@ python -m pytest tests/
 ```
 server/     - MCP server implementation (TypeScript)
 plugin/     - Unreal Engine plugin (Python-only, no C++)
-python/     - Legacy Python utilities (deprecated, not included in releases)
 docs/       - Documentation
 tests/      - Test suites for all components
 ```
