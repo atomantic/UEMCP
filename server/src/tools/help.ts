@@ -8,7 +8,7 @@ interface HelpParams {
 const toolCategories = {
   'project': ['project_info', 'asset_list', 'asset_info'],
   'level': ['actor_spawn', 'actor_duplicate', 'actor_delete', 'actor_modify', 'actor_organize', 'level_actors', 'level_save', 'level_outliner'],
-  'viewport': ['viewport_screenshot', 'viewport_camera', 'viewport_mode', 'viewport_focus', 'viewport_render_mode'],
+  'viewport': ['viewport_screenshot', 'viewport_camera', 'viewport_mode', 'viewport_focus', 'viewport_render_mode', 'viewport_bounds'],
   'advanced': ['python_proxy', 'test_connection', 'restart_listener', 'ue_logs'],
   'help': ['help']
 };
@@ -91,6 +91,11 @@ const toolExamples: Record<string, string[]> = {
     'Unlit: viewport_render_mode({ mode: "unlit" })',
     'Lit (default): viewport_render_mode({ mode: "lit" })',
     'Other modes: detail_lighting, lighting_only, light_complexity, shader_complexity'
+  ],
+  'viewport_bounds': [
+    'Get viewport info: viewport_bounds({})',
+    'Returns visible area boundaries and camera info',
+    'Useful for understanding what\'s currently in view'
   ],
   'python_proxy': [
     'Execute any Python: python_proxy({ code: "import unreal\\nprint(unreal.EditorLevelLibrary.get_all_level_actors())" })',

@@ -10,6 +10,7 @@ import os
 import sys
 import socket
 import subprocess
+import math
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import queue
 
@@ -73,6 +74,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                     'viewport.mode',
                     'viewport.focus',
                     'viewport.render_mode',
+                    'viewport.bounds',
                     'python.execute',
                     'system.restart'
                 ],
@@ -1215,6 +1217,100 @@ def execute_on_main_thread(command):
                     'success': True,
                     'mode': render_mode,
                     'message': f'Viewport render mode set to {render_mode}'
+                }
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+        
+        elif cmd_type == 'viewport.bounds':
+            try:
+                # Get viewport control
+                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+                camera_location, camera_rotation = editor_subsystem.get_level_viewport_camera_info()
+                
+                # Get viewport client to calculate frustum
+                # Note: Direct frustum calculation is not exposed in Python API
+                # We'll estimate bounds based on camera position and typical FOV
+                
+                # Get FOV (default to 90 if not available)
+                fov = 90.0  # Default FOV
+                
+                # Calculate view distance based on camera height for top-down views
+                view_distance = 2000.0  # Default view distance
+                
+                # For top-down view (pitch near -90), calculate bounds differently
+                is_top_down = abs(camera_rotation.pitch + 90) < 5
+                
+                if is_top_down:
+                    # Top-down view - calculate bounds as a square around camera position
+                    # Estimate based on typical viewport size and camera height
+                    half_size = camera_location.z * 0.8  # Rough estimate
+                    
+                    bounds_min = unreal.Vector(
+                        camera_location.x - half_size,
+                        camera_location.y - half_size,
+                        0  # Ground level
+                    )
+                    bounds_max = unreal.Vector(
+                        camera_location.x + half_size,
+                        camera_location.y + half_size,
+                        camera_location.z  # Camera height
+                    )
+                else:
+                    # Perspective view - calculate based on FOV and view distance
+                    # This is a rough approximation
+                    forward = camera_rotation.get_forward_vector()
+                    right = camera_rotation.get_right_vector()
+                    up = camera_rotation.get_up_vector()
+                    
+                    # Calculate view cone at a distance
+                    fov_rad = math.radians(fov)
+                    half_width = view_distance * math.tan(fov_rad / 2)
+                    
+                    # Create bounds around view center
+                    view_center = camera_location + forward * view_distance
+                    
+                    bounds_min = unreal.Vector(
+                        view_center.x - half_width,
+                        view_center.y - half_width,
+                        view_center.z - half_width
+                    )
+                    bounds_max = unreal.Vector(
+                        view_center.x + half_width,
+                        view_center.y + half_width,
+                        view_center.z + half_width
+                    )
+                
+                # Calculate center and size
+                bounds_center = unreal.Vector(
+                    (bounds_min.x + bounds_max.x) / 2,
+                    (bounds_min.y + bounds_max.y) / 2,
+                    (bounds_min.z + bounds_max.z) / 2
+                )
+                bounds_size = unreal.Vector(
+                    bounds_max.x - bounds_min.x,
+                    bounds_max.y - bounds_min.y,
+                    bounds_max.z - bounds_min.z
+                )
+                
+                return {
+                    'success': True,
+                    'bounds': {
+                        'min': {'x': bounds_min.x, 'y': bounds_min.y, 'z': bounds_min.z},
+                        'max': {'x': bounds_max.x, 'y': bounds_max.y, 'z': bounds_max.z},
+                        'center': {'x': bounds_center.x, 'y': bounds_center.y, 'z': bounds_center.z},
+                        'size': {'x': bounds_size.x, 'y': bounds_size.y, 'z': bounds_size.z}
+                    },
+                    'camera': {
+                        'location': {'x': camera_location.x, 'y': camera_location.y, 'z': camera_location.z},
+                        'rotation': {
+                            'pitch': camera_rotation.pitch,
+                            'yaw': camera_rotation.yaw,
+                            'roll': camera_rotation.roll
+                        },
+                        'fov': fov
+                    },
+                    'isTopDown': is_top_down
                 }
                 
             except Exception as e:
