@@ -68,7 +68,8 @@ export const viewportFitTool = {
         rotation: { pitch: number; yaw: number; roll: number };
       };
 
-      let text = `✓ Fitted ${result.actorCount || 0} actors in viewport\n\n`;
+      const actorCount = result.actorCount as number;
+      let text = `✓ Fitted ${actorCount || 0} actors in viewport\n\n`;
       
       if (bounds) {
         text += 'Actor Bounds:\n';
@@ -82,8 +83,9 @@ export const viewportFitTool = {
         text += `Rotation: [Pitch: ${camera.rotation.pitch.toFixed(1)}°, Yaw: ${camera.rotation.yaw.toFixed(1)}°, Roll: ${camera.rotation.roll.toFixed(1)}°]`;
       }
 
-      if (result.message) {
-        text += `\n\n${result.message}`;
+      const message = result.message as string;
+      if (message) {
+        text += `\n\n${message}`;
       }
 
       return {
