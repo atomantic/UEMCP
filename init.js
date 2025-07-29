@@ -162,18 +162,12 @@ async function installPlugin(projectPath, useSymlink = false) {
     
     const pluginsDir = path.join(projectPath, 'Plugins');
     const uemcpPluginDir = path.join(pluginsDir, 'UEMCP');
-    let sourcePluginDir = path.join(__dirname, 'plugin');
+    const sourcePluginDir = path.join(__dirname, 'plugin');
     
     // Check if source plugin exists
     if (!fs.existsSync(sourcePluginDir)) {
-        log.error('Plugin source not found. Using minimal plugin instead.');
-        const minimalPluginDir = path.join(__dirname, 'plugin_minimal');
-        if (fs.existsSync(minimalPluginDir)) {
-            sourcePluginDir = minimalPluginDir;
-        } else {
-            log.error('No plugin found to install!');
-            return false;
-        }
+        log.error('Plugin source not found!');
+        return false;
     }
     
     // Create Plugins directory if it doesn't exist
