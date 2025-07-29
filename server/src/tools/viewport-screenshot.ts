@@ -61,7 +61,7 @@ export const viewportScreenshotTool = {
         },
         compress: {
           type: 'boolean',
-          description: 'Compress image to reduce file size (default: true)',
+          description: 'Compress image to reduce file size (default: true, macOS only)',
           default: true
         },
         quality: {
@@ -106,22 +106,28 @@ export const viewportScreenshotTool = {
           const originalStats = await fs.stat(filepath);
           originalSize = originalStats.size;
           
-          // Compress image if requested and on macOS
-          if (compress && process.platform === 'darwin') {
-            try {
-              const compressedPath = await compressImage(filepath, quality);
-              const compressedStats = await fs.stat(compressedPath);
-              compressedSize = compressedStats.size;
-              
-              // Use compressed version if it's actually smaller
-              if (compressedSize < originalSize) {
-                filepath = compressedPath;
-                logger.debug(`Image compressed: ${originalSize} bytes -> ${compressedSize} bytes (${Math.round((1 - compressedSize/originalSize) * 100)}% reduction)`);
-              } else {
-                logger.debug('Compressed image not smaller, using original');
+          // Compress image if requested
+          if (compress) {
+            if (process.platform === 'darwin') {
+              // macOS: use sips for compression
+              try {
+                const compressedPath = await compressImage(filepath, quality);
+                const compressedStats = await fs.stat(compressedPath);
+                compressedSize = compressedStats.size;
+                
+                // Use compressed version if it's actually smaller
+                if (compressedSize < originalSize) {
+                  filepath = compressedPath;
+                  logger.debug(`Image compressed: ${originalSize} bytes -> ${compressedSize} bytes (${Math.round((1 - compressedSize/originalSize) * 100)}% reduction)`);
+                } else {
+                  logger.debug('Compressed image not smaller, using original');
+                }
+              } catch (compressionError) {
+                logger.warn(`Image compression failed: ${String(compressionError)}, using original`);
               }
-            } catch (compressionError) {
-              logger.warn(`Image compression failed: ${String(compressionError)}, using original`);
+            } else {
+              // Non-macOS: compression not supported yet
+              logger.debug(`Image compression not available on ${process.platform} - using original PNG`);
             }
           }
           
@@ -129,9 +135,12 @@ export const viewportScreenshotTool = {
           // const imageBuffer = await fs.readFile(filepath);
           // const base64Image = imageBuffer.toString('base64');
           
-          const sizeInfo = compress && compressedSize > 0 && compressedSize < originalSize
-            ? `\nOriginal: ${Math.round(originalSize/1024)}KB, Compressed: ${Math.round(compressedSize/1024)}KB`
-            : `\nFile size: ${Math.round(originalSize/1024)}KB`;
+          let sizeInfo = `\nFile size: ${Math.round(originalSize/1024)}KB`;
+          if (compress && compressedSize > 0 && compressedSize < originalSize) {
+            sizeInfo = `\nOriginal: ${Math.round(originalSize/1024)}KB, Compressed: ${Math.round(compressedSize/1024)}KB`;
+          } else if (compress && process.platform !== 'darwin') {
+            sizeInfo += ' (compression not available on ' + process.platform + ')';
+          }
           
           return {
             content: [
