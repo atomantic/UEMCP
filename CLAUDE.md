@@ -242,7 +242,7 @@ For Claude Desktop integration:
 
 ## Current Status
 
-The project has a working implementation with 19 MCP tools organized into categories:
+The project has a working implementation with 22 MCP tools organized into categories:
 
 - **Project & Asset Management** - Query and inspect UE project resources
 - **Level Editing** - Create, modify, and organize actors in the level
