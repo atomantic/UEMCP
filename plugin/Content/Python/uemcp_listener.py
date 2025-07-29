@@ -18,8 +18,6 @@ server_running = False
 server_thread = None
 httpd = None
 tick_handle = None
-restart_scheduled = False
-restart_countdown = 0
 
 # Import thread tracker
 try:
@@ -1304,19 +1302,28 @@ def execute_on_main_thread(command):
                 }
         
         elif cmd_type == 'system.restart':
-            # Schedule restart to happen after this request completes
+            # Use the restart_listener function that works
             try:
-                global restart_scheduled
-                restart_scheduled = True
-                unreal.log("UEMCP: Restart scheduled after current request completes")
+                import uemcp_helpers
+                
+                # Schedule the restart to happen after this response
+                def delayed_restart():
+                    time.sleep(0.5)  # Brief delay to ensure response is sent
+                    uemcp_helpers.restart_listener()
+                
+                # Run in a thread to avoid blocking the response
+                import threading
+                restart_thread = threading.Thread(target=delayed_restart)
+                restart_thread.daemon = True
+                restart_thread.start()
                 
                 return {
                     'success': True,
-                    'message': 'Listener will restart automatically in ~2 seconds'
+                    'message': 'Listener will restart automatically'
                 }
                 
             except Exception as e:
-                return {'success': False, 'error': f'Failed to schedule restart: {str(e)}'}
+                return {'success': False, 'error': f'Failed to initiate restart: {str(e)}'}
         
         else:
             return {
@@ -1334,24 +1341,6 @@ def execute_on_main_thread(command):
 
 def process_commands(delta_time):
     """Process queued commands on the main thread"""
-    global restart_scheduled, restart_countdown, server_running
-    
-    # Handle scheduled restart
-    if restart_scheduled:
-        restart_countdown += delta_time
-        # Wait 2 seconds to ensure HTTP response is sent
-        if restart_countdown > 2.0:
-            restart_scheduled = False
-            restart_countdown = 0
-            unreal.log("UEMCP: Stopping listener for restart...")
-            # Call the proper stop function to clean up properly
-            stop_listener()
-            unreal.log("UEMCP: Listener stopped. To complete restart:")
-            unreal.log("UEMCP:   1. Run: import importlib")
-            unreal.log("UEMCP:   2. Run: importlib.reload(uemcp_listener)")
-            unreal.log("UEMCP:   3. Run: uemcp_listener.start_listener()")
-            return  # Exit early since we're stopping
-    
     processed = 0
     max_per_tick = 3  # Reduced from 10 to prevent audio buffer underrun
     
@@ -1542,11 +1531,7 @@ def start_listener(port=8765):
 
 def stop_listener():
     """Stop the listener and cleanup"""
-    global server_running, httpd, tick_handle, server_thread, restart_scheduled, restart_countdown
-    
-    # Reset restart flags
-    restart_scheduled = False
-    restart_countdown = 0
+    global server_running, httpd, tick_handle, server_thread
     
     if not server_running:
         unreal.log("UEMCP: Listener is not running")
