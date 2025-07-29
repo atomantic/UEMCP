@@ -67,7 +67,6 @@ python -m pytest tests/
 ```
 server/     - MCP server implementation (TypeScript)
 plugin/     - Unreal Engine plugin (Python-only, no C++)
-python/     - Legacy Python utilities (deprecated, not included in releases)
 docs/       - Documentation
 tests/      - Test suites for all components
 ```
@@ -242,7 +241,7 @@ For Claude Desktop integration:
 
 ## Current Status
 
-The project has a working implementation with 19 MCP tools organized into categories:
+The project has a working implementation with 22 MCP tools organized into categories:
 
 - **Project & Asset Management** - Query and inspect UE project resources
 - **Level Editing** - Create, modify, and organize actors in the level

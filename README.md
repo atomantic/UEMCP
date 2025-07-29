@@ -101,7 +101,7 @@ node init.js --claude-code --project "/path/to/project.uproject" --no-interactiv
 
 ## 🛠 Available Tools
 
-UEMCP provides 20 tools to Claude for controlling Unreal Engine:
+UEMCP provides 22 tools to Claude for controlling Unreal Engine:
 
 ### Project & Assets
 - **project_info** - Get current project information
@@ -124,6 +124,8 @@ UEMCP provides 20 tools to Claude for controlling Unreal Engine:
 - **viewport_mode** - Switch between perspective/orthographic views
 - **viewport_focus** - Focus on specific actors
 - **viewport_render_mode** - Change rendering mode (wireframe, unlit, etc.)
+- **viewport_bounds** - Get current viewport boundaries and visible area
+- **viewport_fit** - Auto-frame actors in viewport
 
 ### Advanced
 - **python_proxy** ⭐ - Execute ANY Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6). This is the most powerful tool - it can do everything the other tools can do and more!

@@ -13,7 +13,6 @@ coverage:
         threshold: 2%
         paths:
           - "server/src/"
-          - "python/"
         
     patch:
       default:
@@ -37,9 +36,4 @@ flags:
   typescript:
     paths:
       - server/src/
-    carryforward: false
-  
-  python:
-    paths:
-      - python/
     carryforward: false
