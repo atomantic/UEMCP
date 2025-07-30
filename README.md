@@ -285,7 +285,20 @@ Key Features:
 - Hot reload support for rapid development
 - Full access to UE Python API
 - Background HTTP listener (non-blocking)
+- Modular Python architecture for maintainability
 ```
+
+### Modular Python Architecture
+
+The Python plugin uses a clean, modular architecture (refactored from a monolithic 2090-line file):
+
+- **Operation Modules**: Focused modules for actors, viewport, assets, level, and system operations
+- **Command Registry**: Automatic command discovery and dispatch
+- **Validation Framework**: Optional post-operation validation with tolerance-based comparisons
+- **Consistent Error Handling**: Standardized across all operations
+- **85% Code Reduction**: When using dedicated MCP tools vs python_proxy
+
+See [Modular Architecture Documentation](docs/modularization/MODULAR_ARCHITECTURE.md) for implementation details.
 
 ## 🧑‍💻 Development
 
