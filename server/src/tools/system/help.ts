@@ -52,14 +52,14 @@ export class HelpTool extends BaseTool<HelpArgs> {
     
     if (result.tool) {
       // Specific tool help
-      const help = result.help as any;
-      text = `# ${result.tool}\n\n`;
-      text += `${help.description}\n\n`;
+      const help = result.help as { description?: string; parameters?: Record<string, unknown>; examples?: string[] };
+      text = `# ${String(result.tool)}\n\n`;
+      text += `${help.description || ''}\n\n`;
       
       if (help.parameters) {
         text += '## Parameters\n';
         Object.entries(help.parameters).forEach(([param, desc]) => {
-          text += `- **${param}**: ${desc}\n`;
+          text += `- **${param}**: ${String(desc)}\n`;
         });
       }
       
@@ -70,7 +70,7 @@ export class HelpTool extends BaseTool<HelpArgs> {
       }
     } else if (result.category) {
       // Category listing
-      text = `# ${result.category} Tools\n\n`;
+      text = `# ${String(result.category)} Tools\n\n`;
       if (result.tools && Array.isArray(result.tools)) {
         result.tools.forEach((tool: string) => {
           text += `- ${tool}\n`;
@@ -78,13 +78,18 @@ export class HelpTool extends BaseTool<HelpArgs> {
       }
     } else if (result.overview) {
       // General help
-      const overview = result.overview as any;
+      const overview = result.overview as {
+        categories?: Record<string, string[]>;
+        coordinate_system?: boolean;
+        rotation?: boolean;
+        stats?: { total_tools?: number; python_version?: string; };
+      };
       text = '# UEMCP - Unreal Engine Model Context Protocol\n\n';
       
       if (overview.categories) {
         text += '## Categories\n';
         Object.entries(overview.categories).forEach(([cat, tools]) => {
-          text += `• **${cat}**: ${(tools as string[]).length} tools\n`;
+          text += `• **${cat}**: ${tools.length} tools\n`;
         });
       }
       

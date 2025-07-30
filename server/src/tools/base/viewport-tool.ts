@@ -25,7 +25,7 @@ export abstract class ViewportTool<TArgs = unknown> extends BaseTool<TArgs> {
   /**
    * Common viewport command types
    */
-  protected get viewportCommands() {
+  protected get viewportCommands(): Record<string, string> {
     return {
       screenshot: 'viewport.screenshot',
       camera: 'viewport.camera',
