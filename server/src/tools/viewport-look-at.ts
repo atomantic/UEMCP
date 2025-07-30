@@ -12,11 +12,11 @@ export const viewportLookAt = {
         items: { type: 'number' },
         minItems: 3,
         maxItems: 3,
-        description: 'Target location [X, Y, Z] to look at'
+        description: 'Target location [X, Y, Z] to look at (provide either target or actorName)'
       },
       actorName: {
         type: 'string',
-        description: 'Name of actor to look at (alternative to target coordinates)'
+        description: 'Name of actor to look at (provide either target or actorName)'
       },
       distance: {
         type: 'number',
@@ -34,10 +34,7 @@ export const viewportLookAt = {
         default: 500
       }
     },
-    oneOf: [
-      { required: ['target'] },
-      { required: ['actorName'] }
-    ]
+    required: []
   }
   },
   
@@ -52,6 +49,15 @@ export const viewportLookAt = {
         pitch?: number;
         height?: number;
       };
+      
+      // Validate that either target or actorName is provided
+      if (!typedArgs.target && !typedArgs.actorName) {
+        throw new Error('Either target coordinates or actorName must be provided');
+      }
+      
+      if (typedArgs.target && typedArgs.actorName) {
+        throw new Error('Provide either target coordinates or actorName, not both');
+      }
       
       const result = await bridge.executeCommand({
         type: 'viewport.look_at',
