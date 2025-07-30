@@ -267,8 +267,21 @@ For detailed code comparisons showing how MCP tools reduce code by 85% on averag
 
 1. **Camera Rotation [Roll, Pitch, Yaw]**:
    - **Pitch**: Tilt up/down (-90 = looking straight down, 0 = horizontal, 90 = looking straight up)
-   - **Yaw**: Turn left/right (0 = north, 90 = east, 180 = south, -90 = west)
+   - **Yaw**: Turn left/right - **WARNING: This is the direction camera FACES, not compass direction!**
+     - Yaw 0° = Camera facing EAST (+Y direction)
+     - Yaw 90° = Camera facing NORTH (-X direction)
+     - Yaw 180° = Camera facing WEST (-Y direction)
+     - Yaw -90° = Camera facing SOUTH (+X direction)
    - **Roll**: Tilt sideways (KEEP AT 0 for normal viewing - non-zero creates tilted horizon!)
+   
+   **IMPORTANT**: To calculate Yaw to look at a target:
+   ```python
+   import math
+   dx = target_x - camera_x
+   dy = target_y - camera_y
+   angle_rad = math.atan2(dy, dx)
+   yaw = -(angle_rad * 180 / math.pi)  # Negate for UE coordinate system
+   ```
 
 2. **Focusing on Actors**:
    ```python

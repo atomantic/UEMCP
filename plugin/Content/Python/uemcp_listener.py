@@ -1464,6 +1464,71 @@ def execute_on_main_thread(command):
             except Exception as e:
                 return {'success': False, 'error': str(e)}
         
+        elif cmd_type == 'viewport.look_at':
+            target = params.get('target', None)
+            actor_name = params.get('actorName', None)
+            distance = params.get('distance', 1000)
+            pitch = params.get('pitch', -30)
+            height = params.get('height', 500)
+            
+            try:
+                import math
+                
+                # Get target location
+                if actor_name:
+                    # Find actor by name
+                    all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+                    found_actor = None
+                    for actor in all_actors:
+                        if actor and actor.get_actor_label() == actor_name:
+                            found_actor = actor
+                            break
+                    
+                    if not found_actor:
+                        return {'success': False, 'error': f'Actor not found: {actor_name}'}
+                    
+                    target_location = found_actor.get_actor_location()
+                elif target:
+                    target_location = unreal.Vector(target[0], target[1], target[2])
+                else:
+                    return {'success': False, 'error': 'Must provide either target coordinates or actorName'}
+                
+                # Calculate camera position
+                # We'll position the camera at a 45-degree angle by default
+                angle = -45 * math.pi / 180  # -45 degrees in radians
+                
+                camera_x = target_location.x + distance * math.cos(angle)
+                camera_y = target_location.y + distance * math.sin(angle)
+                camera_z = target_location.z + height
+                
+                camera_location = unreal.Vector(camera_x, camera_y, camera_z)
+                
+                # Calculate yaw to look at target
+                dx = target_location.x - camera_x
+                dy = target_location.y - camera_y
+                
+                # Calculate angle and convert to Unreal's coordinate system
+                angle_rad = math.atan2(dy, dx)
+                yaw = -(angle_rad * 180 / math.pi)
+                
+                # Set camera rotation
+                camera_rotation = unreal.Rotator(0, pitch, yaw)
+                
+                # Apply to viewport
+                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+                editor_subsystem.set_level_viewport_camera_info(camera_location, camera_rotation)
+                
+                return {
+                    'success': True,
+                    'location': [camera_location.x, camera_location.y, camera_location.z],
+                    'rotation': [camera_rotation.roll, camera_rotation.pitch, camera_rotation.yaw],
+                    'targetLocation': [target_location.x, target_location.y, target_location.z],
+                    'message': f'Camera positioned to look at target'
+                }
+                
+            except Exception as e:
+                return {'success': False, 'error': str(e)}
+        
         elif cmd_type == 'python.execute':
             code = params.get('code', '')
             context = params.get('context', {})

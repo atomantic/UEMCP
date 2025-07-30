@@ -23,6 +23,7 @@ import { viewportFocusTool } from './tools/viewport-focus.js';
 import { viewportRenderModeTool } from './tools/viewport-render-mode.js';
 import { viewportBoundsTool } from './tools/viewport-bounds.js';
 import { viewportFitTool } from './tools/viewport-fit.js';
+import { viewportLookAt } from './tools/viewport-look-at.js';
 import { pythonProxyTool } from './tools/python-proxy.js';
 import { testConnectionTool } from './tools/test-connection.js';
 import { restartListenerTool } from './tools/restart-listener.js';
@@ -94,6 +95,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       viewportCameraTool.definition,
       viewportFitTool.definition,
       viewportFocusTool.definition,
+      viewportLookAt.definition,
       viewportModeTool.definition,
       viewportRenderModeTool.definition,
       viewportScreenshotTool.definition,
@@ -163,6 +165,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'viewport_fit':
         result = await viewportFitTool.handler(args);
+        break;
+      case 'viewport_look_at':
+        result = await viewportLookAt.handler(args);
         break;
       case 'python_proxy':
         result = await pythonProxyTool.handler(args as { code: string; context?: Record<string, unknown> });
