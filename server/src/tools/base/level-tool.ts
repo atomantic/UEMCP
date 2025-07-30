@@ -3,11 +3,11 @@ import { BaseTool } from './base-tool.js';
 /**
  * Base class for level-related tools
  */
-export abstract class LevelTool<TArgs = any> extends BaseTool<TArgs> {
+export abstract class LevelTool<TArgs = unknown> extends BaseTool<TArgs> {
   /**
    * Common level command types
    */
-  protected get levelCommands() {
+  protected get levelCommands(): Record<string, string> {
     return {
       actors: 'level.actors',
       save: 'level.save',
@@ -19,7 +19,14 @@ export abstract class LevelTool<TArgs = any> extends BaseTool<TArgs> {
   /**
    * Format actor list for display
    */
-  protected formatActorList(actors: any[], totalCount: number) {
+  protected formatActorList(actors: Array<{
+    name: string;
+    class: string;
+    location: { x: number; y: number; z: number };
+    rotation?: { roll: number; pitch: number; yaw: number };
+    scale?: { x: number; y: number; z: number };
+    assetPath?: string;
+  }>, totalCount: number): string {
     let text = `Found ${totalCount} actor${totalCount !== 1 ? 's' : ''}`;
     if (actors.length < totalCount) {
       text += ` (showing ${actors.length})`;
@@ -47,10 +54,18 @@ export abstract class LevelTool<TArgs = any> extends BaseTool<TArgs> {
   /**
    * Format outliner structure
    */
-  protected formatOutlinerStructure(structure: any) {
+  protected formatOutlinerStructure(structure: {
+    root?: { children?: unknown[] };
+    totalFolders?: number;
+    totalActors?: number;
+  }): string {
     let text = 'World Outliner Structure:\n\n';
     
-    const formatNode = (node: any, indent: string = '') => {
+    const formatNode = (node: {
+      name: string;
+      actorCount?: number;
+      children?: unknown[];
+    }, indent: string = ''): void => {
       text += `${indent}${node.name}`;
       if (node.actorCount > 0) {
         text += ` (${node.actorCount} actor${node.actorCount !== 1 ? 's' : ''})`;
@@ -58,15 +73,15 @@ export abstract class LevelTool<TArgs = any> extends BaseTool<TArgs> {
       text += '\n';
       
       if (node.children && node.children.length > 0) {
-        node.children.forEach((child: any) => {
-          formatNode(child, indent + '  ');
+        node.children.forEach((child) => {
+          formatNode(child as typeof node, indent + '  ');
         });
       }
     };
     
     if (structure.root && structure.root.children) {
-      structure.root.children.forEach((child: any) => {
-        formatNode(child);
+      structure.root.children.forEach((child) => {
+        formatNode(child as Parameters<typeof formatNode>[0]);
       });
     }
     

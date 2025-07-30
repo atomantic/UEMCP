@@ -44,7 +44,7 @@ export class ViewportModeTool extends ViewportTool<ViewportModeArgs> {
     }
     
     if (result.message) {
-      text = result.message;
+      text = result.message as string;
     }
     
     return ResponseFormatter.success(text);

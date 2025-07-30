@@ -10,11 +10,11 @@ export interface AssetInfo {
 /**
  * Base class for asset-related tools
  */
-export abstract class AssetTool<TArgs = any> extends BaseTool<TArgs> {
+export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
   /**
    * Format a list of assets
    */
-  protected formatAssetList(assets: AssetInfo[], path?: string) {
+  protected formatAssetList(assets: AssetInfo[], path?: string): ReturnType<typeof ResponseFormatter.success> {
     let text = `Found ${assets.length} asset${assets.length !== 1 ? 's' : ''}`;
     if (path) {
       text += ` in ${path}`;
@@ -43,7 +43,17 @@ export abstract class AssetTool<TArgs = any> extends BaseTool<TArgs> {
   /**
    * Format asset info details
    */
-  protected formatAssetInfo(info: any, assetPath: string) {
+  protected formatAssetInfo(info: {
+    type?: string;
+    boundingBox?: {
+      min: number[];
+      max: number[];
+      size: number[];
+    };
+    materials?: string[];
+    vertexCount?: number;
+    triangleCount?: number;
+  }, assetPath: string): ReturnType<typeof ResponseFormatter.success> {
     let text = `Asset Information: ${assetPath}\n\n`;
     
     if (info.type) text += `Type: ${info.type}\n`;

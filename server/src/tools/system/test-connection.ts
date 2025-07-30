@@ -35,9 +35,9 @@ export class TestConnectionTool extends BaseTool {
       const result = await this.executePythonCommand('system.test', {});
       
       let text = '✅ Python listener is ONLINE\n';
-      text += `   Version: ${result.version || 'Unknown'}\n`;
-      text += `   Python: ${result.pythonVersion || 'Unknown'}\n`;
-      text += `   Unreal: ${result.unrealVersion || 'Unknown'}`;
+      text += `   Version: ${(result.version as string) || 'Unknown'}\n`;
+      text += `   Python: ${(result.pythonVersion as string) || 'Unknown'}\n`;
+      text += `   Unreal: ${(result.unrealVersion as string) || 'Unknown'}`;
       
       return ResponseFormatter.success(text);
       

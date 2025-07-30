@@ -26,23 +26,23 @@ export class ViewportBoundsTool extends ViewportTool {
     let text = '✓ Viewport bounds calculated\n\n';
     
     if (result.camera) {
-      const cam = result.camera as any;
+      const cam = result.camera as { location?: number[]; rotation?: number[] };
       text += 'Camera:\n';
       text += this.formatCameraInfo(cam.location, cam.rotation);
       text += '\n\n';
     }
     
     if (result.bounds) {
-      const bounds = result.bounds as any;
+      const bounds = result.bounds as { min: number[]; max: number[] };
       text += 'Visible Area:\n';
-      text += `  Min: [${bounds.min.map((n: number) => n.toFixed(1)).join(', ')}]\n`;
-      text += `  Max: [${bounds.max.map((n: number) => n.toFixed(1)).join(', ')}]`;
+      text += `  Min: [${bounds.min.map((n) => n.toFixed(1)).join(', ')}]\n`;
+      text += `  Max: [${bounds.max.map((n) => n.toFixed(1)).join(', ')}]`;
       
       if (result.viewDistance) {
-        text += `\n\nView Distance: ${result.viewDistance}`;
+        text += `\n\nView Distance: ${result.viewDistance as number}`;
       }
       if (result.fov) {
-        text += `\nField of View: ${result.fov}°`;
+        text += `\nField of View: ${result.fov as number}°`;
       }
     }
     
