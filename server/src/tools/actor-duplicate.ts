@@ -9,6 +9,7 @@ interface ActorDuplicateArgs {
     y?: number;
     z?: number;
   };
+  validate?: boolean;
 }
 
 export const actorDuplicateTool = {
@@ -47,12 +48,17 @@ export const actorDuplicateTool = {
             },
           },
         },
+        validate: {
+          type: 'boolean',
+          description: 'Validate duplication succeeded (default: true)',
+          default: true,
+        },
       },
       required: ['sourceName'],
     },
   },
   handler: async (args: unknown): Promise<{ content: Array<{ type: string; text: string }> }> => {
-    const { sourceName, name, offset = {} } = args as ActorDuplicateArgs;
+    const { sourceName, name, offset = {}, validate } = args as ActorDuplicateArgs;
     
     logger.debug('Duplicating actor', { sourceName, name, offset });
     
@@ -60,7 +66,7 @@ export const actorDuplicateTool = {
       const bridge = new PythonBridge();
       const result = await bridge.executeCommand({
         type: 'actor.duplicate',
-        params: { sourceName, name, offset }
+        params: { sourceName, name, offset, validate }
       });
       
       if (result.success) {
@@ -71,7 +77,24 @@ export const actorDuplicateTool = {
         text += `  Source: ${sourceName}\n`;
         text += `  Location: [${location.x}, ${location.y}, ${location.z}]\n`;
         if (offset.x || offset.y || offset.z) {
-          text += `  Offset: [${offset.x || 0}, ${offset.y || 0}, ${offset.z || 0}]`;
+          text += `  Offset: [${offset.x || 0}, ${offset.y || 0}, ${offset.z || 0}]\n`;
+        }
+        
+        // Add validation results if present
+        if (result.validated !== undefined) {
+          text += `\nValidation: ${result.validated ? '✓ Passed' : '✗ Failed'}\n`;
+          if (result.validation_errors && Array.isArray(result.validation_errors) && result.validation_errors.length > 0) {
+            text += 'Validation Errors:\n';
+            result.validation_errors.forEach((error: string) => {
+              text += `  - ${error}\n`;
+            });
+          }
+          if (result.validation_warnings && Array.isArray(result.validation_warnings) && result.validation_warnings.length > 0) {
+            text += 'Validation Warnings:\n';
+            result.validation_warnings.forEach((warning: string) => {
+              text += `  - ${warning}\n`;
+            });
+          }
         }
         
         return {

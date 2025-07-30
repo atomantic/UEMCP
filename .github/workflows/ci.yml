@@ -81,6 +81,8 @@ jobs:
     name: Build & Package Artifacts
     runs-on: ubuntu-latest
     needs: [typescript-tests, python-tests]
+    # Only build artifacts on main branch, not on pull requests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
     - uses: actions/checkout@v4
@@ -158,6 +160,8 @@ jobs:
     name: Verify Build
     runs-on: ubuntu-latest
     needs: build
+    # Only run when build job runs (main branch only)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
     - name: Download Server Artifact
