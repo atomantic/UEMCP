@@ -8,6 +8,7 @@ interface ActorModifyArgs {
   scale?: [number, number, number];
   folder?: string;
   mesh?: string;
+  validate?: boolean;
 }
 
 export const actorModifyTool = {
@@ -50,20 +51,25 @@ export const actorModifyTool = {
           type: 'string',
           description: 'New static mesh asset path (e.g., "/Game/Meshes/SM_Wall"). Only works for StaticMeshActors.',
         },
+        validate: {
+          type: 'boolean',
+          description: 'Validate changes after applying (default: true)',
+          default: true,
+        },
       },
       required: ['actorName'],
     },
   },
   handler: async (args: unknown = {}): Promise<{ content: Array<{ type: string; text: string }> }> => {
-    const { actorName, location, rotation, scale, folder } = args as ActorModifyArgs;
+    const { actorName, location, rotation, scale, folder, mesh, validate } = args as ActorModifyArgs;
     
-    logger.debug('Modifying actor', { actorName, location, rotation, scale });
+    logger.debug('Modifying actor', { actorName, location, rotation, scale, mesh, validate });
     
     try {
       const bridge = new PythonBridge();
       const result = await bridge.executeCommand({
         type: 'actor.modify',
-        params: { actorName, location, rotation, scale, folder }
+        params: { actorName, location, rotation, scale, folder, mesh, validate }
       });
       
       if (result.success) {
@@ -80,6 +86,26 @@ export const actorModifyTool = {
         }
         if (folder) {
           text += `  Folder: ${folder}\n`;
+        }
+        if (mesh) {
+          text += `  Mesh: ${mesh}\n`;
+        }
+        
+        // Add validation results if present
+        if (result.validated !== undefined) {
+          text += `\nValidation: ${result.validated ? '✓ Passed' : '✗ Failed'}\n`;
+          if (result.validation_errors && result.validation_errors.length > 0) {
+            text += 'Validation Errors:\n';
+            result.validation_errors.forEach((error: string) => {
+              text += `  - ${error}\n`;
+            });
+          }
+          if (result.validation_warnings && result.validation_warnings.length > 0) {
+            text += 'Validation Warnings:\n';
+            result.validation_warnings.forEach((warning: string) => {
+              text += `  - ${warning}\n`;
+            });
+          }
         }
         
         return {

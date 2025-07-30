@@ -128,6 +128,33 @@ UEMCP provides 22 tools to Claude for controlling Unreal Engine:
 - **viewport_fit** - Auto-frame actors in viewport
 - **viewport_look_at** - Point camera at specific coordinates or actor with automatic Yaw calculation
 
+### 🔍 Validation Feature
+
+All actor manipulation tools (`actor_spawn`, `actor_modify`, `actor_delete`, `actor_duplicate`) now support automatic validation to ensure operations succeeded as expected:
+
+- **validate** parameter (default: `true`) - Verifies changes were applied correctly in Unreal Engine
+- Checks location, rotation, scale, mesh, and folder values match requested values
+- Returns validation results including any errors or warnings
+- Set `validate: false` for "reckless mode" to skip validation for performance
+
+Example with validation:
+```javascript
+// Spawn with automatic validation
+actor_spawn({ 
+  assetPath: "/Game/Meshes/Wall", 
+  location: [1000, 0, 0],
+  rotation: [0, 0, 90]
+})
+// Response includes: validated: true/false, validation_errors: [...]
+
+// Modify without validation for faster execution
+actor_modify({ 
+  actorName: "Wall_01", 
+  location: [2000, 0, 0],
+  validate: false  // Skip validation check
+})
+```
+
 ### Advanced
 - **python_proxy** ⭐ - Execute ANY Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6). This is the most powerful tool - it can do everything the other tools can do and more!
 - **test_connection** - Test connection to UE Python listener

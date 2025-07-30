@@ -8,6 +8,7 @@ interface ActorSpawnArgs {
   scale?: [number, number, number];
   name?: string;
   folder?: string;
+  validate?: boolean;
 }
 
 export const actorSpawnTool = {
@@ -53,6 +54,11 @@ export const actorSpawnTool = {
           type: 'string',
           description: 'Optional folder path in World Outliner (e.g., "Estate/House")',
         },
+        validate: {
+          type: 'boolean',
+          description: 'Validate spawn after creation (default: true)',
+          default: true,
+        },
       },
       required: ['assetPath'],
     },
@@ -64,7 +70,8 @@ export const actorSpawnTool = {
       rotation = [0, 0, 0], 
       scale = [1, 1, 1],
       name,
-      folder
+      folder,
+      validate
     } = args as ActorSpawnArgs;
     
     logger.debug('Spawning actor', { assetPath, location, rotation, scale, name, folder });
@@ -73,7 +80,7 @@ export const actorSpawnTool = {
       const bridge = new PythonBridge();
       const result = await bridge.executeCommand({
         type: 'actor.spawn',
-        params: { assetPath, location, rotation, scale, name, folder }
+        params: { assetPath, location, rotation, scale, name, folder, validate }
       });
       
       if (result.success) {
@@ -88,6 +95,26 @@ export const actorSpawnTool = {
         }
         if (scale.some(s => s !== 1)) {
           text += `  Scale: [${scale.join(', ')}]\n`;
+        }
+        if (folder) {
+          text += `  Folder: ${folder}\n`;
+        }
+        
+        // Add validation results if present
+        if (result.validated !== undefined) {
+          text += `\nValidation: ${result.validated ? '✓ Passed' : '✗ Failed'}\n`;
+          if (result.validation_errors && result.validation_errors.length > 0) {
+            text += 'Validation Errors:\n';
+            result.validation_errors.forEach((error: string) => {
+              text += `  - ${error}\n`;
+            });
+          }
+          if (result.validation_warnings && result.validation_warnings.length > 0) {
+            text += 'Validation Warnings:\n';
+            result.validation_warnings.forEach((warning: string) => {
+              text += `  - ${warning}\n`;
+            });
+          }
         }
         
         return {

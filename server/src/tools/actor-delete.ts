@@ -3,6 +3,7 @@ import { PythonBridge } from '../services/python-bridge.js';
 
 interface ActorDeleteArgs {
   actorName: string;
+  validate?: boolean;
 }
 
 export const actorDeleteTool = {
@@ -16,12 +17,17 @@ export const actorDeleteTool = {
           type: 'string',
           description: 'Name of the actor to delete',
         },
+        validate: {
+          type: 'boolean',
+          description: 'Validate deletion succeeded (default: true)',
+          default: true,
+        },
       },
       required: ['actorName'],
     },
   },
   handler: async (args: unknown = {}): Promise<{ content: Array<{ type: string; text: string }> }> => {
-    const { actorName } = args as ActorDeleteArgs;
+    const { actorName, validate } = args as ActorDeleteArgs;
     
     logger.debug('Deleting actor', { actorName });
     
@@ -29,15 +35,28 @@ export const actorDeleteTool = {
       const bridge = new PythonBridge();
       const result = await bridge.executeCommand({
         type: 'actor.delete',
-        params: { actorName }
+        params: { actorName, validate }
       });
       
       if (result.success) {
+        let text = `✓ ${result.message as string}`;
+        
+        // Add validation results if present
+        if (result.validated !== undefined) {
+          text += `\n\nValidation: ${result.validated ? '✓ Passed' : '✗ Failed'}`;
+          if (result.validation_errors && result.validation_errors.length > 0) {
+            text += '\nValidation Errors:';
+            result.validation_errors.forEach((error: string) => {
+              text += `\n  - ${error}`;
+            });
+          }
+        }
+        
         return {
           content: [
             {
               type: 'text',
-              text: `✓ ${result.message as string}`,
+              text,
             },
           ],
         };

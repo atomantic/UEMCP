@@ -269,6 +269,7 @@ def execute_on_main_thread(command):
             source_name = params.get('sourceName')
             new_name = params.get('name')
             offset = params.get('offset', {'x': 0, 'y': 0, 'z': 0})
+            validate = params.get('validate', True)  # Default to True for safety
             
             if not source_name:
                 return {'success': False, 'error': 'sourceName parameter is required'}
@@ -326,7 +327,19 @@ def execute_on_main_thread(command):
                         
                         unreal.log(f"UEMCP: Duplicated actor {source_name} to {new_actor.get_actor_label()}")
                         
-                        return {
+                        # Validate if requested
+                        validation_result = None
+                        if validate:
+                            import uemcp_validation
+                            validation_result = uemcp_validation.validate_actor_spawn(
+                                new_actor.get_actor_label(),
+                                expected_location=[new_location.x, new_location.y, new_location.z],
+                                expected_rotation=[source_rotation.roll, source_rotation.pitch, source_rotation.yaw],
+                                expected_scale=[source_scale.x, source_scale.y, source_scale.z],
+                                expected_folder=source_folder if source_folder else None
+                            )
+                        
+                        response = {
                             'success': True,
                             'actorName': new_actor.get_actor_label(),
                             'location': {
@@ -335,6 +348,16 @@ def execute_on_main_thread(command):
                                 'z': float(new_location.z)
                             }
                         }
+                        
+                        # Add validation info if validation was performed
+                        if validation_result:
+                            response['validated'] = validation_result.success
+                            if validation_result.errors:
+                                response['validation_errors'] = validation_result.errors
+                            if validation_result.warnings:
+                                response['validation_warnings'] = validation_result.warnings
+                        
+                        return response
             
             return {'success': False, 'error': 'Failed to duplicate actor'}
         
@@ -347,6 +370,7 @@ def execute_on_main_thread(command):
             scale = params.get('scale', [1, 1, 1])
             name = params.get('name', f'UEMCP_Actor_{int(time.time())}')
             folder = params.get('folder', None)
+            validate = params.get('validate', True)  # Default to True for safety
             
             # Create transform
             ue_location = unreal.Vector(float(location[0]), float(location[1]), float(location[2]))
@@ -396,7 +420,21 @@ def execute_on_main_thread(command):
                         actor.set_folder_path(folder)
                     
                     unreal.log(f"UEMCP: Spawned {name} at {location}")
-                    return {
+                    
+                    # Validate if requested
+                    validation_result = None
+                    if validate:
+                        import uemcp_validation
+                        validation_result = uemcp_validation.validate_actor_spawn(
+                            name, 
+                            expected_location=location,
+                            expected_rotation=rotation,
+                            expected_scale=scale,
+                            expected_mesh_path=asset_path or '/Engine/BasicShapes/Cube',
+                            expected_folder=folder
+                        )
+                    
+                    response = {
                         'success': True,
                         'actorName': name,
                         'location': location,
@@ -405,6 +443,16 @@ def execute_on_main_thread(command):
                         'assetPath': asset_path or '/Engine/BasicShapes/Cube',
                         'message': f'Created {name} at {location}'
                     }
+                    
+                    # Add validation info if validation was performed
+                    if validation_result:
+                        response['validated'] = validation_result.success
+                        if validation_result.errors:
+                            response['validation_errors'] = validation_result.errors
+                        if validation_result.warnings:
+                            response['validation_warnings'] = validation_result.warnings
+                    
+                    return response
             elif isinstance(asset, unreal.Blueprint):
                 # Spawn blueprint actor
                 # Spawn blueprint actor
@@ -418,8 +466,25 @@ def execute_on_main_thread(command):
                     actor.set_actor_label(name)
                     actor.set_actor_scale3d(ue_scale)
                     
+                    # Set folder if specified
+                    if folder:
+                        actor.set_folder_path(folder)
+                    
                     unreal.log(f"UEMCP: Spawned blueprint {name} at {location}")
-                    return {
+                    
+                    # Validate if requested
+                    validation_result = None
+                    if validate:
+                        import uemcp_validation
+                        validation_result = uemcp_validation.validate_actor_spawn(
+                            name, 
+                            expected_location=location,
+                            expected_rotation=rotation,
+                            expected_scale=scale,
+                            expected_folder=folder
+                        )
+                    
+                    response = {
                         'success': True,
                         'actorName': name,
                         'location': location,
@@ -428,6 +493,16 @@ def execute_on_main_thread(command):
                         'assetPath': asset_path,
                         'message': f'Created blueprint actor {name} at {location}'
                     }
+                    
+                    # Add validation info if validation was performed
+                    if validation_result:
+                        response['validated'] = validation_result.success
+                        if validation_result.errors:
+                            response['validation_errors'] = validation_result.errors
+                        if validation_result.warnings:
+                            response['validation_warnings'] = validation_result.warnings
+                    
+                    return response
             else:
                 return {'success': False, 'error': f'Unsupported asset type: {type(asset).__name__}'}
         
@@ -701,6 +776,7 @@ def execute_on_main_thread(command):
         
         elif cmd_type == 'actor.delete':
             actor_name = params.get('actorName', '')
+            validate = params.get('validate', True)  # Default to True for safety
             
             try:
                 # Find actor by name
@@ -718,10 +794,26 @@ def execute_on_main_thread(command):
                         break
                 
                 if found:
-                    return {
+                    # Validate if requested
+                    validation_result = None
+                    if validate:
+                        import uemcp_validation
+                        validation_result = uemcp_validation.validate_actor_deleted(actor_name)
+                    
+                    response = {
                         'success': True,
                         'message': f'Deleted actor: {actor_name}'
                     }
+                    
+                    # Add validation info if validation was performed
+                    if validation_result:
+                        response['validated'] = validation_result.success
+                        if validation_result.errors:
+                            response['validation_errors'] = validation_result.errors
+                        if validation_result.warnings:
+                            response['validation_warnings'] = validation_result.warnings
+                    
+                    return response
                 else:
                     return {
                         'success': False,
@@ -738,6 +830,7 @@ def execute_on_main_thread(command):
             scale = params.get('scale', None)
             folder = params.get('folder', None)
             mesh = params.get('mesh', None)
+            validate = params.get('validate', True)  # Default to True for safety
             
             try:
                 # Find actor by name with better error handling
@@ -847,7 +940,25 @@ def execute_on_main_thread(command):
                 current_rotation = found_actor.get_actor_rotation()
                 current_scale = found_actor.get_actor_scale3d()
                 
-                return {
+                # Validate if requested
+                validation_result = None
+                if validate:
+                    import uemcp_validation
+                    modifications = {}
+                    if location is not None:
+                        modifications['location'] = location
+                    if rotation is not None:
+                        modifications['rotation'] = rotation
+                    if scale is not None:
+                        modifications['scale'] = scale
+                    if folder is not None:
+                        modifications['folder'] = folder
+                    if mesh is not None:
+                        modifications['mesh'] = mesh
+                    
+                    validation_result = uemcp_validation.validate_actor_modifications(found_actor, modifications)
+                
+                response = {
                     'success': True,
                     'actorName': actor_name,
                     'location': [current_location.x, current_location.y, current_location.z],
@@ -855,6 +966,16 @@ def execute_on_main_thread(command):
                     'scale': [current_scale.x, current_scale.y, current_scale.z],
                     'message': f'Modified actor: {actor_name}'
                 }
+                
+                # Add validation info if validation was performed
+                if validation_result:
+                    response['validated'] = validation_result.success
+                    if validation_result.errors:
+                        response['validation_errors'] = validation_result.errors
+                    if validation_result.warnings:
+                        response['validation_warnings'] = validation_result.warnings
+                
+                return response
                 
             except Exception as e:
                 return {'success': False, 'error': str(e)}
