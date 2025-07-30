@@ -841,7 +841,7 @@ def execute_on_main_thread(command):
                 # Filter out None actors and use try-except for safety
                 for actor in all_actors:
                     try:
-                        if actor and actor.is_valid() and actor.get_actor_label() == actor_name:
+                        if actor and hasattr(actor, 'get_actor_label') and actor.get_actor_label() == actor_name:
                             found_actor = actor
                             break
                     except:

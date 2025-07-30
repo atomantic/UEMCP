@@ -178,7 +178,7 @@ def validate_actor_exists(actor_name):
         
         for actor in all_actors:
             try:
-                if actor and actor.is_valid() and actor.get_actor_label() == actor_name:
+                if actor and hasattr(actor, 'get_actor_label') and actor.get_actor_label() == actor_name:
                     return result  # Success
             except:
                 continue
@@ -199,7 +199,7 @@ def validate_actor_deleted(actor_name):
         
         for actor in all_actors:
             try:
-                if actor and actor.is_valid() and actor.get_actor_label() == actor_name:
+                if actor and hasattr(actor, 'get_actor_label') and actor.get_actor_label() == actor_name:
                     result.add_error(f"Actor '{actor_name}' still exists in level")
                     return result
             except:
@@ -220,7 +220,7 @@ def find_actor_by_name(actor_name):
         
         for actor in all_actors:
             try:
-                if actor and actor.is_valid() and actor.get_actor_label() == actor_name:
+                if actor and hasattr(actor, 'get_actor_label') and actor.get_actor_label() == actor_name:
                     return actor
             except:
                 continue
