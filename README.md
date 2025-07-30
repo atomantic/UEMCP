@@ -126,6 +126,7 @@ UEMCP provides 22 tools to Claude for controlling Unreal Engine:
 - **viewport_render_mode** - Change rendering mode (wireframe, unlit, etc.)
 - **viewport_bounds** - Get current viewport boundaries and visible area
 - **viewport_fit** - Auto-frame actors in viewport
+- **viewport_look_at** - Point camera at specific coordinates or actor with automatic Yaw calculation
 
 ### Advanced
 - **python_proxy** ⭐ - Execute ANY Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6). This is the most powerful tool - it can do everything the other tools can do and more!

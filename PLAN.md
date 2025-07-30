@@ -1076,3 +1076,12 @@ viewport = unreal.LevelEditorSubsystem.get_viewport()
 - **MCP Tools**: `server/src/tools/*.ts`
 - **Integration**: `server/src/services/python-bridge.ts`
 - **Tests**: `server/tests/` and `python/tests/`
+
+## Known Issues & Work Items
+
+### viewport_render_mode Issues
+- **Issue**: The `viewport_render_mode` tool with `mode: "wireframe"` is not working properly
+- **Symptoms**: Command executes without error but viewport doesn't switch to wireframe mode
+- **Discovered**: During maze loading when trying to take wireframe screenshots
+- **Priority**: Medium - affects debugging workflows
+- **TODO**: Investigate console command execution in Python listener
