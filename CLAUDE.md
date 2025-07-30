@@ -62,6 +62,14 @@ python -m pytest tests/
 ./test-ci-locally.sh
 ```
 
+**IMPORTANT**: Always run `./test-ci-locally.sh` before committing and pushing changes to ensure:
+- TypeScript linting passes (ESLint)
+- TypeScript type checking passes
+- Python linting passes (ruff, mypy, flake8)
+- All tests pass
+
+This prevents CI failures and ensures code quality.
+
 ## Project Structure
 
 ```

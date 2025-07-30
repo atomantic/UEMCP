@@ -44,9 +44,9 @@ export const actorDeleteTool = {
         // Add validation results if present
         if (result.validated !== undefined) {
           text += `\n\nValidation: ${result.validated ? '✓ Passed' : '✗ Failed'}`;
-          if (result.validation_errors && result.validation_errors.length > 0) {
+          if (result.validation_errors && Array.isArray(result.validation_errors) && result.validation_errors.length > 0) {
             text += '\nValidation Errors:';
-            result.validation_errors.forEach((error: string) => {
+            (result.validation_errors as string[]).forEach((error: string) => {
               text += `\n  - ${error}`;
             });
           }
