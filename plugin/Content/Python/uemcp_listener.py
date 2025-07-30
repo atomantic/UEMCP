@@ -358,6 +358,24 @@ def get_status():
     }
 
 
+# Module-level functions for compatibility with existing code
+def start_listener():
+    """Start the UEMCP listener (module-level function for compatibility)."""
+    return start_server()
+
+
+def stop_listener():
+    """Stop the UEMCP listener (module-level function for compatibility)."""
+    return stop_server()
+
+
+def restart_listener():
+    """Restart the UEMCP listener (module-level function for compatibility)."""
+    stop_server()
+    time.sleep(0.5)
+    return start_server()
+
+
 # Auto-start if imported
 if __name__ != "__main__":
     # Check if we should auto-start
