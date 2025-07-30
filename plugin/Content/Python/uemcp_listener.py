@@ -44,40 +44,32 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'application/json')
         self.end_headers()
         
-        # Get project info
+        # Get available commands from registry (safe from any thread)
         try:
-            from uemcp_utils import get_project_info
-            project_info = get_project_info()
-            
-            # Get available commands from registry
             registry = get_registry()
             commands_by_category = registry.get_commands_by_category()
             all_commands = []
             for category, commands in commands_by_category.items():
                 all_commands.extend(commands)
-            
-            status = {
-                'status': 'online',
-                'service': 'UEMCP Modular Listener',
-                'version': '2.0',
-                'project': project_info['projectName'],
-                'engine_version': project_info['engineVersion'],
-                'ready': True,
-                'endpoints': {
-                    'GET /': 'Status and health check',
-                    'POST /': 'Execute UEMCP commands'
-                },
-                'available_commands': sorted(all_commands),
-                'commands_by_category': commands_by_category,
-                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
-            }
-        except Exception as e:
-            status = {
-                'status': 'online',
-                'service': 'UEMCP Modular Listener',
-                'ready': True,
-                'error': f'Could not get project info: {str(e)}'
-            }
+        except:
+            commands_by_category = {}
+            all_commands = []
+        
+        # Basic status that doesn't require Unreal API calls
+        status = {
+            'status': 'online',
+            'service': 'UEMCP Modular Listener',
+            'version': '2.0',
+            'ready': True,
+            'endpoints': {
+                'GET /': 'Status and health check',
+                'POST /': 'Execute UEMCP commands'
+            },
+            'available_commands': sorted(all_commands),
+            'commands_by_category': commands_by_category,
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'note': 'Use project_info command for detailed project information'
+        }
         
         self.wfile.write(json.dumps(status, indent=2).encode('utf-8'))
     
