@@ -740,16 +740,20 @@ def execute_on_main_thread(command):
             mesh = params.get('mesh', None)
             
             try:
-                # Find actor by name
-                # Use EditorActorUtilities subsystem instead of deprecated EditorLevelLibrary
+                # Find actor by name with better error handling
                 editor_actor_utils = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
                 all_actors = editor_actor_utils.get_all_level_actors()
                 found_actor = None
                 
+                # Filter out None actors and use try-except for safety
                 for actor in all_actors:
-                    if actor.get_actor_label() == actor_name:
-                        found_actor = actor
-                        break
+                    try:
+                        if actor and actor.is_valid() and actor.get_actor_label() == actor_name:
+                            found_actor = actor
+                            break
+                    except:
+                        # Skip actors that cause errors (e.g., deleted actors)
+                        continue
                 
                 if not found_actor:
                     return {
@@ -797,6 +801,22 @@ def execute_on_main_thread(command):
                         print(f"[actor_modify] Current mesh: {current_mesh.get_path_name() if current_mesh else 'None'}")
                         print(f"[actor_modify] Loading new mesh: {mesh}")
                         
+                        # First check if asset exists
+                        if not unreal.EditorAssetLibrary.does_asset_exist(mesh):
+                            print(f"[actor_modify] Asset does not exist: {mesh}")
+                            # Try common subfolder variations
+                            mesh_variations = [
+                                mesh,
+                                mesh.replace('/Meshes/', '/Meshes/Walls/'),
+                                mesh.replace('/Meshes/', '/Meshes/Buildings/'),
+                                mesh.replace('/Meshes/', '/Meshes/Ground/')
+                            ]
+                            for variant in mesh_variations:
+                                if unreal.EditorAssetLibrary.does_asset_exist(variant):
+                                    mesh = variant
+                                    print(f"[actor_modify] Found asset at: {mesh}")
+                                    break
+                        
                         new_mesh = unreal.EditorAssetLibrary.load_asset(mesh)
                         if new_mesh:
                             print(f"[actor_modify] Loaded mesh: {new_mesh.get_path_name()}")
@@ -806,6 +826,12 @@ def execute_on_main_thread(command):
                             print(f"[actor_modify] Mesh change applied")
                         else:
                             print(f"[actor_modify] Failed to load mesh: {mesh}")
+                            # List similar assets to help debug
+                            path_parts = mesh.rsplit('/', 1)
+                            if len(path_parts) == 2:
+                                folder, asset_name = path_parts
+                                similar = unreal.EditorAssetLibrary.list_assets(folder, recursive=False, include_folder=False)
+                                print(f"[actor_modify] Similar assets in {folder}: {similar[:5]}")
                             return {
                                 'success': False,
                                 'error': f'Could not load mesh: {mesh}'
@@ -1196,21 +1222,32 @@ def execute_on_main_thread(command):
                 # Note: There's no direct Python API for viewport show flags
                 # We'll use console commands as a workaround
                 
-                # Apply the render mode using console commands
+                # Get editor world for console commands
+                editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+                world = editor_subsystem.get_editor_world()
+                
+                # Apply the render mode using console commands with world context
                 if render_mode == 'wireframe':
-                    unreal.SystemLibrary.execute_console_command(None, "viewmode wireframe")
+                    # Use ShowFlag for wireframe as viewmode command doesn't always work
+                    unreal.SystemLibrary.execute_console_command(world, "ShowFlag.Wireframe 1")
+                    unreal.SystemLibrary.execute_console_command(world, "ShowFlag.Materials 0")
+                    unreal.SystemLibrary.execute_console_command(world, "ShowFlag.Lighting 0")
                 elif render_mode == 'unlit':
-                    unreal.SystemLibrary.execute_console_command(None, "viewmode unlit")
+                    unreal.SystemLibrary.execute_console_command(world, "viewmode unlit")
                 elif render_mode == 'lit':
-                    unreal.SystemLibrary.execute_console_command(None, "viewmode lit")
+                    # Reset all show flags when going back to lit mode
+                    unreal.SystemLibrary.execute_console_command(world, "ShowFlag.Wireframe 0")
+                    unreal.SystemLibrary.execute_console_command(world, "ShowFlag.Materials 1")
+                    unreal.SystemLibrary.execute_console_command(world, "ShowFlag.Lighting 1")
+                    unreal.SystemLibrary.execute_console_command(world, "viewmode lit")
                 elif render_mode == 'detail_lighting':
-                    unreal.SystemLibrary.execute_console_command(None, "viewmode lit_detaillighting")
+                    unreal.SystemLibrary.execute_console_command(world, "viewmode lit_detaillighting")
                 elif render_mode == 'lighting_only':
-                    unreal.SystemLibrary.execute_console_command(None, "viewmode lightingonly")
+                    unreal.SystemLibrary.execute_console_command(world, "viewmode lightingonly")
                 elif render_mode == 'light_complexity':
-                    unreal.SystemLibrary.execute_console_command(None, "viewmode lightcomplexity")
+                    unreal.SystemLibrary.execute_console_command(world, "viewmode lightcomplexity")
                 elif render_mode == 'shader_complexity':
-                    unreal.SystemLibrary.execute_console_command(None, "viewmode shadercomplexity")
+                    unreal.SystemLibrary.execute_console_command(world, "viewmode shadercomplexity")
                 
                 unreal.log(f"UEMCP: Set viewport render mode to {render_mode}")
                 
