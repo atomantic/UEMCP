@@ -105,13 +105,13 @@ export const actorSpawnTool = {
           text += `\nValidation: ${result.validated ? '✓ Passed' : '✗ Failed'}\n`;
           if (result.validation_errors && Array.isArray(result.validation_errors) && result.validation_errors.length > 0) {
             text += 'Validation Errors:\n';
-            (result.validation_errors as string[]).forEach((error: string) => {
+            result.validation_errors.forEach((error: string) => {
               text += `  - ${error}\n`;
             });
           }
           if (result.validation_warnings && Array.isArray(result.validation_warnings) && result.validation_warnings.length > 0) {
             text += 'Validation Warnings:\n';
-            (result.validation_warnings as string[]).forEach((warning: string) => {
+            result.validation_warnings.forEach((warning: string) => {
               text += `  - ${warning}\n`;
             });
           }

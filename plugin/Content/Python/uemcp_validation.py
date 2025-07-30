@@ -62,11 +62,8 @@ def validate_actor_rotation(actor, expected_rotation, tolerance=0.1):
         
         # Normalize angles to -180 to 180 range
         def normalize_angle(angle):
-            while angle > 180:
-                angle -= 360
-            while angle < -180:
-                angle += 360
-            return angle
+            # More efficient modulo-based normalization
+            return ((angle + 180) % 360) - 180
         
         # Check each rotation component
         for component, expected, actual in [
@@ -157,8 +154,9 @@ def validate_actor_mesh(actor, expected_mesh_path):
             result.add_error("Actor has no static mesh assigned")
             return result
         
-        # Get mesh path
-        current_path = current_mesh.get_path_name().split(':')[0]
+        # Get mesh path (handle paths with or without ':')
+        full_path = current_mesh.get_path_name()
+        current_path = full_path.split(':')[0] if ':' in full_path else full_path
         
         # Compare paths
         if current_path != expected_mesh_path:
