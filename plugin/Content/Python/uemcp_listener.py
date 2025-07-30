@@ -230,7 +230,7 @@ def tick_handler(delta_time):
 
 def start_server():
     """Start the HTTP server"""
-    global server_running, server_thread, httpd, tick_handle
+    global server_thread, tick_handle
     
     if server_running:
         log_debug("Server already running")
@@ -342,7 +342,6 @@ def schedule_restart():
 
 def get_status():
     """Get current server status"""
-    global server_running
     return {
         'running': server_running,
         'port': 8765,
