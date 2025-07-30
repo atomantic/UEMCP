@@ -1,6 +1,6 @@
 import { ViewportTool } from '../base/viewport-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface ViewportLookAtArgs {
   target?: [number, number, number];
@@ -52,7 +52,7 @@ export class ViewportLookAtTool extends ViewportTool<ViewportLookAtArgs> {
     };
   }
 
-  protected async execute(args: ViewportLookAtArgs) {
+  protected async execute(args: ViewportLookAtArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand(
       this.viewportCommands.lookAt,
       args

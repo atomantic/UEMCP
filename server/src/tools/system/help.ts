@@ -1,6 +1,6 @@
 import { BaseTool } from '../base/base-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface HelpArgs {
   tool?: string;
@@ -40,7 +40,7 @@ export class HelpTool extends BaseTool<HelpArgs> {
     };
   }
 
-  protected async execute(args: HelpArgs) {
+  protected async execute(args: HelpArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand('system.help', args);
     
     if (!result.success) {

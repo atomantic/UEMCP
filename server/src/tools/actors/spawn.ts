@@ -1,4 +1,5 @@
 import { ActorTool } from '../base/actor-tool.js';
+import { ToolResponse } from '../../utils/response-formatter.js';
 import { ToolDefinition } from '../base/base-tool.js';
 
 interface ActorSpawnArgs {
@@ -70,7 +71,7 @@ export class ActorSpawnTool extends ActorTool<ActorSpawnArgs> {
     };
   }
 
-  protected async execute(args: ActorSpawnArgs) {
+  protected async execute(args: ActorSpawnArgs): Promise<ToolResponse> {
     const { location = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1] } = args;
     
     const result = await this.executePythonCommand('actor.spawn', args);

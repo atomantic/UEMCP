@@ -1,6 +1,6 @@
 import { LevelTool } from '../base/level-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface LevelOutlinerArgs {
   showEmpty?: boolean;
@@ -33,10 +33,14 @@ export class LevelOutlinerTool extends LevelTool<LevelOutlinerArgs> {
     };
   }
 
-  protected async execute(args: LevelOutlinerArgs) {
+  protected async execute(args: LevelOutlinerArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand(this.levelCommands.outliner, args);
     
-    const text = this.formatOutlinerStructure(result);
+    const text = this.formatOutlinerStructure({
+      root: result.root as { children?: unknown[] },
+      totalFolders: result.totalFolders as number,
+      totalActors: result.totalActors as number,
+    });
     return ResponseFormatter.success(text);
   }
 }

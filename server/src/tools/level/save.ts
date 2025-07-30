@@ -1,6 +1,6 @@
 import { LevelTool } from '../base/level-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 /**
  * Tool for saving the current level
@@ -17,7 +17,7 @@ export class LevelSaveTool extends LevelTool {
     };
   }
 
-  protected async execute() {
+  protected async execute(): Promise<ToolResponse> {
     const result = await this.executePythonCommand(this.levelCommands.save, {});
     
     const levelName = result.levelName as string || 'current level';

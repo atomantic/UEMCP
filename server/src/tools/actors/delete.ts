@@ -1,4 +1,5 @@
 import { ActorTool } from '../base/actor-tool.js';
+import { ToolResponse } from '../../utils/response-formatter.js';
 import { ToolDefinition } from '../base/base-tool.js';
 
 interface ActorDeleteArgs {
@@ -33,7 +34,7 @@ export class ActorDeleteTool extends ActorTool<ActorDeleteArgs> {
     };
   }
 
-  protected async execute(args: ActorDeleteArgs) {
+  protected async execute(args: ActorDeleteArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand('actor.delete', args);
     return this.buildSuccessResponse(`✓ ${result.message}`, result);
   }

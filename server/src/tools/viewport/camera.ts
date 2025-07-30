@@ -1,6 +1,6 @@
 import { ViewportTool } from '../base/viewport-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface CameraArgs {
   location?: [number, number, number];
@@ -48,7 +48,7 @@ export class ViewportCameraTool extends ViewportTool<CameraArgs> {
     };
   }
 
-  protected async execute(args: CameraArgs) {
+  protected async execute(args: CameraArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand(
       this.viewportCommands.camera,
       args

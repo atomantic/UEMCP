@@ -1,6 +1,6 @@
 import { ViewportTool } from '../base/viewport-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface RenderModeArgs {
   mode?: 'lit' | 'unlit' | 'wireframe' | 'detail_lighting' | 'lighting_only' | 'light_complexity' | 'shader_complexity';
@@ -28,7 +28,7 @@ export class ViewportRenderModeTool extends ViewportTool<RenderModeArgs> {
     };
   }
 
-  protected async execute(args: RenderModeArgs) {
+  protected async execute(args: RenderModeArgs): Promise<ToolResponse> {
     const mode = args.mode || 'lit';
     await this.executePythonCommand(
       this.viewportCommands.renderMode,

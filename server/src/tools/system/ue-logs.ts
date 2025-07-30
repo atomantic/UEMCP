@@ -1,6 +1,6 @@
 import { BaseTool } from '../base/base-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface UELogsArgs {
   lines?: number;
@@ -33,7 +33,7 @@ export class UELogsTool extends BaseTool<UELogsArgs> {
     };
   }
 
-  protected async execute(args: UELogsArgs) {
+  protected async execute(args: UELogsArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand('system.logs', args);
     
     const logPath = result.logPath as string || 'Unknown';

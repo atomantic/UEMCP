@@ -1,6 +1,6 @@
 import { BaseTool } from '../base/base-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 import { PythonBridge } from '../../services/python-bridge.js';
 
 /**
@@ -18,7 +18,7 @@ export class TestConnectionTool extends BaseTool {
     };
   }
 
-  protected async execute() {
+  protected async execute(): Promise<ToolResponse> {
     try {
       // First check if listener is available
       const bridge = new PythonBridge();

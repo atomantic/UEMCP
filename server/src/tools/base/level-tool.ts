@@ -67,7 +67,7 @@ export abstract class LevelTool<TArgs = unknown> extends BaseTool<TArgs> {
       children?: unknown[];
     }, indent: string = ''): void => {
       text += `${indent}${node.name}`;
-      if (node.actorCount > 0) {
+      if (node.actorCount && node.actorCount > 0) {
         text += ` (${node.actorCount} actor${node.actorCount !== 1 ? 's' : ''})`;
       }
       text += '\n';

@@ -1,6 +1,6 @@
 import { ViewportTool } from '../base/viewport-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 /**
  * Tool for getting viewport boundaries
@@ -17,7 +17,7 @@ export class ViewportBoundsTool extends ViewportTool {
     };
   }
 
-  protected async execute() {
+  protected async execute(): Promise<ToolResponse> {
     const result = await this.executePythonCommand(
       this.viewportCommands.bounds,
       {}

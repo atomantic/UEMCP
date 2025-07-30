@@ -1,4 +1,5 @@
 import { ActorTool } from '../base/actor-tool.js';
+import { ToolResponse } from '../../utils/response-formatter.js';
 import { ToolDefinition } from '../base/base-tool.js';
 
 interface ActorOrganizeArgs {
@@ -37,7 +38,7 @@ export class ActorOrganizeTool extends ActorTool<ActorOrganizeArgs> {
     };
   }
 
-  protected async execute(args: ActorOrganizeArgs) {
+  protected async execute(args: ActorOrganizeArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand('actor.organize', args);
     
     const organizedCount = (result.organizedCount as number) || 0;

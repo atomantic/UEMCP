@@ -1,4 +1,5 @@
 import { AssetTool } from '../base/asset-tool.js';
+import { ToolResponse } from '../../utils/response-formatter.js';
 import { ToolDefinition } from '../base/base-tool.js';
 
 interface AssetInfoArgs {
@@ -26,14 +27,20 @@ export class AssetInfoTool extends AssetTool<AssetInfoArgs> {
     };
   }
 
-  protected async execute(args: AssetInfoArgs) {
+  protected async execute(args: AssetInfoArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand('asset.info', args);
     
     if (!result.success) {
       throw new Error(result.error || 'Failed to get asset info');
     }
     
-    return this.formatAssetInfo(result, args.assetPath);
+    return this.formatAssetInfo({
+      type: result.type as string,
+      boundingBox: result.boundingBox as { min: number[]; max: number[]; size: number[] },
+      materials: result.materials as string[],
+      vertexCount: result.vertexCount as number,
+      triangleCount: result.triangleCount as number,
+    }, args.assetPath);
   }
 }
 

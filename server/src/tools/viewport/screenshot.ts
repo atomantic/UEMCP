@@ -1,6 +1,6 @@
 import { ViewportTool } from '../base/viewport-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface ScreenshotArgs {
   width?: number;
@@ -51,7 +51,7 @@ export class ViewportScreenshotTool extends ViewportTool<ScreenshotArgs> {
     };
   }
 
-  protected async execute(args: ScreenshotArgs) {
+  protected async execute(args: ScreenshotArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand(
       this.viewportCommands.screenshot,
       args

@@ -1,4 +1,5 @@
 import { ActorTool } from '../base/actor-tool.js';
+import { ToolResponse } from '../../utils/response-formatter.js';
 import { ToolDefinition } from '../base/base-tool.js';
 
 interface ActorModifyArgs {
@@ -66,7 +67,7 @@ export class ActorModifyTool extends ActorTool<ActorModifyArgs> {
     };
   }
 
-  protected async execute(args: ActorModifyArgs) {
+  protected async execute(args: ActorModifyArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand('actor.modify', args);
     
     let text = `✓ Modified actor: ${args.actorName}\n`;

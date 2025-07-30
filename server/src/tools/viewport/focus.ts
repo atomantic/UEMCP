@@ -1,6 +1,6 @@
 import { ViewportTool } from '../base/viewport-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface ViewportFocusArgs {
   actorName: string;
@@ -33,7 +33,7 @@ export class ViewportFocusTool extends ViewportTool<ViewportFocusArgs> {
     };
   }
 
-  protected async execute(args: ViewportFocusArgs) {
+  protected async execute(args: ViewportFocusArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand(
       this.viewportCommands.focus,
       args

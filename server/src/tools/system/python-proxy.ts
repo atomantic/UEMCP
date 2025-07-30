@@ -1,10 +1,10 @@
 import { BaseTool } from '../base/base-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface PythonProxyArgs {
   code: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 /**
@@ -33,7 +33,7 @@ export class PythonProxyTool extends BaseTool<PythonProxyArgs> {
     };
   }
 
-  protected async execute(args: PythonProxyArgs) {
+  protected async execute(args: PythonProxyArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand('python.execute', args);
     
     let text = '✓ Python code executed successfully\n\n';

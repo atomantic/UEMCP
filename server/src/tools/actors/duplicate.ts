@@ -1,4 +1,5 @@
 import { ActorTool } from '../base/actor-tool.js';
+import { ToolResponse } from '../../utils/response-formatter.js';
 import { ToolDefinition } from '../base/base-tool.js';
 
 interface ActorDuplicateArgs {
@@ -51,7 +52,7 @@ export class ActorDuplicateTool extends ActorTool<ActorDuplicateArgs> {
     };
   }
 
-  protected async execute(args: ActorDuplicateArgs) {
+  protected async execute(args: ActorDuplicateArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand('actor.duplicate', args);
     
     const newName = (result.actorName as string) || args.name || `${args.sourceName}_Copy`;

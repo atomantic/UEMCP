@@ -1,6 +1,6 @@
 import { ViewportTool } from '../base/viewport-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface ViewportModeArgs {
   mode: 'perspective' | 'top' | 'bottom' | 'left' | 'right' | 'front' | 'back';
@@ -28,7 +28,7 @@ export class ViewportModeTool extends ViewportTool<ViewportModeArgs> {
     };
   }
 
-  protected async execute(args: ViewportModeArgs) {
+  protected async execute(args: ViewportModeArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand(
       this.viewportCommands.mode,
       args
@@ -44,7 +44,7 @@ export class ViewportModeTool extends ViewportTool<ViewportModeArgs> {
     }
     
     if (result.message) {
-      text = result.message as string;
+      text = String(result.message);
     }
     
     return ResponseFormatter.success(text);

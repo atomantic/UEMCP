@@ -1,6 +1,6 @@
 import { ViewportTool } from '../base/viewport-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface ViewportFitArgs {
   actors?: string[];
@@ -38,7 +38,7 @@ export class ViewportFitTool extends ViewportTool<ViewportFitArgs> {
     };
   }
 
-  protected async execute(args: ViewportFitArgs) {
+  protected async execute(args: ViewportFitArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand(
       this.viewportCommands.fit,
       args

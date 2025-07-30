@@ -1,6 +1,6 @@
 import { BaseTool } from '../base/base-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface RestartListenerArgs {
   force?: boolean;
@@ -27,7 +27,7 @@ export class RestartListenerTool extends BaseTool<RestartListenerArgs> {
     };
   }
 
-  protected async execute(args: RestartListenerArgs) {
+  protected async execute(args: RestartListenerArgs): Promise<ToolResponse> {
     await this.executePythonCommand('system.restart', args);
     
     return ResponseFormatter.success(

@@ -1,6 +1,6 @@
 import { LevelTool } from '../base/level-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import { ResponseFormatter } from '../../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 interface LevelActorsArgs {
   filter?: string;
@@ -32,10 +32,17 @@ export class LevelActorsTool extends LevelTool<LevelActorsArgs> {
     };
   }
 
-  protected async execute(args: LevelActorsArgs) {
+  protected async execute(args: LevelActorsArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand(this.levelCommands.actors, args);
     
-    const actors = result.actors as any[] || [];
+    const actors = (result.actors || []) as Array<{
+      name: string;
+      class: string;
+      location: { x: number; y: number; z: number };
+      rotation?: { roll: number; pitch: number; yaw: number };
+      scale?: { x: number; y: number; z: number };
+      assetPath?: string;
+    }>;
     const totalCount = result.totalCount as number || actors.length;
     const currentLevel = result.currentLevel as string || 'Unknown';
     

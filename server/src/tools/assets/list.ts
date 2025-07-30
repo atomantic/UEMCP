@@ -1,5 +1,6 @@
 import { AssetTool, AssetInfo } from '../base/asset-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
+import { ToolResponse } from '../../utils/response-formatter.js';
 
 interface AssetListArgs {
   path?: string;
@@ -37,7 +38,7 @@ export class AssetListTool extends AssetTool<AssetListArgs> {
     };
   }
 
-  protected async execute(args: AssetListArgs) {
+  protected async execute(args: AssetListArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand('asset.list', args);
     
     const assets = (result.assets || []) as AssetInfo[];
