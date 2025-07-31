@@ -397,3 +397,130 @@ class ActorOperations:
         except Exception as e:
             log_error(f"Failed to organize actors: {str(e)}")
             return {'success': False, 'error': str(e)}
+    
+    def batch_spawn(self, actors, commonFolder=None, validate=True):
+        """Spawn multiple actors efficiently in a single operation.
+        
+        Args:
+            actors: List of actor configurations to spawn
+            commonFolder: Optional common folder for all spawned actors
+            validate: Whether to validate spawns after creation
+            
+        Returns:
+            dict: Results with spawned actors and any failures
+        """
+        import time
+        start_time = time.time()
+        
+        spawned_actors = []
+        failed_spawns = []
+        
+        try:
+            # Disable viewport updates during batch operation for performance
+            unreal.EditorLevelLibrary.set_level_viewport_realtime(False)
+            
+            for actor_config in actors:
+                try:
+                    # Extract spawn parameters
+                    asset_path = actor_config.get('assetPath')
+                    if not asset_path:
+                        failed_spawns.append({
+                            'assetPath': 'Unknown',
+                            'error': 'Missing required assetPath'
+                        })
+                        continue
+                    
+                    # Load the asset
+                    asset = load_asset(asset_path)
+                    if not asset:
+                        failed_spawns.append({
+                            'assetPath': asset_path,
+                            'error': f'Failed to load asset: {asset_path}'
+                        })
+                        continue
+                    
+                    # Set up spawn parameters
+                    location = unreal.Vector(*actor_config.get('location', [0, 0, 0]))
+                    rotation = unreal.Rotator(*actor_config.get('rotation', [0, 0, 0]))
+                    scale = unreal.Vector(*actor_config.get('scale', [1, 1, 1]))
+                    
+                    # Spawn the actor
+                    spawned_actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
+                        asset,
+                        location,
+                        rotation
+                    )
+                    
+                    if not spawned_actor:
+                        failed_spawns.append({
+                            'assetPath': asset_path,
+                            'error': 'Spawn failed - check location for collisions'
+                        })
+                        continue
+                    
+                    # Set scale
+                    spawned_actor.set_actor_scale3d(scale)
+                    
+                    # Set name if provided
+                    actor_name = actor_config.get('name')
+                    if actor_name:
+                        spawned_actor.set_actor_label(actor_name)
+                    else:
+                        # Generate name from asset
+                        asset_name = asset.get_name()
+                        actor_name = spawned_actor.get_actor_label()
+                    
+                    # Set folder
+                    folder = commonFolder or actor_config.get('folder')
+                    if folder:
+                        spawned_actor.set_folder_path(folder)
+                    
+                    # Add to results
+                    spawned_actors.append({
+                        'name': actor_name,
+                        'assetPath': asset_path,
+                        'location': [location.x, location.y, location.z],
+                        'rotation': [rotation.roll, rotation.pitch, rotation.yaw],
+                        'scale': [scale.x, scale.y, scale.z]
+                    })
+                    
+                except Exception as e:
+                    log_error(f"Failed to spawn actor: {str(e)}")
+                    failed_spawns.append({
+                        'assetPath': actor_config.get('assetPath', 'Unknown'),
+                        'error': str(e)
+                    })
+            
+        finally:
+            # Re-enable viewport updates
+            unreal.EditorLevelLibrary.set_level_viewport_realtime(True)
+        
+        # Calculate execution time
+        execution_time = time.time() - start_time
+        
+        # Validate if requested
+        if validate and spawned_actors:
+            # Quick validation - just check if actors still exist
+            all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+            actor_names = [a['name'] for a in spawned_actors]
+            validation_failed = []
+            
+            for actor_name in actor_names:
+                found = False
+                for level_actor in all_actors:
+                    if level_actor.get_actor_label() == actor_name:
+                        found = True
+                        break
+                if not found:
+                    validation_failed.append(actor_name)
+            
+            if validation_failed:
+                log_error(f"Validation failed for actors: {validation_failed}")
+        
+        return {
+            'success': True,
+            'spawnedActors': spawned_actors,
+            'failedSpawns': failed_spawns,
+            'totalRequested': len(actors),
+            'executionTime': execution_time
+        }
