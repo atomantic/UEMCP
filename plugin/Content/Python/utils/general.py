@@ -238,3 +238,37 @@ def log_error(message):
 def log_warning(message):
     """Log a warning message."""
     unreal.log_warning(f"UEMCP: {message}")
+
+
+def safe_str(obj):
+    """Safely convert an object to string, handling None and special cases.
+    
+    Args:
+        obj: Object to convert to string
+        
+    Returns:
+        str: String representation or empty string if None
+    """
+    if obj is None:
+        return ""
+    try:
+        return str(obj)
+    except Exception:
+        return ""
+
+
+def format_unreal_type(unreal_obj):
+    """Format an Unreal object type for display.
+    
+    Args:
+        unreal_obj: Unreal Engine object
+        
+    Returns:
+        str: Formatted type string
+    """
+    if not unreal_obj:
+        return "None"
+    try:
+        return unreal_obj.get_class().get_name()
+    except Exception:
+        return type(unreal_obj).__name__
