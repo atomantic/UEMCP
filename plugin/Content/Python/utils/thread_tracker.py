@@ -52,3 +52,20 @@ def cleanup_all():
         unreal.log_warning(f"UEMCP: {len(_all_server_threads)} threads still alive after cleanup")
     
     unreal.log("UEMCP: Cleanup complete")
+
+
+def track_thread(thread):
+    """Track a thread (alias for add_server_thread)"""
+    add_server_thread(thread)
+
+
+def get_tracked_threads():
+    """Get all tracked threads"""
+    # Clean up dead threads first
+    _all_server_threads[:] = [t for t in _all_server_threads if t.is_alive()]
+    return _all_server_threads.copy()
+
+
+def clear_threads():
+    """Clear all tracked threads (alias for cleanup_all)"""
+    cleanup_all()
