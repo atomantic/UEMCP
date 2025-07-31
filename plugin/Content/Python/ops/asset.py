@@ -35,6 +35,25 @@ class AssetOperations:
         # Default to center
         return 'center'
     
+    def _has_simple_collision(self, body_setup):
+        """Check if a body setup has simple collision geometry.
+        
+        Args:
+            body_setup: The body setup to check
+            
+        Returns:
+            bool: True if simple collision exists, False otherwise
+        """
+        if not body_setup or not hasattr(body_setup, 'aggregate_geom'):
+            return False
+            
+        aggregate_geom = body_setup.aggregate_geom
+        return (
+            len(aggregate_geom.box_elems) > 0 or
+            len(aggregate_geom.sphere_elems) > 0 or
+            len(aggregate_geom.convex_elems) > 0
+        )
+    
     def list_assets(self, path='/Game', assetType=None, limit=20):
         """List assets in a given path.
         
@@ -188,14 +207,7 @@ class AssetOperations:
                         collision_info['collisionComplexity'] = 'Unknown'
                     
                     # Check for simple collision
-                    if hasattr(body_setup, 'aggregate_geom'):
-                        collision_info['hasSimpleCollision'] = (
-                            len(body_setup.aggregate_geom.box_elems) > 0 or
-                            len(body_setup.aggregate_geom.sphere_elems) > 0 or
-                            len(body_setup.aggregate_geom.convex_elems) > 0
-                        )
-                    else:
-                        collision_info['hasSimpleCollision'] = False
+                    collision_info['hasSimpleCollision'] = self._has_simple_collision(body_setup)
                 
                 info['collision'] = collision_info
                 

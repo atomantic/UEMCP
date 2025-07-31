@@ -72,25 +72,25 @@ export interface EnhancedAssetInfo {
 }
 
 // Type guard to validate enhanced asset info structure
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function isEnhancedAssetInfo(obj: any): obj is EnhancedAssetInfo {
-  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+export function isEnhancedAssetInfo(obj: unknown): obj is EnhancedAssetInfo {
   if (!obj || typeof obj !== 'object') return false;
   
+  // Cast to Record to access properties
+  const data = obj as Record<string, unknown>;
+  
   // Check optional properties have correct types when present
-  if (obj.assetType !== undefined && typeof obj.assetType !== 'string') return false;
-  if (obj.numVertices !== undefined && typeof obj.numVertices !== 'number') return false;
-  if (obj.numTriangles !== undefined && typeof obj.numTriangles !== 'number') return false;
-  if (obj.numLODs !== undefined && typeof obj.numLODs !== 'number') return false;
-  if (obj.blueprintClass !== undefined && typeof obj.blueprintClass !== 'string') return false;
+  if (data.assetType !== undefined && typeof data.assetType !== 'string') return false;
+  if (data.numVertices !== undefined && typeof data.numVertices !== 'number') return false;
+  if (data.numTriangles !== undefined && typeof data.numTriangles !== 'number') return false;
+  if (data.numLODs !== undefined && typeof data.numLODs !== 'number') return false;
+  if (data.blueprintClass !== undefined && typeof data.blueprintClass !== 'string') return false;
   
   // Validate arrays
-  if (obj.sockets !== undefined && !Array.isArray(obj.sockets)) return false;
-  if (obj.materialSlots !== undefined && !Array.isArray(obj.materialSlots)) return false;
-  if (obj.components !== undefined && !Array.isArray(obj.components)) return false;
+  if (data.sockets !== undefined && !Array.isArray(data.sockets)) return false;
+  if (data.materialSlots !== undefined && !Array.isArray(data.materialSlots)) return false;
+  if (data.components !== undefined && !Array.isArray(data.components)) return false;
   
   return true;
-  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 }
 
 
