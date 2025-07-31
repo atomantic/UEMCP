@@ -10,6 +10,7 @@
  */
 
 import { createMCPClient } from '../server/tests/utils/mcp-client.js';
+import { fileURLToPath } from 'url';
 
 async function testAssetImport() {
   const client = createMCPClient();
@@ -69,7 +70,7 @@ async function testAssetImport() {
 }
 
 // Run the test if this script is called directly
-if (import.meta.url.endsWith(new URL(import.meta.url).pathname)) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   testAssetImport();
 }
 

@@ -13,6 +13,14 @@ class AssetOperations:
     # Tolerance for pivot type detection (in Unreal units)
     PIVOT_TOLERANCE = 0.1
     
+    # Texture compression settings mapping
+    COMPRESSION_MAP = {
+        'TC_Default': unreal.TextureCompressionSettings.TC_DEFAULT,
+        'TC_Normalmap': unreal.TextureCompressionSettings.TC_NORMALMAP,
+        'TC_Masks': unreal.TextureCompressionSettings.TC_MASKS,
+        'TC_Grayscale': unreal.TextureCompressionSettings.TC_GRAYSCALE
+    }
+    
     def _detect_pivot_type(self, origin, box_extent):
         """Detect the pivot type based on origin position relative to bounds.
         
@@ -742,19 +750,12 @@ class AssetOperations:
             elif file_ext in ['.png', '.jpg', '.jpeg', '.tga', '.bmp', '.tiff', '.exr', '.hdr']:
                 # Texture import - use TextureFactory
                 factory = unreal.TextureFactory()
-                factory.srgb = settings.get('sRGB', True)
+                factory.s_rgb = settings.get('sRGB', True)
                 
                 # Set compression based on settings
-                compression_map = {
-                    'TC_Default': unreal.TextureCompressionSettings.TC_DEFAULT,
-                    'TC_Normalmap': unreal.TextureCompressionSettings.TC_NORMALMAP,
-                    'TC_Masks': unreal.TextureCompressionSettings.TC_MASKS,
-                    'TC_Grayscale': unreal.TextureCompressionSettings.TC_GRAYSCALE
-                }
-                
                 compression = settings.get('compressionSettings', 'TC_Default')
-                if compression in compression_map:
-                    factory.compression_settings = compression_map[compression]
+                if compression in self.COMPRESSION_MAP:
+                    factory.compression_settings = self.COMPRESSION_MAP[compression]
                 
                 task.factory = factory
             

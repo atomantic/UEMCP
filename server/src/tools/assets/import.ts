@@ -64,6 +64,30 @@ interface AssetImportResult {
 }
 
 /**
+ * Type guard to validate AssetImportResult structure
+ */
+function isAssetImportResult(obj: unknown): obj is AssetImportResult {
+  if (!obj || typeof obj !== 'object') return false;
+  
+  const result = obj as Record<string, unknown>;
+  
+  // Check required properties
+  if (!result.statistics || typeof result.statistics !== 'object') return false;
+  if (!Array.isArray(result.importedAssets)) return false;
+  if (!Array.isArray(result.failedImports)) return false;
+  if (!Array.isArray(result.skippedAssets)) return false;
+  
+  // Validate statistics
+  const stats = result.statistics as Record<string, unknown>;
+  if (typeof stats.totalFiles !== 'number') return false;
+  if (typeof stats.successCount !== 'number') return false;
+  if (typeof stats.failureCount !== 'number') return false;
+  if (typeof stats.skippedCount !== 'number') return false;
+  
+  return true;
+}
+
+/**
  * Tool for importing assets from FAB marketplace or other sources into UE project
  */
 export class AssetImportTool extends AssetTool<AssetImportArgs> {
@@ -176,9 +200,11 @@ export class AssetImportTool extends AssetTool<AssetImportArgs> {
       throw new Error(result.error || 'Asset import failed');
     }
     
-    // Cast to our expected type since we know the Python backend returns this structure
-    const importResult = result as unknown as AssetImportResult;
-    return this.formatImportResult(importResult);
+    // Validate the result structure using a type guard
+    if (!isAssetImportResult(result)) {
+      throw new Error('Invalid response structure from asset import command');
+    }
+    return this.formatImportResult(result);
   }
 
   /**
