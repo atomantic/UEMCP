@@ -315,3 +315,27 @@ def validate_actor_modifications(actor, modifications):
                 result.add_error(error)
     
     return result
+
+
+class ValidationManager:
+    """Manager class for validation operations - provides a namespace for validation functions"""
+    
+    @staticmethod
+    def validate_spawn(actor_name, **kwargs):
+        """Validate a spawned actor with expected properties"""
+        return validate_actor_spawn(actor_name, **kwargs)
+    
+    @staticmethod
+    def validate_deletion(actor_name):
+        """Validate an actor was successfully deleted"""
+        return validate_actor_deleted(actor_name)
+    
+    @staticmethod
+    def validate_modifications(actor, modifications):
+        """Validate modifications to an actor"""
+        return validate_actor_modifications(actor, modifications)
+    
+    @staticmethod
+    def find_actor(actor_name):
+        """Find an actor by name"""
+        return find_actor_by_name(actor_name)
