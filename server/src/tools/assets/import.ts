@@ -74,14 +74,14 @@ function isAssetImportResult(obj: unknown): obj is AssetImportResult {
   // Check required properties
   if (!result.statistics || typeof result.statistics !== 'object') return false;
   if (!Array.isArray(result.importedAssets)) return false;
-  if (!Array.isArray(result.failedImports)) return false;
+  if (!Array.isArray(result.failedAssets)) return false;
   if (!Array.isArray(result.skippedAssets)) return false;
   
   // Validate statistics
   const stats = result.statistics as Record<string, unknown>;
-  if (typeof stats.totalFiles !== 'number') return false;
+  if (typeof stats.totalProcessed !== 'number') return false;
   if (typeof stats.successCount !== 'number') return false;
-  if (typeof stats.failureCount !== 'number') return false;
+  if (typeof stats.failedCount !== 'number') return false;
   if (typeof stats.skippedCount !== 'number') return false;
   
   return true;

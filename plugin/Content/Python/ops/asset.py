@@ -786,8 +786,13 @@ class AssetOperations:
             
             # Get mesh-specific info
             if isinstance(asset, unreal.StaticMesh):
-                info['vertexCount'] = asset.get_num_vertices(0)
-                info['materialCount'] = asset.get_num_sections(0)
+                # Check if the asset has any LODs before accessing LOD 0
+                if asset.get_num_lods() > 0:
+                    info['vertexCount'] = asset.get_num_vertices(0)
+                    info['materialCount'] = asset.get_num_sections(0)
+                else:
+                    info['vertexCount'] = 0
+                    info['materialCount'] = 0
             
         except Exception as e:
             log_error(f"Error getting asset info: {str(e)}")
