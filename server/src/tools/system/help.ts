@@ -1,6 +1,7 @@
 import { BaseTool } from '../base/base-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
 import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
+import { TOOL_NAMES, TOOL_CATEGORIES } from '../../utils/tool-registry.js';
 
 interface HelpArgs {
   tool?: string;
@@ -21,19 +22,12 @@ export class HelpTool extends BaseTool<HelpArgs> {
           tool: {
             type: 'string',
             description: 'Get detailed help for a specific tool',
-            enum: [
-              'project_info', 'asset_list', 'asset_info', 'actor_spawn', 'actor_duplicate',
-              'actor_delete', 'actor_modify', 'actor_organize', 'level_actors', 'level_save',
-              'level_outliner', 'viewport_screenshot', 'viewport_camera', 'viewport_mode',
-              'viewport_focus', 'viewport_render_mode', 'viewport_bounds', 'viewport_fit',
-              'viewport_look_at', 'python_proxy', 'test_connection', 'restart_listener',
-              'ue_logs', 'help'
-            ],
+            enum: [...TOOL_NAMES],
           },
           category: {
             type: 'string',
             description: 'List tools in a category',
-            enum: ['project', 'level', 'viewport', 'advanced', 'help'],
+            enum: [...TOOL_CATEGORIES],
           },
         },
       },
