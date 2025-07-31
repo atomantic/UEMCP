@@ -30,6 +30,7 @@ export {
 export {
   assetListTool,
   assetInfoTool,
+  assetImportTool,
 } from './assets/index.js';
 
 // Level tools
