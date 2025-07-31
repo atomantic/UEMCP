@@ -563,3 +563,280 @@ class ActorOperations:
             'totalRequested': len(actors),
             'executionTime': execution_time
         }
+    
+    def placement_validate(self, actors, tolerance=10.0, checkAlignment=True, modularSize=300.0):
+        """Validate placement of modular building components.
+        
+        Detects gaps, overlaps, and alignment issues in modular building placement.
+        Essential for ensuring proper modular building assembly.
+        
+        Args:
+            actors: List of actor names to validate
+            tolerance: Acceptable gap/overlap distance (default: 10.0 units)
+            checkAlignment: Whether to check modular grid alignment (default: True)
+            modularSize: Size of modular grid in units (default: 300.0 for ModularOldTown)
+            
+        Returns:
+            dict: Detailed validation results with gaps, overlaps, and alignment issues
+        """
+        import time
+        import math
+        start_time = time.time()
+        
+        # Constants
+        GAP_THRESHOLD = 3  # Maximum number of gaps before marking as major issues
+        
+        try:
+            # Find all actors to validate
+            actor_objects = []
+            missing_actors = []
+            
+            for actor_name in actors:
+                actor = find_actor_by_name(actor_name)
+                if actor:
+                    actor_objects.append(actor)
+                else:
+                    missing_actors.append(actor_name)
+            
+            if missing_actors:
+                return {
+                    'success': False,
+                    'error': f'Actors not found: {", ".join(missing_actors)}'
+                }
+            
+            if len(actor_objects) < 2:
+                return {
+                    'success': False,
+                    'error': 'At least 2 actors are required for placement validation'
+                }
+            
+            # Get actor bounds and positions
+            actor_data = []
+            for actor in actor_objects:
+                try:
+                    location = actor.get_actor_location()
+                    bounds = actor.get_actor_bounds(only_colliding_components=False)
+                    
+                    # Get bounding box
+                    box_extent = bounds[1]  # bounds[1] is the extent (half-size)
+                    
+                    actor_info = {
+                        'actor': actor,
+                        'name': actor.get_actor_label(),
+                        'location': [location.x, location.y, location.z],
+                        'bounds_min': [
+                            location.x - box_extent.x,
+                            location.y - box_extent.y,
+                            location.z - box_extent.z
+                        ],
+                        'bounds_max': [
+                            location.x + box_extent.x,
+                            location.y + box_extent.y,
+                            location.z + box_extent.z
+                        ],
+                        'size': [box_extent.x * 2, box_extent.y * 2, box_extent.z * 2]
+                    }
+                    actor_data.append(actor_info)
+                    
+                except Exception as e:
+                    log_error(f"Failed to get bounds for actor {actor.get_actor_label()}: {str(e)}")
+                    continue
+            
+            if len(actor_data) < 2:
+                return {
+                    'success': False,
+                    'error': 'Could not get bounds for enough actors to perform validation'
+                }
+            
+            # Detect gaps and overlaps
+            gaps = []
+            overlaps = []
+            
+            for i, actor1 in enumerate(actor_data):
+                for j, actor2 in enumerate(actor_data):
+                    if i >= j:  # Avoid duplicate checks
+                        continue
+                    
+                    # Calculate distances between bounding boxes
+                    gap_overlap = self._calculate_gap_overlap(actor1, actor2, tolerance)
+                    
+                    if gap_overlap['type'] == 'gap' and gap_overlap['distance'] > tolerance:
+                        gaps.append({
+                            'location': gap_overlap['location'],
+                            'distance': gap_overlap['distance'],
+                            'actors': [actor1['name'], actor2['name']],
+                            'direction': gap_overlap['direction']
+                        })
+                    elif gap_overlap['type'] == 'overlap' and gap_overlap['distance'] > tolerance:
+                        # Determine overlap severity
+                        severity = 'minor'
+                        if gap_overlap['distance'] > modularSize * 0.1:  # >10% of modular size
+                            severity = 'major'
+                        if gap_overlap['distance'] > modularSize * 0.25:  # >25% of modular size
+                            severity = 'critical'
+                        
+                        overlaps.append({
+                            'location': gap_overlap['location'],
+                            'amount': gap_overlap['distance'],
+                            'actors': [actor1['name'], actor2['name']],
+                            'severity': severity
+                        })
+            
+            # Check alignment to modular grid
+            alignment_issues = []
+            if checkAlignment:
+                for actor_info in actor_data:
+                    alignment_issue = self._check_modular_alignment(
+                        actor_info, modularSize, tolerance
+                    )
+                    if alignment_issue:
+                        alignment_issues.append(alignment_issue)
+            
+            # Calculate summary statistics
+            total_issues = len(gaps) + len(overlaps) + len(alignment_issues)
+            critical_overlaps = len([o for o in overlaps if o['severity'] == 'critical'])
+            major_overlaps = len([o for o in overlaps if o['severity'] == 'major'])
+            
+            # Determine overall status
+            if critical_overlaps > 0:
+                overall_status = 'critical_issues'
+            elif major_overlaps > 0 or len(gaps) > GAP_THRESHOLD:
+                overall_status = 'major_issues'  
+            elif total_issues > 0:
+                overall_status = 'minor_issues'
+            else:
+                overall_status = 'good'
+            
+            execution_time = time.time() - start_time
+            
+            return {
+                'success': True,
+                'gaps': gaps,
+                'overlaps': overlaps,
+                'alignmentIssues': alignment_issues,
+                'summary': {
+                    'totalActors': len(actor_data),
+                    'gapsFound': len(gaps),
+                    'overlapsFound': len(overlaps),
+                    'alignmentIssuesFound': len(alignment_issues),
+                    'overallStatus': overall_status
+                },
+                'executionTime': execution_time
+            }
+            
+        except Exception as e:
+            log_error(f"Failed to validate placement: {str(e)}")
+            return {'success': False, 'error': str(e)}
+    
+    def _calculate_gap_overlap(self, actor1, actor2, tolerance):
+        """Calculate gap or overlap between two actors."""
+        import math
+        
+        # Calculate minimum distance between bounding boxes on each axis
+        x_gap = max(0, max(actor1['bounds_min'][0] - actor2['bounds_max'][0],
+                          actor2['bounds_min'][0] - actor1['bounds_max'][0]))
+        y_gap = max(0, max(actor1['bounds_min'][1] - actor2['bounds_max'][1],
+                          actor2['bounds_min'][1] - actor1['bounds_max'][1]))
+        z_gap = max(0, max(actor1['bounds_min'][2] - actor2['bounds_max'][2],
+                          actor2['bounds_min'][2] - actor1['bounds_max'][2]))
+        
+        # Calculate overlap on each axis
+        x_overlap = max(0, min(actor1['bounds_max'][0], actor2['bounds_max'][0]) -
+                           max(actor1['bounds_min'][0], actor2['bounds_min'][0]))
+        y_overlap = max(0, min(actor1['bounds_max'][1], actor2['bounds_max'][1]) -
+                           max(actor1['bounds_min'][1], actor2['bounds_min'][1]))
+        z_overlap = max(0, min(actor1['bounds_max'][2], actor2['bounds_max'][2]) -
+                           max(actor1['bounds_min'][2], actor2['bounds_min'][2]))
+        
+        # Find the primary axis (smallest gap or largest overlap)
+        gaps = [x_gap, y_gap, z_gap]
+        overlaps = [x_overlap, y_overlap, z_overlap]
+        axis_names = ['X', 'Y', 'Z']
+        
+        # If there's any gap, find the smallest gap
+        if any(gap > 0 for gap in gaps):
+            min_gap_index = gaps.index(min(gap for gap in gaps if gap > 0))
+            min_gap = gaps[min_gap_index]
+            
+            # Calculate midpoint location for gap
+            midpoint = [
+                (actor1['location'][0] + actor2['location'][0]) / 2,
+                (actor1['location'][1] + actor2['location'][1]) / 2,
+                (actor1['location'][2] + actor2['location'][2]) / 2
+            ]
+            
+            return {
+                'type': 'gap',
+                'distance': min_gap,
+                'location': midpoint,
+                'direction': axis_names[min_gap_index]
+            }
+        
+        # If there's overlap, find the largest overlap
+        elif any(overlap > 0 for overlap in overlaps):
+            max_overlap_index = overlaps.index(max(overlaps))
+            max_overlap = overlaps[max_overlap_index]
+            
+            # Calculate overlap center location
+            overlap_center = [
+                (max(actor1['bounds_min'][0], actor2['bounds_min'][0]) +
+                 min(actor1['bounds_max'][0], actor2['bounds_max'][0])) / 2,
+                (max(actor1['bounds_min'][1], actor2['bounds_min'][1]) +
+                 min(actor1['bounds_max'][1], actor2['bounds_max'][1])) / 2,
+                (max(actor1['bounds_min'][2], actor2['bounds_min'][2]) +
+                 min(actor1['bounds_max'][2], actor2['bounds_max'][2])) / 2
+            ]
+            
+            return {
+                'type': 'overlap',
+                'distance': max_overlap,
+                'location': overlap_center,
+                'direction': axis_names[max_overlap_index]
+            }
+        
+        # Actors are touching (within tolerance)
+        return {
+            'type': 'touching',
+            'distance': 0,
+            'location': [
+                (actor1['location'][0] + actor2['location'][0]) / 2,
+                (actor1['location'][1] + actor2['location'][1]) / 2,
+                (actor1['location'][2] + actor2['location'][2]) / 2
+            ],
+            'direction': 'None'
+        }
+    
+    def _check_modular_alignment(self, actor_info, modular_size, tolerance):
+        """Check if an actor is aligned to the modular grid."""
+        location = actor_info['location']
+        name = actor_info['name']
+        
+        # Only X and Y axes are checked for alignment because Z is typically not critical for modular building pieces.
+        # Check alignment on X and Y axes (Z is usually fine for building pieces)
+        alignment_issues = []
+        
+        for axis_index, axis_name in enumerate(['X', 'Y']):
+            coord = location[axis_index]
+            
+            # Find nearest grid position
+            nearest_grid = round(coord / modular_size) * modular_size
+            offset = coord - nearest_grid
+            
+            if abs(offset) > tolerance:
+                # Create suggested position
+                suggested_location = location.copy()
+                suggested_location[axis_index] = nearest_grid
+                
+                # Create offset array with proper indexing
+                offset_array = [0, 0, 0]
+                offset_array[axis_index] = offset
+                
+                return {
+                    'actor': name,
+                    'currentLocation': location,
+                    'suggestedLocation': suggested_location,
+                    'offset': offset_array,
+                    'axis': axis_name
+                }
+        
+        return None
