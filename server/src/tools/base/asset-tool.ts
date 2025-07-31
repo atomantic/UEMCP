@@ -68,7 +68,29 @@ export interface EnhancedAssetInfo {
   numLODs?: number;
   blueprintClass?: string;
   components?: ComponentInfo[];
-  [key: string]: unknown; // Allow additional properties from Python
+  additionalProperties?: Record<string, unknown>; // Allow additional properties from Python
+}
+
+// Type guard to validate enhanced asset info structure
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isEnhancedAssetInfo(obj: any): obj is EnhancedAssetInfo {
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+  if (!obj || typeof obj !== 'object') return false;
+  
+  // Check optional properties have correct types when present
+  if (obj.assetType !== undefined && typeof obj.assetType !== 'string') return false;
+  if (obj.numVertices !== undefined && typeof obj.numVertices !== 'number') return false;
+  if (obj.numTriangles !== undefined && typeof obj.numTriangles !== 'number') return false;
+  if (obj.numLODs !== undefined && typeof obj.numLODs !== 'number') return false;
+  if (obj.blueprintClass !== undefined && typeof obj.blueprintClass !== 'string') return false;
+  
+  // Validate arrays
+  if (obj.sockets !== undefined && !Array.isArray(obj.sockets)) return false;
+  if (obj.materialSlots !== undefined && !Array.isArray(obj.materialSlots)) return false;
+  if (obj.components !== undefined && !Array.isArray(obj.components)) return false;
+  
+  return true;
+  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 }
 
 

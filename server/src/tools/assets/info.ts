@@ -1,7 +1,6 @@
-import { AssetTool } from '../base/asset-tool.js';
+import { AssetTool, isEnhancedAssetInfo } from '../base/asset-tool.js';
 import { ToolResponse } from '../../utils/response-formatter.js';
 import { ToolDefinition } from '../base/base-tool.js';
-import type { EnhancedAssetInfo } from '../base/asset-tool.js';
 
 interface AssetInfoArgs {
   assetPath: string;
@@ -14,7 +13,7 @@ export class AssetInfoTool extends AssetTool<AssetInfoArgs> {
   get definition(): ToolDefinition {
     return {
       name: 'asset_info',
-      description: 'Get comprehensive asset details including bounds, pivot type, sockets, collision, and materials. Returns min/max bounds, pivot offset, socket locations for snapping, collision info, material slots, and more. Essential for precise placement calculations!',
+      description: 'Get comprehensive asset details including bounds, pivot, sockets, collision, and materials for precise placement calculations.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -36,8 +35,10 @@ export class AssetInfoTool extends AssetTool<AssetInfoArgs> {
     }
     
     // Format the enhanced asset info
-    // Cast the Python result to our TypeScript interface
-    return this.formatEnhancedAssetInfo(result as unknown as EnhancedAssetInfo, args.assetPath);
+    if (!isEnhancedAssetInfo(result)) {
+      throw new Error('Invalid asset info structure received from Python command');
+    }
+    return this.formatEnhancedAssetInfo(result, args.assetPath);
   }
 }
 
