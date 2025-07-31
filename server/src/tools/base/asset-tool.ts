@@ -90,6 +90,14 @@ export function isEnhancedAssetInfo(obj: unknown): obj is EnhancedAssetInfo {
   if (data.materialSlots !== undefined && !Array.isArray(data.materialSlots)) return false;
   if (data.components !== undefined && !Array.isArray(data.components)) return false;
   
+  // Validate additionalProperties is a proper object if present
+  if (data.additionalProperties !== undefined && 
+      (typeof data.additionalProperties !== 'object' || 
+       data.additionalProperties === null || 
+       Array.isArray(data.additionalProperties))) {
+    return false;
+  }
+  
   return true;
 }
 

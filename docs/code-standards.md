@@ -277,12 +277,12 @@ from utils.logging import log_error, log_debug
 
 ```python
 # ✅ GOOD: Comprehensive type hints
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Any
 
 def get_asset_info(
     self, 
     asset_path: str
-) -> Dict[str, Union[bool, str, Dict[str, float], List[Dict[str, any]]]]:
+) -> Dict[str, Union[bool, str, Dict[str, float], List[Dict[str, Any]]]]:
     """Get detailed information about an asset.
     
     Args:
@@ -436,6 +436,8 @@ export function isEnhancedAssetInfo(obj: any): obj is EnhancedAssetInfo {
 ### Good Example: Python Asset Operations
 
 ```python
+from typing import Dict, Any
+
 class AssetOperations:
     """Handles all asset-related operations."""
     
@@ -443,7 +445,7 @@ class AssetOperations:
     PIVOT_TOLERANCE = 0.1
     DEFAULT_ASSET_LIMIT = 20
     
-    def get_asset_info(self, asset_path: str) -> Dict[str, any]:
+    def get_asset_info(self, asset_path: str) -> Dict[str, Any]:
         """Get detailed information about an asset."""
         try:
             asset = load_asset(asset_path)

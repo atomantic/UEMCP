@@ -3,6 +3,7 @@ UEMCP Asset Operations - All asset and content browser operations
 """
 
 import unreal
+from typing import Dict, Any, List, Optional
 from utils import load_asset, asset_exists, log_error
 
 
@@ -108,7 +109,7 @@ class AssetOperations:
             log_error(f"Failed to list assets: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_asset_info(self, assetPath):
+    def get_asset_info(self, assetPath: str) -> Dict[str, Any]:
         """Get detailed information about an asset.
         
         Args:
@@ -292,9 +293,9 @@ class AssetOperations:
                             component_info.append(comp_data)
                         info['components'] = component_info
                 except AttributeError as e:
-                    log_error(f"AttributeError while retrieving bounds or components for asset: {e}")
+                    log_error(f"AttributeError while retrieving bounds or components for Blueprint '{assetPath}': {e}")
                 except RuntimeError as e:
-                    log_error(f"RuntimeError while retrieving bounds or components for asset: {e}")
+                    log_error(f"RuntimeError while retrieving bounds or components for Blueprint '{assetPath}': {e}")
             
             # Get info for materials
             elif isinstance(asset, unreal.Material) or isinstance(asset, unreal.MaterialInstance):
