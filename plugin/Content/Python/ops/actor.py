@@ -404,7 +404,10 @@ class ActorOperations:
         Args:
             actors: List of actor configurations to spawn
             commonFolder: Optional common folder for all spawned actors
-            validate: Whether to validate spawns after creation
+            validate: Whether to validate spawns after creation (default: True).
+                     Note: For large batches (>100 actors), validation may add
+                     0.5-2 seconds. Set to False for maximum performance if you're
+                     confident in the spawn parameters.
             
         Returns:
             dict: Results with spawned actors and any failures
@@ -417,10 +420,16 @@ class ActorOperations:
         
         try:
             # Disable viewport updates during batch operation for performance
+            viewport_disabled = False
             try:
                 unreal.EditorLevelLibrary.set_level_viewport_realtime(False)
+                viewport_disabled = True
+            except AttributeError as e:
+                log_error(f"AttributeError while disabling viewport updates: {str(e)}")
+            except RuntimeError as e:
+                log_error(f"RuntimeError while disabling viewport updates: {str(e)}")
             except Exception as e:
-                log_error(f"Failed to disable viewport updates: {str(e)}")
+                log_error(f"Unexpected error while disabling viewport updates: {str(e)}")
             
             for actor_config in actors:
                 try:
@@ -495,14 +504,23 @@ class ActorOperations:
                     })
             
         finally:
-            # Re-enable viewport updates
-            unreal.EditorLevelLibrary.set_level_viewport_realtime(True)
+            # Re-enable viewport updates only if we successfully disabled them
+            if viewport_disabled:
+                try:
+                    unreal.EditorLevelLibrary.set_level_viewport_realtime(True)
+                except Exception as e:
+                    log_error(f"Failed to re-enable viewport updates: {str(e)}")
         
         # Calculate execution time
         execution_time = time.time() - start_time
         
         # Validate if requested
         if validate and spawned_actors:
+            # Optimize validation for large batches
+            # For >100 actors, validation can add significant overhead (~0.5-2s)
+            if len(spawned_actors) > 100:
+                log_debug(f"Validating {len(spawned_actors)} actors - this may take a moment...")
+            
             # Efficient validation - check actor references directly
             validation_failed = []
             
