@@ -11,6 +11,7 @@ export {
   actorDuplicateTool,
   actorOrganizeTool,
   batchSpawnTool,
+  placementValidateTool,
 } from './actors/index.js';
 
 // Viewport tools

@@ -101,7 +101,7 @@ node init.js --claude-code --project "/path/to/project.uproject" --no-interactiv
 
 ## 🛠 Available Tools
 
-UEMCP provides 23 tools to Claude for controlling Unreal Engine:
+UEMCP provides 24 tools to Claude for controlling Unreal Engine:
 
 ### Project & Assets
 - **project_info** - Get current project information
@@ -115,6 +115,7 @@ UEMCP provides 23 tools to Claude for controlling Unreal Engine:
 - **actor_delete** - Delete actors by name
 - **actor_modify** - Change actor transform and organization
 - **actor_organize** - Organize actors into World Outliner folders
+- **placement_validate** - Validate modular building placement to detect gaps, overlaps, and alignment issues
 - **level_actors** - List all actors in the current level
 - **level_save** - Save the current level
 - **level_outliner** - View World Outliner folder structure

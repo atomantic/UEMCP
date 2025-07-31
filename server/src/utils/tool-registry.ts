@@ -15,6 +15,7 @@ export const TOOL_NAMES = [
   'actor_modify', 
   'actor_organize',
   'batch_spawn',
+  'placement_validate',
   // Asset tools
   'asset_list',
   'asset_info',
