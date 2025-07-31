@@ -44,7 +44,7 @@ export class BatchSpawnTool extends ActorTool<BatchSpawnArgs> {
   get definition(): ToolDefinition {
     return {
       name: 'batch_spawn',
-      description: 'Spawn multiple actors efficiently in a single operation. Reduces overhead and improves performance for placing many actors.',
+      description: 'Spawn multiple actors efficiently in a single operation. Reduces overhead and improves performance for placing many actors. Note: For large batches (>100 actors), validation may add 0.5-2 seconds. Set validate to false for maximum performance if you are confident in spawn parameters.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -97,7 +97,7 @@ export class BatchSpawnTool extends ActorTool<BatchSpawnArgs> {
           },
           validate: {
             type: 'boolean',
-            description: 'Validate all spawns after creation (default: true). Note: For large batches (>100 actors), validation may add 0.5-2 seconds. Set to false for maximum performance if you are confident in spawn parameters.',
+            description: 'Validate all spawns after creation (default: true).',
           },
         },
         required: ['actors'],

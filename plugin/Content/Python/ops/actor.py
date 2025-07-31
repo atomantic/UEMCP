@@ -425,14 +425,14 @@ class ActorOperations:
                 unreal.EditorLevelLibrary.set_level_viewport_realtime(False)
                 viewport_disabled = True
             except AttributeError as e:
-                log_error(f"AttributeError while disabling viewport updates: {str(e)}")
-                log_debug("Continuing with normal performance - viewport will update during spawning")
+                log_error(f"Failed to disable viewport updates due to missing API method: {str(e)}")
+                log_debug("This Unreal Engine version may not support disabling viewport updates. Continuing with normal performance.")
             except RuntimeError as e:
-                log_error(f"RuntimeError while disabling viewport updates: {str(e)}")
-                log_debug("Continuing with normal performance - viewport will update during spawning")
+                log_error(f"Failed to disable viewport updates because the viewport is already in the desired state: {str(e)}")
+                log_debug("Viewport updates are already disabled. Continuing with normal performance.")
             except Exception as e:
-                log_error(f"Unexpected error while disabling viewport updates: {str(e)}")
-                log_debug("Continuing with normal performance - viewport will update during spawning")
+                log_error(f"Unexpected error while attempting to disable viewport updates: {str(e)}")
+                log_debug("An unknown issue occurred. Continuing with normal performance.")
             
             for actor_config in actors:
                 try:
@@ -526,17 +526,35 @@ class ActorOperations:
             
             # Efficient validation - check actor references directly
             validation_failed = []
+            validated_spawned_actors = []
             
             for actor_data in spawned_actors:
                 actor_ref = actor_data.get('_actor_ref')
+                
+                # Check if actor is valid
                 if actor_ref and not unreal.EditorLevelLibrary.is_actor_valid(actor_ref):
                     validation_failed.append(actor_data['name'])
-                # Remove internal reference from results
-                if '_actor_ref' in actor_data:
-                    del actor_data['_actor_ref']
+                    # Don't include invalid actors in the final success list
+                else:
+                    # Create clean actor data without '_actor_ref'
+                    clean_actor_data = {k: v for k, v in actor_data.items() if k != '_actor_ref'}
+                    validated_spawned_actors.append(clean_actor_data)
+            
+            # Replace spawned_actors with validated list
+            spawned_actors = validated_spawned_actors
             
             if validation_failed:
                 log_error(f"Validation failed for actors: {validation_failed}")
+                # Add failed actors to the failed_spawns list
+                for failed_name in validation_failed:
+                    failed_spawns.append({
+                        'assetPath': 'Unknown',
+                        'error': f'Actor {failed_name} failed validation - not found in level'
+                    })
+        else:
+            # Clean up _actor_ref from spawned_actors even when validation is disabled
+            spawned_actors = [{k: v for k, v in actor_data.items() if k != '_actor_ref'} 
+                             for actor_data in spawned_actors]
         
         return {
             'success': True,
