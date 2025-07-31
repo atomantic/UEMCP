@@ -233,3 +233,8 @@ def log_debug(message):
 def log_error(message):
     """Log an error message."""
     unreal.log_error(f"UEMCP: {message}")
+
+
+def log_warning(message):
+    """Log a warning message."""
+    unreal.log_warning(f"UEMCP: {message}")
