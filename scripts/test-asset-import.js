@@ -69,7 +69,7 @@ async function testAssetImport() {
 }
 
 // Run the test if this script is called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url.endsWith(new URL(import.meta.url).pathname)) {
   testAssetImport();
 }
 

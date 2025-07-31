@@ -740,9 +740,9 @@ class AssetOperations:
                 task.options = options
                 
             elif file_ext in ['.png', '.jpg', '.jpeg', '.tga', '.bmp', '.tiff', '.exr', '.hdr']:
-                # Texture import
-                options = unreal.TextureImportSettings()
-                options.srgb = settings.get('sRGB', True)
+                # Texture import - use TextureFactory
+                factory = unreal.TextureFactory()
+                factory.srgb = settings.get('sRGB', True)
                 
                 # Set compression based on settings
                 compression_map = {
@@ -754,9 +754,9 @@ class AssetOperations:
                 
                 compression = settings.get('compressionSettings', 'TC_Default')
                 if compression in compression_map:
-                    options.compression_settings = compression_map[compression]
+                    factory.compression_settings = compression_map[compression]
                 
-                task.options = options
+                task.factory = factory
             
             return task
             
