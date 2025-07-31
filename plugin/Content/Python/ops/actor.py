@@ -583,6 +583,9 @@ class ActorOperations:
         import math
         start_time = time.time()
         
+        # Constants
+        GAP_THRESHOLD = 3  # Maximum number of gaps before marking as major issues
+        
         try:
             # Find all actors to validate
             actor_objects = []
@@ -697,7 +700,7 @@ class ActorOperations:
             # Determine overall status
             if critical_overlaps > 0:
                 overall_status = 'critical_issues'
-            elif major_overlaps > 0 or len(gaps) > 3:
+            elif major_overlaps > 0 or len(gaps) > GAP_THRESHOLD:
                 overall_status = 'major_issues'  
             elif total_issues > 0:
                 overall_status = 'minor_issues'
@@ -808,6 +811,7 @@ class ActorOperations:
         location = actor_info['location']
         name = actor_info['name']
         
+        # Only X and Y axes are checked for alignment because Z is typically not critical for modular building pieces.
         # Check alignment on X and Y axes (Z is usually fine for building pieces)
         alignment_issues = []
         
@@ -827,7 +831,10 @@ class ActorOperations:
                     'actor': name,
                     'currentLocation': location,
                     'suggestedLocation': suggested_location,
-                    'offset': [0, 0, 0] if axis_index != 0 else [offset, 0, 0] if axis_index == 0 else [0, offset, 0],
+                    # Create offset array with proper indexing
+                    offset_array = [0, 0, 0]
+                    offset_array[axis_index] = offset
+                    'offset': offset_array,
                     'axis': axis_name
                 }
         

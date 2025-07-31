@@ -118,7 +118,7 @@ export class PlacementValidateTool extends ActorTool<PlacementValidateArgs> {
       text += `  Gaps found: ${summary.gapsFound}\n`;
       text += `  Overlaps found: ${summary.overlapsFound}\n`;
       text += `  Alignment issues: ${summary.alignmentIssuesFound}\n`;
-      text += `  Overall status: ${summary.overallStatus.replace('_', ' ').toUpperCase()}\n\n`;
+      text += `  Overall status: ${summary.overallStatus.replaceAll('_', ' ').toUpperCase()}\n\n`;
     }
 
     // Gaps
