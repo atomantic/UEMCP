@@ -1,5 +1,3 @@
-import { spawn } from 'child_process';
-import * as path from 'path';
 import { logger } from '../utils/logger.js';
 import fetch from 'node-fetch';
 
@@ -15,22 +13,10 @@ export interface PythonResponse {
 }
 
 export class PythonBridge {
-  private pythonScriptPath: string;
   private httpEndpoint: string;
   private httpPort: number;
 
   constructor() {
-    // Path to the Python executor script (for fallback)
-    this.pythonScriptPath = path.resolve(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      'python',
-      'ue_api',
-      'ue_executor.py'
-    );
-    
     // HTTP endpoint for the Python listener in Unreal
     this.httpPort = parseInt(process.env.UEMCP_LISTENER_PORT || '8765');
     this.httpEndpoint = `http://localhost:${this.httpPort}`;
@@ -73,63 +59,17 @@ export class PythonBridge {
       
     } catch (httpError) {
       const error = httpError as Error;
-      logger.warn('HTTP request failed, falling back to process spawn', { 
+      logger.error('Failed to connect to Python listener', { 
         error: error.message,
         command: command.type,
         endpoint: this.httpEndpoint
       });
       
-      // Fallback to spawning Python process
-      return new Promise((resolve) => {
-        const commandJson = JSON.stringify(command);
-        
-        const pythonProcess = spawn('python3', [
-          this.pythonScriptPath,
-          commandJson
-        ]);
-
-        let stdout = '';
-        let stderr = '';
-
-        pythonProcess.stdout.on('data', (data: Buffer) => {
-          stdout += data.toString();
-        });
-
-        pythonProcess.stderr.on('data', (data: Buffer) => {
-          stderr += data.toString();
-        });
-
-        pythonProcess.on('close', (code) => {
-          if (code !== 0) {
-            logger.error('Python process failed', { code, stderr });
-            resolve({
-              success: false,
-              error: `Python process exited with code ${code}: ${stderr}`
-            });
-            return;
-          }
-
-          try {
-            const response = JSON.parse(stdout) as PythonResponse;
-            logger.debug('Python command response', { response });
-            resolve(response);
-          } catch (error) {
-            logger.error('Failed to parse Python response', { stdout, stderr });
-            resolve({
-              success: false,
-              error: 'Failed to parse Python response'
-            });
-          }
-        });
-
-        pythonProcess.on('error', (error) => {
-          logger.error('Failed to spawn Python process', { error: error.message });
-          resolve({
-            success: false,
-            error: `Failed to spawn Python process: ${error.message}`
-          });
-        });
-      });
+      // Return a clear error message
+      return {
+        success: false,
+        error: `Failed to connect to Python listener at ${this.httpEndpoint}. Make sure Unreal Engine is running with the UEMCP plugin loaded.`
+      };
     }
   }
 
