@@ -4,7 +4,7 @@ UEMCP Command Registry - Manages command registration and dispatch
 
 import inspect
 from typing import Dict, Callable, Any, Optional, List, Tuple
-from uemcp_utils import log_debug, log_error
+from utils import log_debug, log_error
 
 
 class CommandRegistry:
@@ -161,31 +161,6 @@ class CommandRegistry:
                 commands.append(info)
         return commands
     
-    def get_commands_by_category(self) -> Dict[str, List[str]]:
-        """Get commands organized by category.
-        
-        Returns:
-            Dictionary mapping categories to command lists
-        """
-        categories = {}
-        
-        for command_name in self.handlers:
-            # Extract category from command name (e.g., actor_spawn -> actor)
-            parts = command_name.split('_')
-            if len(parts) > 1:
-                category = parts[0]
-            else:
-                category = 'misc'
-            
-            if category not in categories:
-                categories[category] = []
-            categories[category].append(command_name)
-        
-        # Sort commands within each category
-        for category in categories:
-            categories[category].sort()
-        
-        return categories
 
 
 # Global registry instance
@@ -209,23 +184,22 @@ def register_all_operations():
     registry = get_registry()
     
     try:
-        # Import and register actor operations
-        from uemcp_actor_ops import ActorOperations
+        # Import and register all operations from ops package
+        from ops import ActorOperations, AssetOperations, LevelOperations, ViewportOperations
+        
+        # Register actor operations
         actor_ops = ActorOperations()
         registry.register_operations(actor_ops)
         
-        # Import and register viewport operations
-        from uemcp_viewport_ops import ViewportOperations
+        # Register viewport operations
         viewport_ops = ViewportOperations()
         registry.register_operations(viewport_ops)
         
-        # Import and register asset operations
-        from uemcp_asset_ops import AssetOperations
+        # Register asset operations
         asset_ops = AssetOperations()
         registry.register_operations(asset_ops)
         
-        # Import and register level operations
-        from uemcp_level_ops import LevelOperations
+        # Register level operations
         level_ops = LevelOperations()
         registry.register_operations(level_ops)
         

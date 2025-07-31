@@ -13,9 +13,9 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import queue
 
 # Import command registry and operations
-from uemcp_command_registry import get_registry, register_all_operations, dispatch_command
-from uemcp_system_ops import register_system_operations
-from uemcp_utils import log_debug, log_error
+from uemcp_command_registry import register_all_operations, dispatch_command
+from ops.system import register_system_operations
+from utils import log_debug, log_error
 
 # Global state
 server_running = False
@@ -39,36 +39,18 @@ class UEMCPHandler(BaseHTTPRequestHandler):
     """HTTP handler for UEMCP commands"""
     
     def do_GET(self):
-        """Provide detailed status information"""
+        """Provide simple health check status"""
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
         
-        # Get available commands from registry (safe from any thread)
-        try:
-            registry = get_registry()
-            commands_by_category = registry.get_commands_by_category()
-            all_commands = []
-            for category, commands in commands_by_category.items():
-                all_commands.extend(commands)
-        except:
-            commands_by_category = {}
-            all_commands = []
-        
-        # Basic status that doesn't require Unreal API calls
+        # Minimal status for health check - only what Python bridge actually uses
         status = {
             'status': 'online',
-            'service': 'UEMCP Modular Listener',
+            'service': 'UEMCP Listener',
             'version': '2.0',
             'ready': True,
-            'endpoints': {
-                'GET /': 'Status and health check',
-                'POST /': 'Execute UEMCP commands'
-            },
-            'available_commands': sorted(all_commands),
-            'commands_by_category': commands_by_category,
-            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
-            'note': 'Use project_info command for detailed project information'
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
         }
         
         self.wfile.write(json.dumps(status, indent=2).encode('utf-8'))

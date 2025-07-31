@@ -6,7 +6,7 @@ import unreal
 import os
 import sys
 import importlib
-from uemcp_utils import log_debug, log_error
+from utils import log_debug, log_error
 from uemcp_command_registry import get_registry, register_all_operations
 
 

@@ -3,7 +3,7 @@ UEMCP Level Operations - All level and project-related operations
 """
 
 import unreal
-from uemcp_utils import get_project_info, get_all_actors, log_debug, log_error
+from utils import get_project_info, get_all_actors, log_debug, log_error
 
 
 class LevelOperations:
