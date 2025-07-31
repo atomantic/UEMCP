@@ -73,9 +73,9 @@ git clone https://github.com/atomantic/UEMCP.git
 cd UEMCP
 node init.js
 
-# Restart Claude Desktop and test:
+# Restart Claude Desktop or Claude Code and test:
 # "List available UEMCP tools"
-# "Show me the assets in my Unreal project"
+# "Organize the actors in the current map into a sensible folder structure and naming convention"
 ```
 
 The init script automatically:
@@ -379,6 +379,30 @@ npm run lint          # Linting
 
 ### Reference
 - [MCP Enhancement Needs](docs/mcp-enhancement-needs.md) - Future roadmap ideas
+- [House Building Experiment](docs/house-building-experiment.md) - Learnings from complex construction
+- [Python API Workarounds](docs/python-api-workarounds.md) - Solutions for UE Python limitations
+
+## ⚠️ Known Limitations
+
+While UEMCP provides comprehensive UE control, there are some current limitations:
+
+### MCP Tool Limitations
+- **No Asset Snapping**: Manual coordinate calculation required (no socket-based placement)
+- **Single Operations Only**: No batch spawn/modify (use python_proxy for batch operations)
+- **Blueprint Creation Only**: Can create but not edit Blueprint graphs
+- **No Material Editing**: Cannot create material instances or modify materials
+- **No Undo/Redo**: Operations cannot be undone programmatically
+
+### Python API Issues
+- **Actor References**: `get_actor_reference()` doesn't work with display names
+- **Viewport Methods**: Several deprecated (see [Python API Workarounds](docs/python-api-workarounds.md))
+- **No Placement Validation**: Cannot detect collisions or gaps between actors
+- **Limited Asset Info**: No socket, bounds, or pivot data from asset_info
+
+### Workarounds Available
+Most limitations can be worked around using the `python_proxy` tool. See our documentation:
+- [Python API Workarounds](docs/python-api-workarounds.md) - Common fixes
+- [House Building Experiment](docs/house-building-experiment.md) - Real-world solutions
 
 ## 🤝 Contributing
 
