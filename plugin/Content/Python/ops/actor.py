@@ -425,11 +425,11 @@ class ActorOperations:
                 unreal.EditorLevelLibrary.set_level_viewport_realtime(False)
                 viewport_disabled = True
             except AttributeError as e:
-                log_error(f"Failed to disable viewport updates due to missing API method: {str(e)}")
+                log_error(f"Failed to disable viewport updates: {str(e)}")
                 log_debug("This Unreal Engine version may not support disabling viewport updates. Continuing with normal performance.")
             except RuntimeError as e:
-                log_error(f"Failed to disable viewport updates because the viewport is already in the desired state: {str(e)}")
-                log_debug("Viewport updates are already disabled. Continuing with normal performance.")
+                log_error(f"Failed to disable viewport updates due to a runtime error: {str(e)}")
+                log_debug("Viewport updates may already be disabled. Continuing with normal performance.")
             except Exception as e:
                 log_error(f"Unexpected error while attempting to disable viewport updates: {str(e)}")
                 log_debug("An unknown issue occurred. Continuing with normal performance.")
@@ -532,13 +532,13 @@ class ActorOperations:
                 actor_ref = actor_data.get('_actor_ref')
                 
                 # Check if actor is valid
-                if actor_ref and not unreal.EditorLevelLibrary.is_actor_valid(actor_ref):
-                    validation_failed.append(actor_data['name'])
-                    # Don't include invalid actors in the final success list
-                else:
+                if actor_ref and unreal.EditorLevelLibrary.is_actor_valid(actor_ref):
                     # Create clean actor data without '_actor_ref'
                     clean_actor_data = {k: v for k, v in actor_data.items() if k != '_actor_ref'}
                     validated_spawned_actors.append(clean_actor_data)
+                else:
+                    validation_failed.append(actor_data['name'])
+                    # Don't include invalid actors in the final success list
             
             # Replace spawned_actors with validated list
             spawned_actors = validated_spawned_actors
