@@ -541,6 +541,177 @@ viewport_render_mode({ mode: 'lit' })
 - No trailing whitespace
 - Files should end with a single newline
 
+### TypeScript Code Standards
+
+**CRITICAL**: Follow these standards to avoid common code review issues:
+
+1. **Type Safety**:
+   - **NEVER use `any` type** without eslint-disable comment and justification
+   - Define proper interfaces for all data structures
+   - Use type guards for runtime validation
+   - Prefer `unknown` over `any` when type is truly unknown
+   
+   ```typescript
+   // ❌ WRONG
+   protected formatData(info: Record<string, any>) { }
+   info.sockets.forEach((socket: any) => { })
+   
+   // ✅ RIGHT
+   interface SocketInfo {
+     name: string;
+     location: Vec3;
+     rotation: { roll: number; pitch: number; yaw: number; };
+   }
+   protected formatData(info: EnhancedAssetInfo) { }
+   info.sockets.forEach((socket: SocketInfo) => { })
+   ```
+
+2. **Type Assertions**:
+   - **NEVER use unsafe type assertions** like `as unknown as Type`
+   - Always validate data structure before use
+   - Create type guard functions when needed
+   
+   ```typescript
+   // ❌ WRONG
+   return this.formatEnhancedAssetInfo(result as unknown as EnhancedAssetInfo);
+   
+   // ✅ RIGHT
+   if (!isEnhancedAssetInfo(result)) {
+     throw new Error('Invalid asset info structure');
+   }
+   return this.formatEnhancedAssetInfo(result, args.assetPath);
+   ```
+
+3. **Interface Design**:
+   - Use specific optional properties instead of index signatures
+   - Document complex interfaces with JSDoc comments
+   - Group related properties together
+   
+   ```typescript
+   // ❌ WRONG
+   interface Data {
+     [key: string]: unknown;  // Too broad
+   }
+   
+   // ✅ RIGHT
+   interface Data {
+     assetType?: string;
+     bounds?: BoundsInfo;
+     additionalProperties?: Record<string, unknown>; // For truly dynamic data
+   }
+   ```
+
+4. **Tool Descriptions**:
+   - Keep tool descriptions concise (under 100 characters ideal)
+   - Focus on key capabilities, not implementation details
+   - Use active voice
+   
+   ```typescript
+   // ❌ WRONG (too verbose)
+   description: 'Get asset details (dimensions, materials, etc). asset_info({ assetPath: "/Game/Meshes/SM_Wall" }) returns bounding box size. Essential for calculating placement!',
+   
+   // ✅ RIGHT (concise)
+   description: 'Get comprehensive asset details including bounds, pivot, sockets, collision, and materials.',
+   ```
+
+### Python Code Standards
+
+**CRITICAL**: Follow these standards to pass CI checks:
+
+1. **Constants**:
+   - Define magic numbers as named constants
+   - Use UPPER_CASE for constants
+   - Place constants at class or module level
+   
+   ```python
+   # ❌ WRONG
+   if abs(origin.z + box_extent.z) < 0.1:
+   
+   # ✅ RIGHT
+   PIVOT_TOLERANCE = 0.1
+   if abs(origin.z + box_extent.z) < self.PIVOT_TOLERANCE:
+   ```
+
+2. **Exception Handling**:
+   - **NEVER use bare `except:`** or `except Exception:`
+   - Catch specific exceptions
+   - Log errors with context
+   
+   ```python
+   # ❌ WRONG
+   except Exception:
+       pass
+   
+   # ✅ RIGHT
+   except AttributeError as e:
+       log_error(f"AttributeError accessing asset properties: {e}")
+   except RuntimeError as e:
+       log_error(f"RuntimeError in Unreal Engine: {e}")
+   ```
+
+3. **Line Continuations**:
+   - Use parentheses for multi-line expressions
+   - Avoid backslash line continuations
+   
+   ```python
+   # ❌ WRONG
+   collision_info['hasSimpleCollision'] = len(box_elems) > 0 or \
+                                         len(sphere_elems) > 0
+   
+   # ✅ RIGHT
+   collision_info['hasSimpleCollision'] = (
+       len(box_elems) > 0 or
+       len(sphere_elems) > 0
+   )
+   ```
+
+4. **Type Annotations**:
+   - Always add type hints for function parameters
+   - Use proper imports from `typing` module
+   - Document complex types
+   
+   ```python
+   # ❌ WRONG
+   def process_data(data):
+   
+   # ✅ RIGHT
+   from typing import Dict, List, Optional
+   def process_data(data: Dict[str, any]) -> Optional[List[str]]:
+   ```
+
+5. **Import Organization**:
+   - Remove unused imports
+   - Group imports: standard library, third-party, local
+   - Avoid wildcard imports in production code
+   
+   ```python
+   # ❌ WRONG
+   from utils import *
+   import sys  # unused
+   
+   # ✅ RIGHT
+   from utils import load_asset, asset_exists, log_error
+   ```
+
+### Common Code Review Fixes
+
+1. **"Using 'any' type"**: Add proper interface or use type guard
+2. **"Magic number"**: Extract to named constant
+3. **"Broad exception"**: Catch specific exceptions
+4. **"Type assertion unsafe"**: Validate before use
+5. **"Unused import"**: Remove it
+6. **"Line too long"**: Break into multiple lines with proper indentation
+7. **"Multiple len() calls"**: Only optimize if performance-critical
+
+### Pre-Commit Checklist
+
+Before committing, always run `./test-ci-locally.sh` and ensure:
+- ✅ No ESLint errors (TypeScript)
+- ✅ No type checking errors (tsc)
+- ✅ No flake8 errors (Python)
+- ✅ No mypy errors (Python type checking)
+- ✅ All tests pass
+
 ## Troubleshooting Common Issues
 
 1. **Port 8765 in use**: 

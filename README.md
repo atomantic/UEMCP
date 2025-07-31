@@ -374,6 +374,7 @@ npm run lint          # Linting
 
 ### Development & Testing
 - [Development Guide](CLAUDE.md) - Core development patterns and workflow
+- [Code Standards](docs/code-standards.md) - TypeScript and Python coding standards
 - [Architecture & Communication](docs/architecture-communication.md) - System design details
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 
