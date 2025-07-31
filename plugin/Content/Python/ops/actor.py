@@ -827,13 +827,14 @@ class ActorOperations:
                 suggested_location = location.copy()
                 suggested_location[axis_index] = nearest_grid
                 
+                # Create offset array with proper indexing
+                offset_array = [0, 0, 0]
+                offset_array[axis_index] = offset
+                
                 return {
                     'actor': name,
                     'currentLocation': location,
                     'suggestedLocation': suggested_location,
-                    # Create offset array with proper indexing
-                    offset_array = [0, 0, 0]
-                    offset_array[axis_index] = offset
                     'offset': offset_array,
                     'axis': axis_name
                 }
