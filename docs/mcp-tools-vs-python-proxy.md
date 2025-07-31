@@ -153,7 +153,7 @@ result
 
 **Lines of code: 27 vs 5** (81% reduction)
 
-### 3. Getting Asset Information
+### 3. Getting Asset Information (Enhanced)
 
 #### Using `asset_info` MCP Tool:
 ```javascript
@@ -164,21 +164,40 @@ await asset_info({
 
 **Output:**
 ```
-Asset Information:
-Name: SM_FlatWall_3m
+Asset Information: /Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m
+
 Type: StaticMesh
-Path: /Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m
 
-Dimensions:
-  Size: [300.0, 10.0, 300.0]
-  Bounds: [150.0, 5.0, 150.0]
+Bounding Box:
+  Size: [300.0, 100.0, 282.0]
+  Extent: [150.0, 50.0, 141.0]
+  Origin: [0.0, 0.0, 0.0]
+  Min: [-150.0, -50.0, -141.0]
+  Max: [150.0, 50.0, 141.0]
 
-Statistics:
-  Vertices: 84
-  Triangles: 60
-  Materials: 1
-  LODs: 1
-  Sockets: 2
+Pivot:
+  Type: center
+  Offset: [0.0, 0.0, 0.0]
+
+Collision:
+  Has Collision: true
+  Collision Primitives: 1
+  Complexity: CTF_UseSimpleAndComplex
+
+Sockets (2):
+  - DoorSocket:
+    Location: [0.0, -50.0, 0.0]
+    Rotation: [0.0, 0.0, 0.0]
+  - WindowSocket:
+    Location: [75.0, -50.0, 100.0]
+    Rotation: [0.0, 0.0, 0.0]
+
+Material Slots (1):
+  - Material_Slot: /Game/ModularOldTown/Materials/M_OldTown_Wall
+
+Vertices: 324
+Triangles: 162
+LODs: 1
 ```
 
 #### Using `python_proxy`:
@@ -194,45 +213,92 @@ asset = unreal.EditorAssetLibrary.load_asset(asset_path)
 if not asset:
     result = f"Error: Asset not found: {asset_path}"
 else:
-    # Get asset info
-    asset_name = asset.get_name()
-    asset_type = asset.__class__.__name__
+    result = f"Asset Information: {asset_path}\\n\\n"
+    result += f"Type: {asset.__class__.__name__}\\n\\n"
     
     # Get bounds for static mesh
     if isinstance(asset, unreal.StaticMesh):
         bounds = asset.get_bounds()
-        box = bounds.box_extent
-        size = bounds.box_extent * 2
+        box_extent = bounds.box_extent
+        origin = bounds.origin
+        
+        # Calculate min/max bounds
+        min_bounds = unreal.Vector(
+            origin.x - box_extent.x,
+            origin.y - box_extent.y,
+            origin.z - box_extent.z
+        )
+        max_bounds = unreal.Vector(
+            origin.x + box_extent.x,
+            origin.y + box_extent.y,
+            origin.z + box_extent.z
+        )
+        
+        # Determine pivot type
+        pivot_type = 'center'
+        tolerance = 0.1
+        if abs(origin.z + box_extent.z) < tolerance:
+            pivot_type = 'bottom-center'
+        elif abs(origin.x + box_extent.x) < tolerance and abs(origin.y + box_extent.y) < tolerance:
+            pivot_type = 'corner-bottom'
+        
+        result += "Bounding Box:\\n"
+        result += f"  Size: [{box_extent.x * 2}, {box_extent.y * 2}, {box_extent.z * 2}]\\n"
+        result += f"  Extent: [{box_extent.x}, {box_extent.y}, {box_extent.z}]\\n"
+        result += f"  Origin: [{origin.x}, {origin.y}, {origin.z}]\\n"
+        result += f"  Min: [{min_bounds.x}, {min_bounds.y}, {min_bounds.z}]\\n"
+        result += f"  Max: [{max_bounds.x}, {max_bounds.y}, {max_bounds.z}]\\n\\n"
+        
+        result += "Pivot:\\n"
+        result += f"  Type: {pivot_type}\\n"
+        result += f"  Offset: [{origin.x}, {origin.y}, {origin.z}]\\n\\n"
+        
+        # Get collision info
+        result += "Collision:\\n"
+        result += f"  Has Collision: {asset.get_num_collision_primitives() > 0}\\n"
+        result += f"  Collision Primitives: {asset.get_num_collision_primitives()}\\n"
+        
+        body_setup = asset.get_editor_property('body_setup')
+        if body_setup:
+            result += f"  Complexity: {body_setup.collision_trace_flag}\\n"
+        result += "\\n"
+        
+        # Get sockets
+        sockets = asset.get_sockets()
+        if sockets:
+            result += f"Sockets ({len(sockets)}):\\n"
+            for socket in sockets:
+                result += f"  - {socket.socket_name}:\\n"
+                result += f"    Location: [{socket.relative_location.x}, "
+                result += f"{socket.relative_location.y}, {socket.relative_location.z}]\\n"
+                result += f"    Rotation: [{socket.relative_rotation.roll}, "
+                result += f"{socket.relative_rotation.pitch}, {socket.relative_rotation.yaw}]\\n"
+        else:
+            result += "Sockets (0):\\n"
+        result += "\\n"
+        
+        # Get material slots
+        material_slots = asset.get_static_materials()
+        result += f"Material Slots ({len(material_slots)}):\\n"
+        for i, mat_slot in enumerate(material_slots):
+            slot_name = str(mat_slot.material_slot_name) if mat_slot.material_slot_name else f"Slot_{i}"
+            mat_path = str(mat_slot.material_interface.get_path_name()) if mat_slot.material_interface else "None"
+            result += f"  - {slot_name}: {mat_path}\\n"
+        result += "\\n"
         
         # Get mesh statistics
-        num_vertices = asset.get_num_vertices(0) if asset.get_num_lods() > 0 else 0
-        num_triangles = asset.get_num_triangles(0) if asset.get_num_lods() > 0 else 0
-        num_materials = len(asset.static_materials)
-        num_lods = asset.get_num_lods()
-        num_sockets = len(asset.sockets) if hasattr(asset, 'sockets') else 0
-        
-        result = f"Asset Information:\\n"
-        result += f"Name: {asset_name}\\n"
-        result += f"Type: {asset_type}\\n"
-        result += f"Path: {asset_path}\\n\\n"
-        result += f"Dimensions:\\n"
-        result += f"  Size: [{size.x:.1f}, {size.y:.1f}, {size.z:.1f}]\\n"
-        result += f"  Bounds: [{box.x:.1f}, {box.y:.1f}, {box.z:.1f}]\\n\\n"
-        result += f"Statistics:\\n"
-        result += f"  Vertices: {num_vertices}\\n"
-        result += f"  Triangles: {num_triangles}\\n"
-        result += f"  Materials: {num_materials}\\n"
-        result += f"  LODs: {num_lods}\\n"
-        result += f"  Sockets: {num_sockets}"
+        result += f"Vertices: {asset.get_num_vertices(0)}\\n"
+        result += f"Triangles: {asset.get_num_triangles(0)}\\n"
+        result += f"LODs: {asset.get_num_lods()}"
     else:
-        result = f"Asset {asset_name} is type {asset_type}"
+        result = f"Asset is type {asset.__class__.__name__}"
 
 result
 `
 });
 ```
 
-**Lines of code: 43 vs 3** (93% reduction)
+**Lines of code: 89 vs 3** (97% reduction)
 
 ## Actor Operations
 
@@ -1031,7 +1097,7 @@ result
 |-----------|----------------|-------------------|----------------|
 | Project Info | 1 | 22 | 95% |
 | List Assets | 5 | 27 | 81% |
-| Asset Info | 3 | 43 | 93% |
+| Asset Info (Enhanced) | 3 | 89 | 97% |
 | Spawn Actor | 7 | 36 | 81% |
 | Modify Actor | 6 | 27 | 78% |
 | Delete Actor | 3 | 19 | 84% |
