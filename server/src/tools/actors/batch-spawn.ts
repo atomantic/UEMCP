@@ -97,7 +97,7 @@ export class BatchSpawnTool extends ActorTool<BatchSpawnArgs> {
           },
           validate: {
             type: 'boolean',
-            description: 'Validate all spawns after creation (default: true). Note: For large batches (>100 actors), validation may add 0.5-2 seconds. Set to false for maximum performance if confident in spawn parameters.',
+            description: 'Validate all spawns after creation (default: true). Note: For large batches (>100 actors), validation may add 0.5-2 seconds. Set to false for maximum performance if you are confident in spawn parameters.',
           },
         },
         required: ['actors'],

@@ -17,19 +17,19 @@ The `validate` parameter defaults to `true` for safety, but for large batches (>
 
 Instead of multiple individual spawn commands:
 
-```python
-# ❌ Inefficient: Multiple individual spawns
+```javascript
+// ❌ Inefficient: Multiple individual spawns
 actor_spawn({ assetPath: "/Game/Wall", location: [0, 0, 0], name: "Wall_1" })
 actor_spawn({ assetPath: "/Game/Wall", location: [300, 0, 0], name: "Wall_2" })
 actor_spawn({ assetPath: "/Game/Wall", location: [600, 0, 0], name: "Wall_3" })
 actor_spawn({ assetPath: "/Game/Corner", location: [900, 0, 0], rotation: [0, 0, 90], name: "Corner_1" })
-# ... many more individual calls
+// ... many more individual calls
 ```
 
 Use batch spawn:
 
-```python
-# ✅ Efficient: Single batch operation
+```javascript
+// ✅ Efficient: Single batch operation
 batch_spawn({
   actors: [
     { assetPath: "/Game/Wall", location: [0, 0, 0], name: "Wall_1" },
@@ -44,60 +44,65 @@ batch_spawn({
 
 ## Complex Example: Multi-Story Building
 
-```python
-# Generate floor plan for a building
-floors = []
-for floor_num in range(3):
-  z_offset = floor_num * 282  # Standard floor height
+```javascript
+// Generate floor plan for a building
+const floors = [];
+for (let floor_num = 0; floor_num < 3; floor_num++) {
+  const z_offset = floor_num * 282;  // Standard floor height
   
-  # North wall
-  for x in range(0, 1200, 300):
-    floors.append({
+  // North wall
+  for (let x = 0; x < 1200; x += 300) {
+    floors.push({
       assetPath: "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m",
       location: [x, 0, z_offset],
-      rotation: [0, 0, 270],  # Face south
-      name: f"Wall_N_{floor_num}_{x//300}"
-    })
+      rotation: [0, 0, 270],  // Face south
+      name: `Wall_N_${floor_num}_${Math.floor(x/300)}`
+    });
+  }
   
-  # South wall with door
-  for x in range(0, 1200, 300):
-    if x == 600:  # Door position
-      floors.append({
+  // South wall with door
+  for (let x = 0; x < 1200; x += 300) {
+    if (x === 600) {  // Door position
+      floors.push({
         assetPath: "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m_SquareDoor",
         location: [x, 900, z_offset],
-        rotation: [0, 0, 90],  # Face north
-        name: f"Door_S_{floor_num}"
-      })
-    else:
-      floors.append({
+        rotation: [0, 0, 90],  // Face north
+        name: `Door_S_${floor_num}`
+      });
+    } else {
+      floors.push({
         assetPath: "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m",
         location: [x, 900, z_offset],
-        rotation: [0, 0, 90],  # Face north
-        name: f"Wall_S_{floor_num}_{x//300}"
-      })
+        rotation: [0, 0, 90],  // Face north
+        name: `Wall_S_${floor_num}_${Math.floor(x/300)}`
+      });
+    }
+  }
   
-  # Add corners
-  corners = [
+  // Add corners
+  const corners = [
     { location: [0, 0, z_offset], rotation: [0, 0, 0] },
     { location: [1200, 0, z_offset], rotation: [0, 0, 90] },
     { location: [1200, 900, z_offset], rotation: [0, 0, 180] },
     { location: [0, 900, z_offset], rotation: [0, 0, 270] }
-  ]
+  ];
   
-  for i, corner in enumerate(corners):
-    floors.append({
+  corners.forEach((corner, i) => {
+    floors.push({
       assetPath: "/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_1m_Corner",
-      location: corner['location'],
-      rotation: corner['rotation'],
-      name: f"Corner_{floor_num}_{i}"
-    })
+      location: corner.location,
+      rotation: corner.rotation,
+      name: `Corner_${floor_num}_${i}`
+    });
+  });
+}
 
-# Spawn entire building in one operation
+// Spawn entire building in one operation
 batch_spawn({
   actors: floors,
   commonFolder: "Building/Structure",
   validate: true
-})
+});
 ```
 
 ## Performance Comparison
@@ -108,12 +113,12 @@ For a building with 100 actors:
 - Batch spawn without validation: ~1.5-2 seconds (maximum performance)
 
 Example for performance-critical operations:
-```python
-# Spawn 500 actors for a large building complex
+```javascript
+// Spawn 500 actors for a large building complex
 batch_spawn({
-  actors: large_actor_array,  # 500 actors
+  actors: large_actor_array,  // 500 actors
   commonFolder: "LargeComplex",
-  validate: false  # Skip validation for 20-30% faster execution
+  validate: false  // Skip validation for 20-30% faster execution
 })
 ```
 

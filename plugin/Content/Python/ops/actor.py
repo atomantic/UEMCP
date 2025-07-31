@@ -406,7 +406,7 @@ class ActorOperations:
             commonFolder: Optional common folder for all spawned actors
             validate: Whether to validate spawns after creation (default: True).
                      Note: For large batches (>100 actors), validation may add
-                     0.5-2 seconds. Set to False for maximum performance if you're
+                     0.5-2 seconds. Set to False for maximum performance if you are
                      confident in the spawn parameters.
             
         Returns:
@@ -426,10 +426,13 @@ class ActorOperations:
                 viewport_disabled = True
             except AttributeError as e:
                 log_error(f"AttributeError while disabling viewport updates: {str(e)}")
+                log_debug("Continuing with normal performance - viewport will update during spawning")
             except RuntimeError as e:
                 log_error(f"RuntimeError while disabling viewport updates: {str(e)}")
+                log_debug("Continuing with normal performance - viewport will update during spawning")
             except Exception as e:
                 log_error(f"Unexpected error while disabling viewport updates: {str(e)}")
+                log_debug("Continuing with normal performance - viewport will update during spawning")
             
             for actor_config in actors:
                 try:
