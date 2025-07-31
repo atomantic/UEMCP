@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **batch_spawn Tool**: Spawn multiple actors efficiently in a single operation
+  - Reduces overhead compared to individual spawn commands
+  - Automatic viewport update batching for better performance
+  - Support for common folder organization
+  - Batch validation of spawned actors
+  - Execution timing information
+
+### Added
 - **Enhanced asset_info tool** - Now provides comprehensive asset details:
   - Min/max bounds for precise placement calculations
   - Pivot type detection (center, bottom-center, corner-bottom)

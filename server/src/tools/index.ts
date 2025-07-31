@@ -10,6 +10,7 @@ export {
   actorModifyTool,
   actorDuplicateTool,
   actorOrganizeTool,
+  batchSpawnTool,
 } from './actors/index.js';
 
 // Viewport tools

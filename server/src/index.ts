@@ -17,6 +17,7 @@ import {
   actorModifyTool,
   actorDuplicateTool,
   actorOrganizeTool,
+  batchSpawnTool,
   // Viewport tools
   viewportScreenshotTool,
   viewportCameraTool,
@@ -49,6 +50,7 @@ const allTools = [
   actorModifyTool,
   actorDuplicateTool,
   actorOrganizeTool,
+  batchSpawnTool,
   viewportScreenshotTool,
   viewportCameraTool,
   viewportModeTool,

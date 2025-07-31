@@ -101,7 +101,7 @@ node init.js --claude-code --project "/path/to/project.uproject" --no-interactiv
 
 ## 🛠 Available Tools
 
-UEMCP provides 22 tools to Claude for controlling Unreal Engine:
+UEMCP provides 23 tools to Claude for controlling Unreal Engine:
 
 ### Project & Assets
 - **project_info** - Get current project information
@@ -110,6 +110,7 @@ UEMCP provides 22 tools to Claude for controlling Unreal Engine:
 
 ### Level Editing
 - **actor_spawn** - Spawn actors from any mesh or blueprint
+- **batch_spawn** - Spawn multiple actors efficiently in one operation
 - **actor_duplicate** - Duplicate existing actors with optional offset
 - **actor_delete** - Delete actors by name
 - **actor_modify** - Change actor transform and organization
@@ -389,7 +390,6 @@ While UEMCP provides comprehensive UE control, there are some current limitation
 
 ### MCP Tool Limitations
 - **No Asset Snapping**: Manual coordinate calculation required (no socket-based placement)
-- **Single Operations Only**: No batch spawn/modify (use python_proxy for batch operations)
 - **Blueprint Creation Only**: Can create but not edit Blueprint graphs
 - **No Material Editing**: Cannot create material instances or modify materials
 - **No Undo/Redo**: Operations cannot be undone programmatically
