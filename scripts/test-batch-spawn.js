@@ -7,6 +7,8 @@
 
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { access } from 'fs/promises';
+import { resolve } from 'path';
 
 const execFileAsync = promisify(execFile);
 
@@ -83,7 +85,19 @@ async function runBatchSpawnTest(testCase) {
   console.log(`Test: ${testCase.name}`);
   console.log('='.repeat(80));
   
-  const args = ['test-connection.js', '--tool', 'batch_spawn', '--args', JSON.stringify({
+  // Check for test script
+  const scriptName = process.env.TEST_CONNECTION_SCRIPT || 'test-connection.js';
+  const scriptPath = resolve(scriptName);
+  
+  try {
+    await access(scriptPath);
+  } catch {
+    console.error(`Error: Script "${scriptName}" not found.`);
+    console.error('Please ensure it exists or set the TEST_CONNECTION_SCRIPT environment variable.');
+    return;
+  }
+  
+  const args = [scriptName, '--tool', 'batch_spawn', '--args', JSON.stringify({
     actors: testCase.actors,
     commonFolder: testCase.commonFolder,
     validate: true,

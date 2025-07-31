@@ -417,7 +417,10 @@ class ActorOperations:
         
         try:
             # Disable viewport updates during batch operation for performance
-            unreal.EditorLevelLibrary.set_level_viewport_realtime(False)
+            try:
+                unreal.EditorLevelLibrary.set_level_viewport_realtime(False)
+            except Exception as e:
+                log_error(f"Failed to disable viewport updates: {str(e)}")
             
             for actor_config in actors:
                 try:
@@ -466,8 +469,7 @@ class ActorOperations:
                     if actor_name:
                         spawned_actor.set_actor_label(actor_name)
                     else:
-                        # Generate name from asset
-                        asset_name = asset.get_name()
+                        # Use default generated name
                         actor_name = spawned_actor.get_actor_label()
                     
                     # Set folder
@@ -475,13 +477,14 @@ class ActorOperations:
                     if folder:
                         spawned_actor.set_folder_path(folder)
                     
-                    # Add to results
+                    # Add to results with actor reference for validation
                     spawned_actors.append({
                         'name': actor_name,
                         'assetPath': asset_path,
                         'location': [location.x, location.y, location.z],
                         'rotation': [rotation.roll, rotation.pitch, rotation.yaw],
-                        'scale': [scale.x, scale.y, scale.z]
+                        'scale': [scale.x, scale.y, scale.z],
+                        '_actor_ref': spawned_actor  # Keep reference for validation
                     })
                     
                 except Exception as e:
@@ -500,19 +503,16 @@ class ActorOperations:
         
         # Validate if requested
         if validate and spawned_actors:
-            # Quick validation - just check if actors still exist
-            all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
-            actor_names = [a['name'] for a in spawned_actors]
+            # Efficient validation - check actor references directly
             validation_failed = []
             
-            for actor_name in actor_names:
-                found = False
-                for level_actor in all_actors:
-                    if level_actor.get_actor_label() == actor_name:
-                        found = True
-                        break
-                if not found:
-                    validation_failed.append(actor_name)
+            for actor_data in spawned_actors:
+                actor_ref = actor_data.get('_actor_ref')
+                if actor_ref and not unreal.EditorLevelLibrary.is_actor_valid(actor_ref):
+                    validation_failed.append(actor_data['name'])
+                # Remove internal reference from results
+                if '_actor_ref' in actor_data:
+                    del actor_data['_actor_ref']
             
             if validation_failed:
                 log_error(f"Validation failed for actors: {validation_failed}")
