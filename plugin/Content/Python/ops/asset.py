@@ -3,7 +3,7 @@ UEMCP Asset Operations - All asset and content browser operations
 """
 
 import unreal
-from uemcp_utils import load_asset, asset_exists, log_debug, log_error
+from utils import load_asset, asset_exists, log_debug, log_error
 
 
 class AssetOperations:
