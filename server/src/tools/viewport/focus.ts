@@ -46,7 +46,7 @@ export class ViewportFocusTool extends ViewportTool<ViewportFocusArgs> {
     }
     
     if (result.location) {
-      text += `\n  Actor location: [${(result.location as number[]).map(n => n.toFixed(1)).join(', ')}]`;
+      text += `\n  Actor location: [${(result.location).map(n => n.toFixed(1)).join(', ')}]`;
     }
     
     return ResponseFormatter.success(text);

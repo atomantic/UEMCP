@@ -1,6 +1,7 @@
 import { ViewportTool } from '../base/viewport-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
 import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
+import { formatFileSize } from '../../utils/file-utils.js';
 
 interface ScreenshotArgs {
   width?: number;
@@ -65,7 +66,7 @@ export class ViewportScreenshotTool extends ViewportTool<ScreenshotArgs> {
     text += `  Resolution: ${width}x${height}`;
     
     if (result.fileSize) {
-      text += `\n  File size: ${this.formatFileSize(result.fileSize as number)}`;
+      text += `\n  File size: ${formatFileSize(result.fileSize as number)}`;
     }
     
     if (args.compress === false) {
@@ -77,11 +78,6 @@ export class ViewportScreenshotTool extends ViewportTool<ScreenshotArgs> {
     return ResponseFormatter.success(text);
   }
 
-  private formatFileSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
 }
 
 export const viewportScreenshotTool = new ViewportScreenshotTool().toMCPTool();

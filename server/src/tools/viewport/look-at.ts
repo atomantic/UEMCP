@@ -68,8 +68,8 @@ export class ViewportLookAtTool extends ViewportTool<ViewportLookAtArgs> {
     
     if (result.location && result.rotation) {
       text += '\n\n' + this.formatCameraInfo(
-        result.location as number[],
-        result.rotation as number[]
+        result.location,
+        result.rotation
       );
     }
     

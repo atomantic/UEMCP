@@ -12,8 +12,8 @@ export abstract class ActorTool<TArgs = unknown> extends BaseTool<TArgs> {
   protected formatValidation(result: PythonResult): string {
     return ValidationFormatter.format(
       result.validated as boolean | undefined,
-      result.validation_errors as string[] | undefined,
-      result.validation_warnings as string[] | undefined
+      result.validation_errors,
+      result.validation_warnings
     );
   }
 

@@ -1,6 +1,15 @@
 import { BaseTool } from './base-tool.js';
 
 /**
+ * Interface for outliner node structure
+ */
+export interface OutlinerNode {
+  name: string;
+  actorCount?: number;
+  children?: OutlinerNode[];
+}
+
+/**
  * Base class for level-related tools
  */
 export abstract class LevelTool<TArgs = unknown> extends BaseTool<TArgs> {
@@ -55,17 +64,13 @@ export abstract class LevelTool<TArgs = unknown> extends BaseTool<TArgs> {
    * Format outliner structure
    */
   protected formatOutlinerStructure(structure: {
-    root?: { children?: unknown[] };
+    root?: { children?: OutlinerNode[] };
     totalFolders?: number;
     totalActors?: number;
   }): string {
     let text = 'World Outliner Structure:\n\n';
     
-    const formatNode = (node: {
-      name: string;
-      actorCount?: number;
-      children?: unknown[];
-    }, indent: string = ''): void => {
+    const formatNode = (node: OutlinerNode, indent: string = ''): void => {
       text += `${indent}${node.name}`;
       if (node.actorCount && node.actorCount > 0) {
         text += ` (${node.actorCount} actor${node.actorCount !== 1 ? 's' : ''})`;
@@ -74,14 +79,14 @@ export abstract class LevelTool<TArgs = unknown> extends BaseTool<TArgs> {
       
       if (node.children && node.children.length > 0) {
         node.children.forEach((child) => {
-          formatNode(child as typeof node, indent + '  ');
+          formatNode(child, indent + '  ');
         });
       }
     };
     
     if (structure.root && structure.root.children) {
       structure.root.children.forEach((child) => {
-        formatNode(child as Parameters<typeof formatNode>[0]);
+        formatNode(child);
       });
     }
     

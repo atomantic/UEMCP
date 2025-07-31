@@ -12,6 +12,19 @@ export interface PythonResult {
   success: boolean;
   error?: string;
   message?: string;
+  // Common response properties
+  validated?: boolean;
+  validation_errors?: string[];
+  validation_warnings?: string[];
+  actorName?: string;
+  location?: number[];
+  rotation?: number[];
+  scale?: number[];
+  assets?: unknown[];
+  actors?: unknown[];
+  totalCount?: number;
+  currentLevel?: string;
+  // Allow additional properties
   [key: string]: unknown;
 }
 

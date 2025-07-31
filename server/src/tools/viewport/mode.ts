@@ -38,8 +38,8 @@ export class ViewportModeTool extends ViewportTool<ViewportModeArgs> {
     
     if (result.location && result.rotation) {
       text += '\n' + this.formatCameraInfo(
-        result.location as number[],
-        result.rotation as number[]
+        result.location,
+        result.rotation
       );
     }
     

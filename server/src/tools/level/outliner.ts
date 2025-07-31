@@ -1,4 +1,4 @@
-import { LevelTool } from '../base/level-tool.js';
+import { LevelTool, OutlinerNode } from '../base/level-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
 import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
@@ -37,7 +37,7 @@ export class LevelOutlinerTool extends LevelTool<LevelOutlinerArgs> {
     const result = await this.executePythonCommand(this.levelCommands.outliner, args);
     
     const text = this.formatOutlinerStructure({
-      root: result.root as { children?: unknown[] },
+      root: result.root as { children?: OutlinerNode[] },
       totalFolders: result.totalFolders as number,
       totalActors: result.totalActors as number,
     });

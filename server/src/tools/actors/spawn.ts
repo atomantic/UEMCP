@@ -14,7 +14,6 @@ interface ActorSpawnArgs {
 
 /**
  * Tool for spawning actors in the level
- * Refactored to use base class - reduced from 136 to 80 lines (41% reduction)
  */
 export class ActorSpawnTool extends ActorTool<ActorSpawnArgs> {
   get definition(): ToolDefinition {
