@@ -68,7 +68,7 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
     
     if (info.materials && Array.isArray(info.materials) && info.materials.length > 0) {
       text += `\nMaterials (${info.materials.length}):\n`;
-      info.materials.forEach((mat) => {
+      info.materials.forEach((mat: string) => {
         text += `  - ${mat}\n`;
       });
     }

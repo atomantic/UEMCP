@@ -9,6 +9,9 @@ from utils import load_asset, asset_exists, log_error
 class AssetOperations:
     """Handles all asset-related operations."""
     
+    # Tolerance for pivot type detection (in Unreal units)
+    PIVOT_TOLERANCE = 0.1
+    
     def list_assets(self, path='/Game', assetType=None, limit=20):
         """List assets in a given path.
         
@@ -104,7 +107,7 @@ class AssetOperations:
                 
                 # Determine pivot type based on origin position
                 pivot_type = 'center'  # Default assumption
-                tolerance = 0.1
+                tolerance = self.PIVOT_TOLERANCE
                 if abs(origin.z + box_extent.z) < tolerance:
                     pivot_type = 'bottom-center'
                 elif abs(origin.x + box_extent.x) < tolerance and abs(origin.y + box_extent.y) < tolerance:
@@ -162,9 +165,13 @@ class AssetOperations:
                 body_setup = asset.get_editor_property('body_setup')
                 if body_setup:
                     collision_info['collisionComplexity'] = str(body_setup.collision_trace_flag)
-                    collision_info['hasSimpleCollision'] = len(body_setup.aggregate_geom.box_elems) > 0 or \
-                                                          len(body_setup.aggregate_geom.sphere_elems) > 0 or \
-                                                          len(body_setup.aggregate_geom.convex_elems) > 0
+                    # Optimize multiple len() calls
+                    box_elems_len = len(body_setup.aggregate_geom.box_elems)
+                    sphere_elems_len = len(body_setup.aggregate_geom.sphere_elems)
+                    convex_elems_len = len(body_setup.aggregate_geom.convex_elems)
+                    collision_info['hasSimpleCollision'] = box_elems_len > 0 or \
+                                                          sphere_elems_len > 0 or \
+                                                          convex_elems_len > 0
                 
                 info['collision'] = collision_info
                 
