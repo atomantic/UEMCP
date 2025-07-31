@@ -38,12 +38,12 @@ async function buildHouseWithNewTools() {
     
     // Step 2: Calculate positions based on asset dimensions
     const wallWidth = wallInfo.bounds.size.x;
-    if (wallWidth <= 0) {
-      throw new Error(`Invalid wall width retrieved: ${wallWidth}. Please check the asset dimensions.`);
+    if (!Number.isFinite(wallWidth) || wallWidth === 0) {
+      throw new Error(`Invalid wall width retrieved: ${wallWidth}. Ensure the asset dimensions are valid and properly defined.`);
     }
     const cornerSize = cornerInfo.bounds.size.x;
-    if (cornerSize <= 0) {
-      throw new Error(`Invalid corner size retrieved: ${cornerSize}. Please check the asset dimensions.`);
+    if (!Number.isFinite(cornerSize) || cornerSize === 0) {
+      throw new Error(`Invalid corner size retrieved: ${cornerSize}. Ensure the asset dimensions are valid and properly defined.`);
     }
     
     console.log('3. Building house foundation with batch_spawn...\n');
