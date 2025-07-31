@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-01-31
+
+### Added
+- **Documentation Overhaul**:
+  - New `docs/house-building-experiment.md` - Comprehensive learnings from building experiments
+  - New `docs/python-api-workarounds.md` - Solutions for UE Python API issues
+  - Known Limitations section in README with workarounds
+- **Dynamic Tool Registry**: Replaced hardcoded enum with automatic tool discovery
+- **actor_organize Tool**: Organize actors into World Outliner folders by pattern
+
+### Changed
+- **Major Server Architecture Refactor**:
+  - Modularized Node.js server from monolithic structure
+  - Separated tools into category-based modules (actors/, viewport/, assets/, etc.)
+  - Introduced base classes for common tool patterns
+  - 85% code reduction when using dedicated tools vs python_proxy
+- **Python Plugin Reorganization**:
+  - Moved operation modules to `ops/` directory
+  - Moved utilities to `utils/` directory  
+  - Proper Python package structure with __init__.py files
+  - Consistent import paths throughout
+- **Simplified Status Endpoint**: Removed unused command categorization
+- **Documentation Cleanup**: Removed 1000+ lines of outdated content from PLAN.md
+
+### Fixed
+- **Viewport Tools**: Fixed runtime errors in viewport_focus and other viewport methods
+- **Import Path Issues**: Resolved all Python import inconsistencies
+- **ESLint Compliance**: Fixed all TypeScript linting errors
+- **CI/CD Pipeline**: All tests now pass consistently
+
+### Removed
+- Migration artifacts from modular conversion (5 files, ~3000 lines)
+- Outdated `uemcp_bridge.py` with non-existent MCP commands
+- Unused command categorization system from Python listener
+
 ## [0.2.1] - 2025-01-28
 
 ### Fixed
@@ -47,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Viewport control and screenshots
 - Hot reload support for development
 
+[0.5.0]: https://github.com/atomantic/UEMCP/releases/tag/v0.5.0
 [0.2.1]: https://github.com/atomantic/UEMCP/releases/tag/v0.2.1
 [0.2.0]: https://github.com/atomantic/UEMCP/releases/tag/v0.2.0
 [0.1.0]: https://github.com/atomantic/UEMCP/releases/tag/v0.1.0
