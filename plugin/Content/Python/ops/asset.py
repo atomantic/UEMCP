@@ -3,11 +3,57 @@ UEMCP Asset Operations - All asset and content browser operations
 """
 
 import unreal
-from utils import load_asset, asset_exists, log_debug, log_error
+from typing import Dict, Any, List, Optional
+from utils import load_asset, asset_exists, log_error
 
 
 class AssetOperations:
     """Handles all asset-related operations."""
+    
+    # Tolerance for pivot type detection (in Unreal units)
+    PIVOT_TOLERANCE = 0.1
+    
+    def _detect_pivot_type(self, origin, box_extent):
+        """Detect the pivot type based on origin position relative to bounds.
+        
+        Args:
+            origin: The origin point of the asset
+            box_extent: The box extent (half-size) of the asset
+            
+        Returns:
+            str: The detected pivot type ('center', 'bottom-center', or 'corner-bottom')
+        """
+        tolerance = self.PIVOT_TOLERANCE
+        
+        # Check if pivot is at bottom-center
+        if abs(origin.z + box_extent.z) < tolerance:
+            # Check if also at corner
+            if abs(origin.x + box_extent.x) < tolerance and abs(origin.y + box_extent.y) < tolerance:
+                return 'corner-bottom'
+            else:
+                return 'bottom-center'
+        
+        # Default to center
+        return 'center'
+    
+    def _has_simple_collision(self, body_setup):
+        """Check if a body setup has simple collision geometry.
+        
+        Args:
+            body_setup: The body setup to check
+            
+        Returns:
+            bool: True if simple collision exists, False otherwise
+        """
+        if not body_setup or not hasattr(body_setup, 'aggregate_geom'):
+            return False
+            
+        aggregate_geom = body_setup.aggregate_geom
+        return (
+            len(aggregate_geom.box_elems) > 0 or
+            len(aggregate_geom.sphere_elems) > 0 or
+            len(aggregate_geom.convex_elems) > 0
+        )
     
     def list_assets(self, path='/Game', assetType=None, limit=20):
         """List assets in a given path.
@@ -63,7 +109,7 @@ class AssetOperations:
             log_error(f"Failed to list assets: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_asset_info(self, assetPath):
+    def get_asset_info(self, assetPath: str) -> Dict[str, Any]:
         """Get detailed information about an asset.
         
         Args:
@@ -90,6 +136,21 @@ class AssetOperations:
                 box_extent = bounds.box_extent
                 origin = bounds.origin
                 
+                # Calculate more detailed bounds information
+                min_bounds = unreal.Vector(
+                    origin.x - box_extent.x,
+                    origin.y - box_extent.y,
+                    origin.z - box_extent.z
+                )
+                max_bounds = unreal.Vector(
+                    origin.x + box_extent.x,
+                    origin.y + box_extent.y,
+                    origin.z + box_extent.z
+                )
+                
+                # Determine pivot type based on origin position
+                pivot_type = self._detect_pivot_type(origin, box_extent)
+                
                 info.update({
                     'bounds': {
                         'extent': {
@@ -106,37 +167,135 @@ class AssetOperations:
                             'x': float(box_extent.x * 2),
                             'y': float(box_extent.y * 2),
                             'z': float(box_extent.z * 2)
+                        },
+                        'min': {
+                            'x': float(min_bounds.x),
+                            'y': float(min_bounds.y),
+                            'z': float(min_bounds.z)
+                        },
+                        'max': {
+                            'x': float(max_bounds.x),
+                            'y': float(max_bounds.y),
+                            'z': float(max_bounds.z)
+                        }
+                    },
+                    'pivot': {
+                        'type': pivot_type,
+                        'offset': {
+                            'x': float(origin.x),
+                            'y': float(origin.y),
+                            'z': float(origin.z)
                         }
                     },
                     'numVertices': asset.get_num_vertices(0),
                     'numTriangles': asset.get_num_triangles(0),
-                    'numMaterials': asset.get_num_sections(0)
+                    'numMaterials': asset.get_num_sections(0),
+                    'numLODs': asset.get_num_lods()
                 })
                 
+                # Get collision info
+                collision_info = {
+                    'hasCollision': asset.get_num_collision_primitives() > 0,
+                    'numCollisionPrimitives': asset.get_num_collision_primitives()
+                }
+                
+                # Try to get more collision details
+                body_setup = asset.get_editor_property('body_setup')
+                if body_setup:
+                    if hasattr(body_setup, 'collision_trace_flag'):
+                        collision_info['collisionComplexity'] = str(body_setup.collision_trace_flag)
+                    else:
+                        collision_info['collisionComplexity'] = 'Unknown'
+                    
+                    # Check for simple collision
+                    collision_info['hasSimpleCollision'] = self._has_simple_collision(body_setup)
+                
+                info['collision'] = collision_info
+                
                 # Get sockets if any
-                sockets = getattr(asset, 'sockets', [])
+                sockets = asset.get_sockets()
                 if sockets:
                     socket_info = []
                     for socket in sockets:
                         socket_info.append({
-                            'name': socket.socket_name,
+                            'name': str(socket.socket_name),
                             'location': {
                                 'x': float(socket.relative_location.x),
                                 'y': float(socket.relative_location.y),
                                 'z': float(socket.relative_location.z)
                             },
                             'rotation': {
+                                'roll': float(socket.relative_rotation.roll),
                                 'pitch': float(socket.relative_rotation.pitch),
-                                'yaw': float(socket.relative_rotation.yaw),
-                                'roll': float(socket.relative_rotation.roll)
+                                'yaw': float(socket.relative_rotation.yaw)
+                            },
+                            'scale': {
+                                'x': float(socket.relative_scale.x),
+                                'y': float(socket.relative_scale.y),
+                                'z': float(socket.relative_scale.z)
                             }
                         })
                     info['sockets'] = socket_info
+                else:
+                    info['sockets'] = []
+                
+                # Get material slots
+                material_slots = []
+                static_materials = asset.get_static_materials()
+                for i, mat_slot in enumerate(static_materials):
+                    material_slots.append({
+                        'slotName': str(mat_slot.material_slot_name) if mat_slot.material_slot_name else f"Slot_{i}",
+                        'materialPath': str(mat_slot.material_interface.get_path_name()) 
+                                        if mat_slot.material_interface else None
+                    })
+                info['materialSlots'] = material_slots
             
             # Get info for blueprints
             elif isinstance(asset, unreal.Blueprint):
                 info['blueprintType'] = 'Blueprint'
-                # Could add more blueprint-specific info here
+                info['blueprintClass'] = str(asset.generated_class().get_name()) if asset.generated_class() else None
+                
+                # Try to get bounds from the default object
+                try:
+                    default_object = asset.generated_class().get_default_object()
+                    if default_object and hasattr(default_object, 'get_actor_bounds'):
+                        origin, extent = default_object.get_actor_bounds(False)
+                        info['bounds'] = {
+                            'extent': {
+                                'x': float(extent.x),
+                                'y': float(extent.y),
+                                'z': float(extent.z)
+                            },
+                            'origin': {
+                                'x': float(origin.x),
+                                'y': float(origin.y),
+                                'z': float(origin.z)
+                            },
+                            'size': {
+                                'x': float(extent.x * 2),
+                                'y': float(extent.y * 2),
+                                'z': float(extent.z * 2)
+                            }
+                        }
+                    
+                    # Get component information
+                    if hasattr(default_object, 'get_components'):
+                        components = default_object.get_components()
+                        component_info = []
+                        for comp in components:
+                            comp_data = {
+                                'name': comp.get_name(),
+                                'class': comp.get_class().get_name()
+                            }
+                            # Add mesh info if it's a mesh component
+                            if hasattr(comp, 'static_mesh') and comp.static_mesh:
+                                comp_data['meshPath'] = str(comp.static_mesh.get_path_name())
+                            component_info.append(comp_data)
+                        info['components'] = component_info
+                except AttributeError as e:
+                    log_error(f"AttributeError while retrieving bounds or components for Blueprint '{assetPath}': {e}")
+                except RuntimeError as e:
+                    log_error(f"RuntimeError while retrieving bounds or components for Blueprint '{assetPath}': {e}")
             
             # Get info for materials
             elif isinstance(asset, unreal.Material) or isinstance(asset, unreal.MaterialInstance):

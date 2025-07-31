@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - 2025-01-31
+## [Unreleased]
+
+### Added
+- **Enhanced asset_info tool** - Now provides comprehensive asset details:
+  - Min/max bounds for precise placement calculations
+  - Pivot type detection (center, bottom-center, corner-bottom)
+  - Socket information with locations and rotations for snapping
+  - Collision data including primitives and complexity
+  - Material slots with paths
+  - LOD count for static meshes
+  - Component information for blueprints
+
+## [0.5.0] - 2025-07-31
 
 ### Added
 - **Documentation Overhaul**:
@@ -40,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Outdated `uemcp_bridge.py` with non-existent MCP commands
 - Unused command categorization system from Python listener
 
-## [0.2.1] - 2025-01-28
+## [0.2.1] - 2025-07-28
 
 ### Fixed
 - **Critical Rotation Bug Fix**: Standardized rotation format to [Roll, Pitch, Yaw] across entire system
@@ -59,7 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated rotation examples for walls, corners, and viewport camera
 - Added troubleshooting section for rotation issues
 
-## [0.2.0] - 2025-01-27
+## [0.2.0] - 2025-07-27
 
 ### Added
 - Enhanced environment designer agent for building construction
@@ -71,7 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrated agent templates to .claude/agents directory
 - Enhanced PLAN.md with detailed house building progress
 
-## [0.1.0] - 2025-01-20
+## [0.1.0] - 2025-07-20
 
 ### Initial Release
 - Core MCP server implementation with TypeScript
