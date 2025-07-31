@@ -45,8 +45,8 @@ export class ViewportFocusTool extends ViewportTool<ViewportFocusArgs> {
       text += '\n  Rotation: Preserved';
     }
     
-    if (result.location) {
-      text += `\n  Actor location: [${(result.location).map(n => n.toFixed(1)).join(', ')}]`;
+    if (result.location && Array.isArray(result.location)) {
+      text += `\n  Actor location: [${result.location.map((n: number) => n.toFixed(1)).join(', ')}]`;
     }
     
     return ResponseFormatter.success(text);
