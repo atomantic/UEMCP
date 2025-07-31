@@ -19,6 +19,7 @@ export const TOOL_NAMES = [
   // Asset tools
   'asset_list',
   'asset_info',
+  'asset_import',
   // Level tools
   'level_actors',
   'level_save',

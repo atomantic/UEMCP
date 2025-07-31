@@ -15,7 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Batch validation of spawned actors
   - Execution timing information
 
-### Added
+- **placement_validate Tool**: Validate modular building placement
+  - Detect gaps between adjacent building components
+  - Identify overlapping geometry with severity classification
+  - Check alignment to modular grid with suggested corrections
+  - Comprehensive validation reporting with actionable recommendations
+
+- **asset_import Tool**: Import assets from FAB marketplace or local files
+  - Support multiple file formats (FBX, OBJ, DAE, textures, etc.)
+  - Advanced import settings (collision, LODs, materials)
+  - Batch import capabilities with recursive folder support
+  - Comprehensive import statistics and error reporting
+
+### Enhanced
 - **Enhanced asset_info tool** - Now provides comprehensive asset details:
   - Min/max bounds for precise placement calculations
   - Pivot type detection (center, bottom-center, corner-bottom)

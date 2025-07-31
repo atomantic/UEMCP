@@ -101,12 +101,13 @@ node init.js --claude-code --project "/path/to/project.uproject" --no-interactiv
 
 ## 🛠 Available Tools
 
-UEMCP provides 24 tools to Claude for controlling Unreal Engine:
+UEMCP provides 25 tools to Claude for controlling Unreal Engine:
 
 ### Project & Assets
 - **project_info** - Get current project information
 - **asset_list** - List and filter project assets
 - **asset_info** - Get detailed asset information (dimensions, materials, etc.)
+- **asset_import** - Import assets from FAB marketplace or local files with advanced settings
 
 ### Level Editing
 - **actor_spawn** - Spawn actors from any mesh or blueprint

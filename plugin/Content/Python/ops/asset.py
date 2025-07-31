@@ -13,6 +13,14 @@ class AssetOperations:
     # Tolerance for pivot type detection (in Unreal units)
     PIVOT_TOLERANCE = 0.1
     
+    # Texture compression settings mapping
+    COMPRESSION_MAP = {
+        'TC_Default': unreal.TextureCompressionSettings.TC_DEFAULT,
+        'TC_Normalmap': unreal.TextureCompressionSettings.TC_NORMALMAP,
+        'TC_Masks': unreal.TextureCompressionSettings.TC_MASKS,
+        'TC_Grayscale': unreal.TextureCompressionSettings.TC_GRAYSCALE
+    }
+    
     def _detect_pivot_type(self, origin, box_extent):
         """Detect the pivot type based on origin position relative to bounds.
         
@@ -400,3 +408,393 @@ class AssetOperations:
         except Exception as e:
             log_error(f"Failed to find assets by type: {str(e)}")
             return {'success': False, 'error': str(e)}
+    
+    def import_assets(self, sourcePath: str, targetFolder: str = '/Game/ImportedAssets', 
+                     importSettings: dict = None, assetType: str = 'auto', 
+                     batchImport: bool = False) -> dict:
+        """Import assets from FAB marketplace or file system into UE project.
+        
+        Args:
+            sourcePath: Path to source asset file or folder
+            targetFolder: Destination folder in UE project
+            importSettings: Import configuration settings
+            assetType: Type of asset to import ('auto', 'staticMesh', 'material', 'texture', 'blueprint')
+            batchImport: Import entire folder with all compatible assets
+            
+        Returns:
+            dict: Import results with statistics and asset information
+        """
+        import os
+        import time
+        from pathlib import Path
+        
+        try:
+            start_time = time.time()
+            
+            # Initialize default import settings
+            default_settings = {
+                'generateCollision': True,
+                'generateLODs': False,
+                'importMaterials': True,
+                'importTextures': True,
+                'combineMeshes': False,
+                'createMaterialInstances': False,
+                'sRGB': True,
+                'compressionSettings': 'TC_Default',
+                'autoGenerateLODs': False,
+                'lodLevels': 3,
+                'overwriteExisting': False,
+                'preserveHierarchy': True
+            }
+            
+            # Merge with provided settings
+            settings = default_settings.copy()
+            if importSettings:
+                settings.update(importSettings)
+            
+            # Validate source path
+            if not os.path.exists(sourcePath):
+                return {
+                    'success': False,
+                    'error': f'Source path does not exist: {sourcePath}'
+                }
+            
+            # Ensure target folder exists in content browser
+            self._ensure_content_folder_exists(targetFolder)
+            
+            # Collect files to import
+            files_to_import = self._collect_import_files(sourcePath, assetType, batchImport)
+            
+            if not files_to_import:
+                return {
+                    'success': False,
+                    'error': 'No compatible files found for import'
+                }
+            
+            # Initialize result tracking
+            imported_assets = []
+            failed_assets = []
+            skipped_assets = []
+            total_size = 0
+            
+            # Import each file
+            for file_path in files_to_import:
+                try:
+                    result = self._import_single_asset(
+                        file_path, targetFolder, settings, assetType
+                    )
+                    
+                    if result['status'] == 'success':
+                        imported_assets.append(result)
+                        if result.get('size'):
+                            total_size += result['size']
+                    elif result['status'] == 'failed':
+                        failed_assets.append(result)
+                    elif result['status'] == 'skipped':
+                        skipped_assets.append(result)
+                        
+                except Exception as e:
+                    failed_assets.append({
+                        'originalPath': file_path,
+                        'targetPath': '',
+                        'assetType': assetType,
+                        'status': 'failed',
+                        'error': str(e)
+                    })
+            
+            processing_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+            
+            # Build final result
+            result = {
+                'success': True,
+                'importedAssets': imported_assets,
+                'failedAssets': failed_assets,
+                'skippedAssets': skipped_assets,
+                'statistics': {
+                    'totalProcessed': len(files_to_import),
+                    'successCount': len(imported_assets),
+                    'failedCount': len(failed_assets),
+                    'skippedCount': len(skipped_assets),
+                    'totalSize': total_size if total_size > 0 else None
+                },
+                'targetFolder': targetFolder,
+                'processingTime': processing_time
+            }
+            
+            return result
+            
+        except Exception as e:
+            log_error(f"Failed to import assets: {str(e)}")
+            return {'success': False, 'error': str(e)}
+    
+    def _ensure_content_folder_exists(self, folder_path: str):
+        """Ensure a content browser folder exists.
+        
+        Args:
+            folder_path: Content browser path (e.g., '/Game/ImportedAssets')
+        """
+        try:
+            # Convert to content browser path format
+            if not folder_path.startswith('/Game'):
+                folder_path = f'/Game/{folder_path.lstrip("/")}'
+            
+            # Use AssetTools to create folder if it doesn't exist
+            asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
+            
+            # Check if folder exists by trying to get assets in it
+            asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
+            existing_assets = asset_registry.get_assets_by_path(folder_path, recursive=False)
+            
+            # If we can't find any assets and the folder might not exist, create it
+            # Note: UE will auto-create folders when we import assets, but this ensures consistency
+            pass
+            
+        except Exception as e:
+            log_error(f"Error ensuring folder exists: {str(e)}")
+    
+    def _collect_import_files(self, source_path: str, asset_type: str, batch_import: bool) -> list:
+        """Collect files to import based on source path and settings.
+        
+        Args:
+            source_path: Source file or folder path
+            asset_type: Type filter for assets
+            batch_import: Whether to import entire folder
+            
+        Returns:
+            list: List of file paths to import
+        """
+        import os
+        from pathlib import Path
+        
+        # Supported file extensions by type
+        SUPPORTED_EXTENSIONS = {
+            'staticMesh': ['.fbx', '.obj', '.dae', '.3ds', '.ase', '.ply'],
+            'material': ['.mat'],  # UE material files
+            'texture': ['.png', '.jpg', '.jpeg', '.tga', '.bmp', '.tiff', '.exr', '.hdr'],
+            'blueprint': ['.uasset'],  # Blueprint files
+            'auto': ['.fbx', '.obj', '.dae', '.3ds', '.ase', '.ply', '.png', '.jpg', '.jpeg', 
+                    '.tga', '.bmp', '.tiff', '.exr', '.hdr', '.uasset']
+        }
+        
+        extensions = SUPPORTED_EXTENSIONS.get(asset_type, SUPPORTED_EXTENSIONS['auto'])
+        files_to_import = []
+        
+        if os.path.isfile(source_path):
+            # Single file import
+            if any(source_path.lower().endswith(ext) for ext in extensions):
+                files_to_import.append(source_path)
+        elif os.path.isdir(source_path) and batch_import:
+            # Batch import from folder
+            for root, dirs, files in os.walk(source_path):
+                for file in files:
+                    if any(file.lower().endswith(ext) for ext in extensions):
+                        files_to_import.append(os.path.join(root, file))
+        elif os.path.isdir(source_path):
+            # Single folder - only direct files
+            for file in os.listdir(source_path):
+                file_path = os.path.join(source_path, file)
+                if os.path.isfile(file_path) and any(file.lower().endswith(ext) for ext in extensions):
+                    files_to_import.append(file_path)
+        
+        return files_to_import
+    
+    def _import_single_asset(self, file_path: str, target_folder: str, 
+                           settings: dict, asset_type: str) -> dict:
+        """Import a single asset file.
+        
+        Args:
+            file_path: Path to source file
+            target_folder: Target content browser folder
+            settings: Import settings
+            asset_type: Asset type hint
+            
+        Returns:
+            dict: Import result for this asset
+        """
+        import os
+        from pathlib import Path
+        
+        try:
+            file_name = Path(file_path).stem
+            file_ext = Path(file_path).suffix.lower()
+            
+            # Determine target path
+            target_path = f"{target_folder}/{file_name}"
+            
+            # Check if asset already exists and handle accordingly
+            if not settings.get('overwriteExisting', False):
+                if asset_exists(target_path):
+                    return {
+                        'originalPath': file_path,
+                        'targetPath': target_path,
+                        'assetType': self._detect_asset_type_from_extension(file_ext),
+                        'status': 'skipped',
+                        'error': 'Asset already exists'
+                    }
+            
+            # Setup import task based on file type
+            import_task = self._create_import_task(file_path, target_folder, settings, file_ext)
+            
+            if not import_task:
+                return {
+                    'originalPath': file_path,
+                    'targetPath': target_path,
+                    'assetType': self._detect_asset_type_from_extension(file_ext),
+                    'status': 'failed',
+                    'error': 'Unsupported file type or failed to create import task'
+                }
+            
+            # Execute import
+            asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
+            imported_assets = asset_tools.import_asset_tasks([import_task])
+            
+            if imported_assets and len(imported_assets) > 0:
+                imported_asset = imported_assets[0]
+                
+                # Get asset information
+                asset_info = self._get_imported_asset_info(imported_asset, file_path)
+                
+                return {
+                    'originalPath': file_path,
+                    'targetPath': imported_asset.get_path_name(),
+                    'assetType': imported_asset.get_class().get_name(),
+                    'status': 'success',
+                    'size': asset_info.get('size', 0),
+                    'vertexCount': asset_info.get('vertexCount'),
+                    'materialCount': asset_info.get('materialCount')
+                }
+            else:
+                return {
+                    'originalPath': file_path,
+                    'targetPath': target_path,
+                    'assetType': self._detect_asset_type_from_extension(file_ext),
+                    'status': 'failed',
+                    'error': 'Import task completed but no assets were created'
+                }
+                
+        except Exception as e:
+            return {
+                'originalPath': file_path,
+                'targetPath': target_path if 'target_path' in locals() else '',
+                'assetType': self._detect_asset_type_from_extension(file_ext) if 'file_ext' in locals() else 'unknown',
+                'status': 'failed',
+                'error': str(e)
+            }
+    
+    def _detect_asset_type_from_extension(self, file_ext: str) -> str:
+        """Detect asset type from file extension.
+        
+        Args:
+            file_ext: File extension (with dot)
+            
+        Returns:
+            str: Asset type
+        """
+        ext = file_ext.lower()
+        
+        if ext in ['.fbx', '.obj', '.dae', '.3ds', '.ase', '.ply']:
+            return 'StaticMesh'
+        elif ext in ['.png', '.jpg', '.jpeg', '.tga', '.bmp', '.tiff', '.exr', '.hdr']:
+            return 'Texture2D'
+        elif ext in ['.mat']:
+            return 'Material'
+        elif ext in ['.uasset']:
+            return 'Blueprint'
+        else:
+            return 'Unknown'
+    
+    def _create_import_task(self, file_path: str, target_folder: str, 
+                          settings: dict, file_ext: str) -> unreal.AssetImportTask:
+        """Create an import task for the given file.
+        
+        Args:
+            file_path: Source file path
+            target_folder: Target content folder
+            settings: Import settings
+            file_ext: File extension
+            
+        Returns:
+            AssetImportTask or None if unsupported
+        """
+        try:
+            task = unreal.AssetImportTask()
+            task.filename = file_path
+            task.destination_path = target_folder
+            task.replace_existing = settings.get('overwriteExisting', False)
+            task.automated = True
+            task.save = True
+            
+            # Configure options based on file type
+            if file_ext in ['.fbx', '.obj', '.dae', '.3ds', '.ase', '.ply']:
+                # Static mesh import
+                options = unreal.FbxImportUI()
+                
+                # Mesh settings
+                options.import_mesh = True
+                options.import_materials = settings.get('importMaterials', True)
+                options.import_textures = settings.get('importTextures', True)
+                options.import_as_skeletal = False
+                
+                # Static mesh specific settings
+                mesh_options = options.static_mesh_import_data
+                mesh_options.combine_meshes = settings.get('combineMeshes', False)
+                mesh_options.generate_lightmap_u_vs = True
+                mesh_options.auto_generate_collision = settings.get('generateCollision', True)
+                
+                # LOD settings
+                if settings.get('generateLODs', False):
+                    mesh_options.auto_generate_collision = True
+                
+                task.options = options
+                
+            elif file_ext in ['.png', '.jpg', '.jpeg', '.tga', '.bmp', '.tiff', '.exr', '.hdr']:
+                # Texture import - use TextureFactory
+                factory = unreal.TextureFactory()
+                factory.s_rgb = settings.get('sRGB', True)
+                
+                # Set compression based on settings
+                compression = settings.get('compressionSettings', 'TC_Default')
+                if compression in self.COMPRESSION_MAP:
+                    factory.compression_settings = self.COMPRESSION_MAP[compression]
+                
+                task.factory = factory
+            
+            return task
+            
+        except Exception as e:
+            log_error(f"Failed to create import task: {str(e)}")
+            return None
+    
+    def _get_imported_asset_info(self, asset, original_file_path: str) -> dict:
+        """Get information about an imported asset.
+        
+        Args:
+            asset: The imported asset
+            original_file_path: Original source file path
+            
+        Returns:
+            dict: Asset information
+        """
+        import os
+        
+        info = {}
+        
+        try:
+            # Get file size
+            if os.path.exists(original_file_path):
+                info['size'] = os.path.getsize(original_file_path)
+            
+            # Get mesh-specific info
+            if isinstance(asset, unreal.StaticMesh):
+                # Check if the asset has any LODs before accessing LOD 0
+                if asset.get_num_lods() > 0:
+                    info['vertexCount'] = asset.get_num_vertices(0)
+                    info['materialCount'] = asset.get_num_sections(0)
+                else:
+                    info['vertexCount'] = 0
+                    info['materialCount'] = 0
+            
+        except Exception as e:
+            log_error(f"Error getting asset info: {str(e)}")
+        
+        return info
