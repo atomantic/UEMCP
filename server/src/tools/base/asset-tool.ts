@@ -77,4 +77,84 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
     
     return ResponseFormatter.success(text.trimEnd());
   }
+
+  /**
+   * Format enhanced asset information with detailed bounds, pivot, and socket data
+   */
+  protected formatEnhancedAssetInfo(info: any, assetPath: string): ReturnType<typeof ResponseFormatter.success> {
+    let text = `Asset Information: ${assetPath}\n\n`;
+    
+    // Basic info
+    if (info.assetType) text += `Type: ${info.assetType}\n`;
+    
+    // Bounds information
+    if (info.bounds) {
+      const b = info.bounds;
+      text += `\nBounding Box:\n`;
+      text += `  Size: [${b.size.x}, ${b.size.y}, ${b.size.z}]\n`;
+      text += `  Extent: [${b.extent.x}, ${b.extent.y}, ${b.extent.z}]\n`;
+      text += `  Origin: [${b.origin.x}, ${b.origin.y}, ${b.origin.z}]\n`;
+      if (b.min && b.max) {
+        text += `  Min: [${b.min.x}, ${b.min.y}, ${b.min.z}]\n`;
+        text += `  Max: [${b.max.x}, ${b.max.y}, ${b.max.z}]\n`;
+      }
+    }
+    
+    // Pivot information
+    if (info.pivot) {
+      text += `\nPivot:\n`;
+      text += `  Type: ${info.pivot.type}\n`;
+      text += `  Offset: [${info.pivot.offset.x}, ${info.pivot.offset.y}, ${info.pivot.offset.z}]\n`;
+    }
+    
+    // Collision information
+    if (info.collision) {
+      text += `\nCollision:\n`;
+      text += `  Has Collision: ${info.collision.hasCollision}\n`;
+      if (info.collision.numCollisionPrimitives > 0) {
+        text += `  Collision Primitives: ${info.collision.numCollisionPrimitives}\n`;
+      }
+      if (info.collision.collisionComplexity) {
+        text += `  Complexity: ${info.collision.collisionComplexity}\n`;
+      }
+    }
+    
+    // Socket information
+    if (info.sockets && info.sockets.length > 0) {
+      text += `\nSockets (${info.sockets.length}):\n`;
+      info.sockets.forEach((socket: any) => {
+        text += `  - ${socket.name}:\n`;
+        text += `    Location: [${socket.location.x}, ${socket.location.y}, ${socket.location.z}]\n`;
+        text += `    Rotation: [${socket.rotation.roll}, ${socket.rotation.pitch}, ${socket.rotation.yaw}]\n`;
+      });
+    }
+    
+    // Material slots
+    if (info.materialSlots && info.materialSlots.length > 0) {
+      text += `\nMaterial Slots (${info.materialSlots.length}):\n`;
+      info.materialSlots.forEach((slot: any) => {
+        text += `  - ${slot.slotName}: ${slot.materialPath || 'None'}\n`;
+      });
+    }
+    
+    // Mesh statistics
+    if (info.numVertices !== undefined) text += `\nVertices: ${info.numVertices}`;
+    if (info.numTriangles !== undefined) text += `\nTriangles: ${info.numTriangles}`;
+    if (info.numLODs !== undefined) text += `\nLODs: ${info.numLODs}`;
+    
+    // Blueprint specific info
+    if (info.blueprintClass) {
+      text += `\nBlueprint Class: ${info.blueprintClass}`;
+    }
+    if (info.components && info.components.length > 0) {
+      text += `\nComponents (${info.components.length}):\n`;
+      info.components.forEach((comp: any) => {
+        text += `  - ${comp.name} (${comp.class})`;
+        if (comp.meshPath) text += ` - Mesh: ${comp.meshPath}`;
+        text += '\n';
+      });
+    }
+    
+    return ResponseFormatter.success(text.trimEnd());
+  }
 }

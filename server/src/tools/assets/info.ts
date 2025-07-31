@@ -13,7 +13,7 @@ export class AssetInfoTool extends AssetTool<AssetInfoArgs> {
   get definition(): ToolDefinition {
     return {
       name: 'asset_info',
-      description: 'Get asset details (dimensions, materials, etc). asset_info({ assetPath: "/Game/Meshes/SM_Wall" }) returns bounding box size. Essential for calculating placement!',
+      description: 'Get comprehensive asset details including bounds, pivot type, sockets, collision, and materials. Returns min/max bounds, pivot offset, socket locations for snapping, collision info, material slots, and more. Essential for precise placement calculations!',
       inputSchema: {
         type: 'object',
         properties: {
@@ -34,13 +34,8 @@ export class AssetInfoTool extends AssetTool<AssetInfoArgs> {
       throw new Error(result.error || 'Failed to get asset info');
     }
     
-    return this.formatAssetInfo({
-      type: result.type as string,
-      boundingBox: result.boundingBox as { min: number[]; max: number[]; size: number[] },
-      materials: result.materials as string[],
-      vertexCount: result.vertexCount as number,
-      triangleCount: result.triangleCount as number,
-    }, args.assetPath);
+    // Format the enhanced asset info
+    return this.formatEnhancedAssetInfo(result, args.assetPath);
   }
 }
 
