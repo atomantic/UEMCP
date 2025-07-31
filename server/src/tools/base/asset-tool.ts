@@ -7,6 +7,70 @@ export interface AssetInfo {
   path: string;
 }
 
+// Interfaces for enhanced asset info
+interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface BoundsInfo {
+  size: Vec3;
+  extent: Vec3;
+  origin: Vec3;
+  min?: Vec3;
+  max?: Vec3;
+}
+
+interface PivotInfo {
+  type: string;
+  offset: Vec3;
+}
+
+interface CollisionInfo {
+  hasCollision: boolean;
+  numCollisionPrimitives?: number;
+  collisionComplexity?: string;
+  hasSimpleCollision?: boolean;
+}
+
+interface SocketInfo {
+  name: string;
+  location: Vec3;
+  rotation: {
+    roll: number;
+    pitch: number;
+    yaw: number;
+  };
+  scale?: Vec3;
+}
+
+interface MaterialSlot {
+  slotName: string;
+  materialPath: string | null;
+}
+
+interface ComponentInfo {
+  name: string;
+  class: string;
+  meshPath?: string;
+}
+
+export interface EnhancedAssetInfo {
+  assetType?: string;
+  bounds?: BoundsInfo;
+  pivot?: PivotInfo;
+  collision?: CollisionInfo;
+  sockets?: SocketInfo[];
+  materialSlots?: MaterialSlot[];
+  numVertices?: number;
+  numTriangles?: number;
+  numLODs?: number;
+  blueprintClass?: string;
+  components?: ComponentInfo[];
+  [key: string]: unknown; // Allow additional properties from Python
+}
+
 
 /**
  * Base class for asset-related tools
@@ -82,9 +146,7 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
   /**
    * Format enhanced asset information with detailed bounds, pivot, and socket data
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected formatEnhancedAssetInfo(info: Record<string, any>, assetPath: string): ReturnType<typeof ResponseFormatter.success> {
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
+  protected formatEnhancedAssetInfo(info: EnhancedAssetInfo, assetPath: string): ReturnType<typeof ResponseFormatter.success> {
     let text = `Asset Information: ${assetPath}\n\n`;
     
     // Basic info
@@ -125,8 +187,7 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
     // Socket information
     if (info.sockets && info.sockets.length > 0) {
       text += `\nSockets (${info.sockets.length}):\n`;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      info.sockets.forEach((socket: any) => {
+      info.sockets.forEach((socket) => {
         text += `  - ${socket.name}:\n`;
         text += `    Location: [${socket.location.x}, ${socket.location.y}, ${socket.location.z}]\n`;
         text += `    Rotation: [${socket.rotation.roll}, ${socket.rotation.pitch}, ${socket.rotation.yaw}]\n`;
@@ -136,8 +197,7 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
     // Material slots
     if (info.materialSlots && info.materialSlots.length > 0) {
       text += `\nMaterial Slots (${info.materialSlots.length}):\n`;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      info.materialSlots.forEach((slot: any) => {
+      info.materialSlots.forEach((slot) => {
         text += `  - ${slot.slotName}: ${slot.materialPath || 'None'}\n`;
       });
     }
@@ -153,8 +213,7 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
     }
     if (info.components && info.components.length > 0) {
       text += `\nComponents (${info.components.length}):\n`;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      info.components.forEach((comp: any) => {
+      info.components.forEach((comp) => {
         text += `  - ${comp.name} (${comp.class})`;
         if (comp.meshPath) text += ` - Mesh: ${comp.meshPath}`;
         text += '\n';
@@ -162,6 +221,5 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
     }
     
     return ResponseFormatter.success(text.trimEnd());
-    /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
   }
 }

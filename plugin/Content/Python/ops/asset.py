@@ -165,13 +165,10 @@ class AssetOperations:
                 body_setup = asset.get_editor_property('body_setup')
                 if body_setup:
                     collision_info['collisionComplexity'] = str(body_setup.collision_trace_flag)
-                    # Optimize multiple len() calls
-                    box_elems_len = len(body_setup.aggregate_geom.box_elems)
-                    sphere_elems_len = len(body_setup.aggregate_geom.sphere_elems)
-                    convex_elems_len = len(body_setup.aggregate_geom.convex_elems)
-                    collision_info['hasSimpleCollision'] = box_elems_len > 0 or \
-                                                          sphere_elems_len > 0 or \
-                                                          convex_elems_len > 0
+                    # Check for simple collision
+                    collision_info['hasSimpleCollision'] = len(body_setup.aggregate_geom.box_elems) > 0 or \
+                                                          len(body_setup.aggregate_geom.sphere_elems) > 0 or \
+                                                          len(body_setup.aggregate_geom.convex_elems) > 0
                 
                 info['collision'] = collision_info
                 
@@ -255,8 +252,8 @@ class AssetOperations:
                                 comp_data['meshPath'] = str(comp.static_mesh.get_path_name())
                             component_info.append(comp_data)
                         info['components'] = component_info
-                except Exception:
-                    pass
+                except Exception as e:
+                    log_error(f"Error while retrieving bounds or components for asset: {e}")
             
             # Get info for materials
             elif isinstance(asset, unreal.Material) or isinstance(asset, unreal.MaterialInstance):

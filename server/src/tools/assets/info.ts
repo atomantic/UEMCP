@@ -1,6 +1,7 @@
 import { AssetTool } from '../base/asset-tool.js';
 import { ToolResponse } from '../../utils/response-formatter.js';
 import { ToolDefinition } from '../base/base-tool.js';
+import type { EnhancedAssetInfo } from '../base/asset-tool.js';
 
 interface AssetInfoArgs {
   assetPath: string;
@@ -35,7 +36,8 @@ export class AssetInfoTool extends AssetTool<AssetInfoArgs> {
     }
     
     // Format the enhanced asset info
-    return this.formatEnhancedAssetInfo(result, args.assetPath);
+    // Cast the Python result to our TypeScript interface
+    return this.formatEnhancedAssetInfo(result as unknown as EnhancedAssetInfo, args.assetPath);
   }
 }
 
