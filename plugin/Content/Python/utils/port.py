@@ -101,6 +101,11 @@ def is_port_available(port):
     finally:
         sock.close()
 
+
+def check_port_available(port):
+    """Alias for is_port_available - check if a port is available for binding"""
+    return is_port_available(port)
+
 def wait_for_port_available(port, timeout=5):
     """Wait for a port to become available"""
     start_time = time.time()
