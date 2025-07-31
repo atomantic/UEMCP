@@ -24,10 +24,10 @@ try:
         time.sleep(1)  # Give it time to stop
     
     # Also check if port is in use from a crashed session
-    from utils import port
-    if port.is_port_in_use(8765):
+    from utils import is_port_in_use, force_free_port_silent
+    if is_port_in_use(8765):
         unreal.log("UEMCP: Port 8765 in use from previous session, cleaning up...")
-        port.force_free_port_silent(8765)
+        force_free_port_silent(8765)
         time.sleep(1)
     
     # Try to start the listener

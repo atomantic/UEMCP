@@ -4,7 +4,7 @@ UEMCP Actor Operations - All actor-related operations
 
 import unreal
 import time
-from utils.general import (
+from utils import (
     create_vector, create_rotator, create_transform,
     find_actor_by_name, load_asset, log_debug, log_error
 )
@@ -92,7 +92,7 @@ class ActorOperations:
             
             # Add validation if requested
             if validate:
-                from utils.validation import validate_actor_spawn
+                from utils import validate_actor_spawn
                 validation_result = validate_actor_spawn(
                     name, 
                     expected_location=location,
@@ -140,7 +140,7 @@ class ActorOperations:
             
             # Add validation if requested
             if validate:
-                from utils.validation import validate_actor_deleted
+                from utils import validate_actor_deleted
                 validation_result = validate_actor_deleted(actorName)
                 result['validated'] = validation_result.success
                 if validation_result.errors:
@@ -222,7 +222,7 @@ class ActorOperations:
             
             # Add validation if requested
             if validate:
-                from utils.validation import validate_actor_modifications
+                from utils import validate_actor_modifications
                 modifications = {}
                 if location is not None:
                     modifications['location'] = location
@@ -320,7 +320,7 @@ class ActorOperations:
             
             # Add validation if requested
             if validate:
-                from utils.validation import validate_actor_spawn
+                from utils import validate_actor_spawn
                 validation_result = validate_actor_spawn(
                     new_actor.get_actor_label(),
                     expected_location=[new_location.x, new_location.y, new_location.z],
