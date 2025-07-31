@@ -12,6 +12,29 @@ class AssetOperations:
     # Tolerance for pivot type detection (in Unreal units)
     PIVOT_TOLERANCE = 0.1
     
+    def _detect_pivot_type(self, origin, box_extent):
+        """Detect the pivot type based on origin position relative to bounds.
+        
+        Args:
+            origin: The origin point of the asset
+            box_extent: The box extent (half-size) of the asset
+            
+        Returns:
+            str: The detected pivot type ('center', 'bottom-center', or 'corner-bottom')
+        """
+        tolerance = self.PIVOT_TOLERANCE
+        
+        # Check if pivot is at bottom-center
+        if abs(origin.z + box_extent.z) < tolerance:
+            # Check if also at corner
+            if abs(origin.x + box_extent.x) < tolerance and abs(origin.y + box_extent.y) < tolerance:
+                return 'corner-bottom'
+            else:
+                return 'bottom-center'
+        
+        # Default to center
+        return 'center'
+    
     def list_assets(self, path='/Game', assetType=None, limit=20):
         """List assets in a given path.
         
@@ -106,12 +129,7 @@ class AssetOperations:
                 )
                 
                 # Determine pivot type based on origin position
-                pivot_type = 'center'  # Default assumption
-                tolerance = self.PIVOT_TOLERANCE
-                if abs(origin.z + box_extent.z) < tolerance:
-                    pivot_type = 'bottom-center'
-                elif abs(origin.x + box_extent.x) < tolerance and abs(origin.y + box_extent.y) < tolerance:
-                    pivot_type = 'corner-bottom'
+                pivot_type = self._detect_pivot_type(origin, box_extent)
                 
                 info.update({
                     'bounds': {
@@ -164,13 +182,20 @@ class AssetOperations:
                 # Try to get more collision details
                 body_setup = asset.get_editor_property('body_setup')
                 if body_setup:
-                    collision_info['collisionComplexity'] = str(body_setup.collision_trace_flag)
+                    if hasattr(body_setup, 'collision_trace_flag'):
+                        collision_info['collisionComplexity'] = str(body_setup.collision_trace_flag)
+                    else:
+                        collision_info['collisionComplexity'] = 'Unknown'
+                    
                     # Check for simple collision
-                    collision_info['hasSimpleCollision'] = (
-                        len(body_setup.aggregate_geom.box_elems) > 0 or
-                        len(body_setup.aggregate_geom.sphere_elems) > 0 or
-                        len(body_setup.aggregate_geom.convex_elems) > 0
-                    )
+                    if hasattr(body_setup, 'aggregate_geom'):
+                        collision_info['hasSimpleCollision'] = (
+                            len(body_setup.aggregate_geom.box_elems) > 0 or
+                            len(body_setup.aggregate_geom.sphere_elems) > 0 or
+                            len(body_setup.aggregate_geom.convex_elems) > 0
+                        )
+                    else:
+                        collision_info['hasSimpleCollision'] = False
                 
                 info['collision'] = collision_info
                 

@@ -169,79 +169,80 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
    * Format enhanced asset information with detailed bounds, pivot, and socket data
    */
   protected formatEnhancedAssetInfo(info: EnhancedAssetInfo, assetPath: string): ReturnType<typeof ResponseFormatter.success> {
-    let text = `Asset Information: ${assetPath}\n\n`;
+    const textParts: string[] = [];
+    textParts.push(`Asset Information: ${assetPath}\n\n`);
     
     // Basic info
-    if (info.assetType) text += `Type: ${info.assetType}\n`;
+    if (info.assetType) textParts.push(`Type: ${info.assetType}\n`);
     
     // Bounds information
     if (info.bounds) {
       const b = info.bounds;
-      text += `\nBounding Box:\n`;
-      text += `  Size: [${b.size.x}, ${b.size.y}, ${b.size.z}]\n`;
-      text += `  Extent: [${b.extent.x}, ${b.extent.y}, ${b.extent.z}]\n`;
-      text += `  Origin: [${b.origin.x}, ${b.origin.y}, ${b.origin.z}]\n`;
+      textParts.push(`\nBounding Box:\n`);
+      textParts.push(`  Size: [${b.size.x}, ${b.size.y}, ${b.size.z}]\n`);
+      textParts.push(`  Extent: [${b.extent.x}, ${b.extent.y}, ${b.extent.z}]\n`);
+      textParts.push(`  Origin: [${b.origin.x}, ${b.origin.y}, ${b.origin.z}]\n`);
       if (b.min && b.max) {
-        text += `  Min: [${b.min.x}, ${b.min.y}, ${b.min.z}]\n`;
-        text += `  Max: [${b.max.x}, ${b.max.y}, ${b.max.z}]\n`;
+        textParts.push(`  Min: [${b.min.x}, ${b.min.y}, ${b.min.z}]\n`);
+        textParts.push(`  Max: [${b.max.x}, ${b.max.y}, ${b.max.z}]\n`);
       }
     }
     
     // Pivot information
     if (info.pivot) {
-      text += `\nPivot:\n`;
-      text += `  Type: ${info.pivot.type}\n`;
-      text += `  Offset: [${info.pivot.offset.x}, ${info.pivot.offset.y}, ${info.pivot.offset.z}]\n`;
+      textParts.push(`\nPivot:\n`);
+      textParts.push(`  Type: ${info.pivot.type}\n`);
+      textParts.push(`  Offset: [${info.pivot.offset.x}, ${info.pivot.offset.y}, ${info.pivot.offset.z}]\n`);
     }
     
     // Collision information
     if (info.collision) {
-      text += `\nCollision:\n`;
-      text += `  Has Collision: ${info.collision.hasCollision}\n`;
+      textParts.push(`\nCollision:\n`);
+      textParts.push(`  Has Collision: ${info.collision.hasCollision}\n`);
       if (info.collision.numCollisionPrimitives !== undefined && info.collision.numCollisionPrimitives > 0) {
-        text += `  Collision Primitives: ${info.collision.numCollisionPrimitives}\n`;
+        textParts.push(`  Collision Primitives: ${info.collision.numCollisionPrimitives}\n`);
       }
       if (info.collision.collisionComplexity) {
-        text += `  Complexity: ${info.collision.collisionComplexity}\n`;
+        textParts.push(`  Complexity: ${info.collision.collisionComplexity}\n`);
       }
     }
     
     // Socket information
     if (info.sockets && info.sockets.length > 0) {
-      text += `\nSockets (${info.sockets.length}):\n`;
+      textParts.push(`\nSockets (${info.sockets.length}):\n`);
       info.sockets.forEach((socket) => {
-        text += `  - ${socket.name}:\n`;
-        text += `    Location: [${socket.location.x}, ${socket.location.y}, ${socket.location.z}]\n`;
-        text += `    Rotation: [${socket.rotation.roll}, ${socket.rotation.pitch}, ${socket.rotation.yaw}]\n`;
+        textParts.push(`  - ${socket.name}:\n`);
+        textParts.push(`    Location: [${socket.location.x}, ${socket.location.y}, ${socket.location.z}]\n`);
+        textParts.push(`    Rotation: [${socket.rotation.roll}, ${socket.rotation.pitch}, ${socket.rotation.yaw}]\n`);
       });
     }
     
     // Material slots
     if (info.materialSlots && info.materialSlots.length > 0) {
-      text += `\nMaterial Slots (${info.materialSlots.length}):\n`;
+      textParts.push(`\nMaterial Slots (${info.materialSlots.length}):\n`);
       info.materialSlots.forEach((slot) => {
-        text += `  - ${slot.slotName}: ${slot.materialPath || 'None'}\n`;
+        textParts.push(`  - ${slot.slotName}: ${slot.materialPath || 'None'}\n`);
       });
     }
     
     // Mesh statistics
-    if (info.numVertices !== undefined) text += `\nVertices: ${info.numVertices}`;
-    if (info.numTriangles !== undefined) text += `\nTriangles: ${info.numTriangles}`;
-    if (info.numLODs !== undefined) text += `\nLODs: ${info.numLODs}`;
+    if (info.numVertices !== undefined) textParts.push(`\nVertices: ${info.numVertices}`);
+    if (info.numTriangles !== undefined) textParts.push(`\nTriangles: ${info.numTriangles}`);
+    if (info.numLODs !== undefined) textParts.push(`\nLODs: ${info.numLODs}`);
     
     // Blueprint specific info
     if (info.blueprintClass) {
-      text += `\nBlueprint Class: ${info.blueprintClass}`;
+      textParts.push(`\nBlueprint Class: ${info.blueprintClass}`);
     }
     if (info.components && info.components.length > 0) {
-      text += `\nComponents (${info.components.length}):\n`;
+      textParts.push(`\nComponents (${info.components.length}):\n`);
       info.components.forEach((comp) => {
-        text += `  - ${comp.name} (${comp.class})`;
-        if (comp.meshPath) text += ` - Mesh: ${comp.meshPath}`;
-        text += '\n';
+        textParts.push(`  - ${comp.name} (${comp.class})`);
+        if (comp.meshPath) textParts.push(` - Mesh: ${comp.meshPath}`);
+        textParts.push('\n');
       });
     }
     
-    return ResponseFormatter.success(text.trimEnd());
+    return ResponseFormatter.success(textParts.join('').trimEnd());
   }
 }

@@ -5,10 +5,10 @@
  * Tests the new bounds, pivot, socket, and collision information
  */
 
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 const TEST_ASSETS = [
   '/Game/ModularOldTown/Meshes/Walls/SM_FlatWall_3m',
@@ -22,10 +22,10 @@ async function testAssetInfo(assetPath) {
   console.log(`Testing asset: ${assetPath}`);
   console.log('='.repeat(80));
   
-  const command = `node test-connection.js --tool asset_info --args '{"assetPath": "${assetPath}"}'`;
+  const args = ['test-connection.js', '--tool', 'asset_info', '--args', JSON.stringify({ assetPath })];
   
   try {
-    const { stdout, stderr } = await execAsync(command);
+    const { stdout, stderr } = await execFileAsync('node', args);
     
     if (stderr) {
       console.error('Error:', stderr);
