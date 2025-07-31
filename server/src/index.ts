@@ -5,39 +5,94 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { projectInfoTool } from './tools/project-info.js';
-import { assetListTool } from './tools/asset-list.js';
-import { assetInfoTool } from './tools/asset-info.js';
-import { actorSpawnTool } from './tools/actor-spawn.js';
-import { actorDeleteTool } from './tools/actor-delete.js';
-import { actorModifyTool } from './tools/actor-modify.js';
-import { actorOrganizeTool } from './tools/actor-organize.js';
-import { actorDuplicateTool } from './tools/actor-duplicate.js';
-import { levelActorsTool } from './tools/level-actors.js';
-import { levelSaveTool } from './tools/level-save.js';
-import { levelOutlinerTool } from './tools/level-outliner.js';
-import { viewportScreenshotTool } from './tools/viewport-screenshot.js';
-import { viewportCameraTool } from './tools/viewport-camera.js';
-import { viewportModeTool } from './tools/viewport-mode.js';
-import { viewportFocusTool } from './tools/viewport-focus.js';
-import { viewportRenderModeTool } from './tools/viewport-render-mode.js';
-import { viewportBoundsTool } from './tools/viewport-bounds.js';
-import { viewportFitTool } from './tools/viewport-fit.js';
-import { viewportLookAt } from './tools/viewport-look-at.js';
-import { pythonProxyTool } from './tools/python-proxy.js';
-import { testConnectionTool } from './tools/test-connection.js';
-import { restartListenerTool } from './tools/restart-listener.js';
-import { ueLogsTool } from './tools/ue-logs.js';
-import { helpTool } from './tools/help.js';
 import { logger } from './utils/logger.js';
 import { PythonBridge } from './services/python-bridge.js';
 import * as os from 'os';
+
+// Import all tools from centralized index
+import {
+  // Actor tools
+  actorSpawnTool,
+  actorDeleteTool,
+  actorModifyTool,
+  actorDuplicateTool,
+  actorOrganizeTool,
+  // Viewport tools
+  viewportScreenshotTool,
+  viewportCameraTool,
+  viewportModeTool,
+  viewportFocusTool,
+  viewportRenderModeTool,
+  viewportBoundsTool,
+  viewportFitTool,
+  viewportLookAtTool,
+  // Asset tools
+  assetListTool,
+  assetInfoTool,
+  // Level tools
+  levelActorsTool,
+  levelSaveTool,
+  levelOutlinerTool,
+  // System tools
+  projectInfoTool,
+  testConnectionTool,
+  helpTool,
+  pythonProxyTool,
+  restartListenerTool,
+  ueLogsTool,
+} from './tools/index.js';
+
+// Create array of all tools
+const allTools = [
+  actorSpawnTool,
+  actorDeleteTool,
+  actorModifyTool,
+  actorDuplicateTool,
+  actorOrganizeTool,
+  viewportScreenshotTool,
+  viewportCameraTool,
+  viewportModeTool,
+  viewportFocusTool,
+  viewportRenderModeTool,
+  viewportBoundsTool,
+  viewportFitTool,
+  viewportLookAtTool,
+  assetListTool,
+  assetInfoTool,
+  levelActorsTool,
+  levelSaveTool,
+  levelOutlinerTool,
+  projectInfoTool,
+  testConnectionTool,
+  helpTool,
+  pythonProxyTool,
+  restartListenerTool,
+  ueLogsTool,
+];
+
+// Define tool type
+interface MCPTool {
+  definition: {
+    name: string;
+    description: string;
+    inputSchema: unknown;
+  };
+  handler: (args: unknown) => Promise<{
+    content: Array<{ type: string; text: string }>;
+  }>;
+}
+
+// Create a map of tool names to handlers for efficient lookup
+const toolHandlers = new Map<string, MCPTool>();
+allTools.forEach(tool => {
+  toolHandlers.set(tool.definition.name, tool as MCPTool);
+});
 
 // Log startup information
 logger.info('='.repeat(60));
 logger.info('UEMCP Server Starting...');
 logger.info('='.repeat(60));
-logger.info(`Version: 0.1.0`);
+logger.info(`Version: 0.2.0`);
 logger.info(`Node.js: ${process.version}`);
 logger.info(`Platform: ${os.platform()} ${os.release()}`);
 logger.info(`Process ID: ${process.pid}`);
@@ -63,7 +118,7 @@ logger.info('='.repeat(60));
 const server = new Server(
   {
     name: 'uemcp',
-    version: '0.1.0',
+    version: '0.2.0',
   },
   {
     capabilities: {
@@ -74,32 +129,7 @@ const server = new Server(
 
 server.setRequestHandler(ListToolsRequestSchema, () => {
   return {
-    tools: [
-      actorDeleteTool.definition,
-      actorDuplicateTool.definition,
-      actorModifyTool.definition,
-      actorOrganizeTool.definition,
-      actorSpawnTool.definition,
-      assetInfoTool.definition,
-      assetListTool.definition,
-      helpTool.definition,
-      levelActorsTool.definition,
-      levelOutlinerTool.definition,
-      levelSaveTool.definition,
-      projectInfoTool.definition,
-      pythonProxyTool.definition,
-      restartListenerTool.definition,
-      testConnectionTool.definition,
-      ueLogsTool.definition,
-      viewportBoundsTool.definition,
-      viewportCameraTool.definition,
-      viewportFitTool.definition,
-      viewportFocusTool.definition,
-      viewportLookAt.definition,
-      viewportModeTool.definition,
-      viewportRenderModeTool.definition,
-      viewportScreenshotTool.definition,
-    ],
+    tools: Array.from(toolHandlers.values()).map(tool => tool.definition),
   };
 });
 
@@ -110,83 +140,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const startTime = Date.now();
 
   try {
-    let result;
-    switch (name) {
-      case 'project_info':
-        result = await projectInfoTool.handler(args);
-        break;
-      case 'asset_list':
-        result = await assetListTool.handler(args);
-        break;
-      case 'asset_info':
-        result = await assetInfoTool.handler(args);
-        break;
-      case 'actor_spawn':
-        result = await actorSpawnTool.handler(args);
-        break;
-      case 'actor_delete':
-        result = await actorDeleteTool.handler(args);
-        break;
-      case 'actor_duplicate':
-        result = await actorDuplicateTool.handler(args);
-        break;
-      case 'actor_modify':
-        result = await actorModifyTool.handler(args);
-        break;
-      case 'actor_organize':
-        result = await actorOrganizeTool.handler(args);
-        break;
-      case 'level_actors':
-        result = await levelActorsTool.handler(args);
-        break;
-      case 'level_save':
-        result = await levelSaveTool.handler(args);
-        break;
-      case 'level_outliner':
-        result = await levelOutlinerTool.handler(args);
-        break;
-      case 'viewport_screenshot':
-        result = await viewportScreenshotTool.handler(args);
-        break;
-      case 'viewport_camera':
-        result = await viewportCameraTool.handler(args);
-        break;
-      case 'viewport_mode':
-        result = await viewportModeTool.handler(args as { mode: string });
-        break;
-      case 'viewport_focus':
-        result = await viewportFocusTool.handler(args as { actorName: string });
-        break;
-      case 'viewport_render_mode':
-        result = await viewportRenderModeTool.handler(args as { mode?: string });
-        break;
-      case 'viewport_bounds':
-        result = await viewportBoundsTool.handler(args);
-        break;
-      case 'viewport_fit':
-        result = await viewportFitTool.handler(args);
-        break;
-      case 'viewport_look_at':
-        result = await viewportLookAt.handler(args);
-        break;
-      case 'python_proxy':
-        result = await pythonProxyTool.handler(args as { code: string; context?: Record<string, unknown> });
-        break;
-      case 'test_connection':
-        result = await testConnectionTool.handler(args);
-        break;
-      case 'restart_listener':
-        result = await restartListenerTool.handler(args as { force?: boolean });
-        break;
-      case 'ue_logs':
-        result = await ueLogsTool.handler(args as { lines?: number; project?: string });
-        break;
-      case 'help':
-        result = await helpTool.handler(args as { tool?: string; category?: string });
-        break;
-      default:
-        throw new Error(`Unknown tool: ${name}`);
+    const tool = toolHandlers.get(name);
+    if (!tool) {
+      throw new Error(`Unknown tool: ${name}`);
     }
+    
+    const result = await tool.handler(args);
     
     const duration = Date.now() - startTime;
     logger.info(`Tool completed: ${name} (${duration}ms)`);
@@ -239,33 +198,12 @@ async function main(): Promise<void> {
     
     await server.connect(transport);
     
+    const toolNames = Array.from(toolHandlers.keys()).sort();
     logger.info('='.repeat(60));
     logger.info('✓ UEMCP Server Ready');
     logger.info('  MCP Protocol: stdio');
-    logger.info('  Available Tools: ' + [
-      'actor_delete',
-      'actor_duplicate',
-      'actor_modify',
-      'actor_organize',
-      'actor_spawn',
-      'asset_info',
-      'asset_list',
-      'level_actors',
-      'level_outliner',
-      'level_save',
-      'project_info',
-      'python_proxy',
-      'restart_listener',
-      'test_connection',
-      'ue_logs',
-      'viewport_bounds',
-      'viewport_camera',
-      'viewport_fit',
-      'viewport_focus',
-      'viewport_mode',
-      'viewport_render_mode',
-      'viewport_screenshot',
-    ].join(', '));
+    logger.info(`  Available Tools: ${toolNames.length} tools`);
+    logger.info('  ' + toolNames.join(', '));
     logger.info('='.repeat(60));
     
     // Set up periodic health check (every 5 seconds for faster reconnection)
