@@ -7,6 +7,7 @@ export interface AssetInfo {
   path: string;
 }
 
+
 /**
  * Base class for asset-related tools
  */
@@ -67,7 +68,7 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
     
     if (info.materials && Array.isArray(info.materials) && info.materials.length > 0) {
       text += `\nMaterials (${info.materials.length}):\n`;
-      info.materials.forEach((mat: string) => {
+      info.materials.forEach((mat) => {
         text += `  - ${mat}\n`;
       });
     }
@@ -81,7 +82,9 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
   /**
    * Format enhanced asset information with detailed bounds, pivot, and socket data
    */
-  protected formatEnhancedAssetInfo(info: any, assetPath: string): ReturnType<typeof ResponseFormatter.success> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected formatEnhancedAssetInfo(info: Record<string, any>, assetPath: string): ReturnType<typeof ResponseFormatter.success> {
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
     let text = `Asset Information: ${assetPath}\n\n`;
     
     // Basic info
@@ -111,7 +114,7 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
     if (info.collision) {
       text += `\nCollision:\n`;
       text += `  Has Collision: ${info.collision.hasCollision}\n`;
-      if (info.collision.numCollisionPrimitives > 0) {
+      if (info.collision.numCollisionPrimitives !== undefined && info.collision.numCollisionPrimitives > 0) {
         text += `  Collision Primitives: ${info.collision.numCollisionPrimitives}\n`;
       }
       if (info.collision.collisionComplexity) {
@@ -122,6 +125,7 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
     // Socket information
     if (info.sockets && info.sockets.length > 0) {
       text += `\nSockets (${info.sockets.length}):\n`;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       info.sockets.forEach((socket: any) => {
         text += `  - ${socket.name}:\n`;
         text += `    Location: [${socket.location.x}, ${socket.location.y}, ${socket.location.z}]\n`;
@@ -132,6 +136,7 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
     // Material slots
     if (info.materialSlots && info.materialSlots.length > 0) {
       text += `\nMaterial Slots (${info.materialSlots.length}):\n`;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       info.materialSlots.forEach((slot: any) => {
         text += `  - ${slot.slotName}: ${slot.materialPath || 'None'}\n`;
       });
@@ -148,6 +153,7 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
     }
     if (info.components && info.components.length > 0) {
       text += `\nComponents (${info.components.length}):\n`;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       info.components.forEach((comp: any) => {
         text += `  - ${comp.name} (${comp.class})`;
         if (comp.meshPath) text += ` - Mesh: ${comp.meshPath}`;
@@ -156,5 +162,6 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
     }
     
     return ResponseFormatter.success(text.trimEnd());
+    /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
   }
 }
