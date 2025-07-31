@@ -41,7 +41,8 @@ export class ActorOrganizeTool extends ActorTool<ActorOrganizeArgs> {
   protected async execute(args: ActorOrganizeArgs): Promise<ToolResponse> {
     const result = await this.executePythonCommand('actor.organize', args);
     
-    const organizedCount = (result.organizedCount as number) || 0;
+    const organizedCount = (result.count as number) || 0;
+    const organizedActors = (result.organizedActors as string[]) || [];
     
     let text = `✓ Organized ${organizedCount} actor${organizedCount !== 1 ? 's' : ''} into folder: ${args.folder}\n`;
     
@@ -51,13 +52,13 @@ export class ActorOrganizeTool extends ActorTool<ActorOrganizeArgs> {
       text += `  Method: Pattern matching "${args.pattern}"`;
     }
     
-    if (result.actors && Array.isArray(result.actors) && result.actors.length > 0) {
+    if (organizedActors.length > 0) {
       text += '\n  Organized actors:\n';
-      (result.actors as string[]).slice(0, 10).forEach(actor => {
+      organizedActors.slice(0, 10).forEach(actor => {
         text += `    - ${actor}\n`;
       });
-      if (result.actors.length > 10) {
-        text += `    ... and ${result.actors.length - 10} more`;
+      if (organizedActors.length > 10) {
+        text += `    ... and ${organizedActors.length - 10} more`;
       }
     }
     
