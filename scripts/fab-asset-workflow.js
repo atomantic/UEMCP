@@ -9,6 +9,7 @@ import { createMCPClient } from '../server/tests/utils/mcp-client.js';
 import { fileURLToPath } from 'url';
 import os from 'os';
 import path from 'path';
+import fs from 'fs';
 
 async function fabAssetWorkflow() {
   const client = createMCPClient();
@@ -34,20 +35,10 @@ async function fabAssetWorkflow() {
     
     // Try to find FAB library
     for (const fabPath of fabPaths) {
-      try {
-        const stats = await client.callTool('python_proxy', {
-          code: `
-import os
-result = os.path.exists("${fabPath}")
-`
-        });
-        if (stats) {
-          fabLibraryPath = fabPath;
-          console.log(`   ✅ Found FAB library at: ${fabPath}`);
-          break;
-        }
-      } catch (e) {
-        // Continue searching
+      if (fs.existsSync(fabPath)) {
+        fabLibraryPath = fabPath;
+        console.log(`   ✅ Found FAB library at: ${fabPath}`);
+        break;
       }
     }
     
@@ -93,8 +84,12 @@ result = os.path.exists("${fabPath}")
     console.log(`        assetType: "texture",`);
     console.log(`        batchImport: true,`);
     console.log(`        importSettings: {`);
-    console.log(`          sRGB: false,  // For normal maps`);
-    console.log(`          compressionSettings: "TC_Normalmap"`);
+    console.log(`          // Note: sRGB and compression should be set based on texture type:`);
+    console.log(`          // - Albedo/Diffuse: sRGB = true, compressionSettings = "TC_Default"`);
+    console.log(`          // - Normal maps: sRGB = false, compressionSettings = "TC_Normalmap"`);
+    console.log(`          // - Masks/Roughness/Metallic: sRGB = false, compressionSettings = "TC_Masks"`);
+    console.log(`          sRGB: true,  // Set based on texture type`);
+    console.log(`          compressionSettings: "TC_Default"  // Set based on texture type`);
     console.log(`        }`);
     console.log(`      })\n`);
     

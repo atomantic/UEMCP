@@ -38,36 +38,42 @@ async function testNewTools() {
     console.log('3. Testing batch_spawn tool...');
     console.log('   Spawning 4 walls in a square formation:\n');
     
-    const batchResult = await client.callTool('batch_spawn', {
-      actors: [
-        {
-          assetPath: '/Game/ModularOldTown/Meshes/SM_OT_Wall_01a',
-          name: 'TestWall_North',
-          location: [0, -300, 0],
-          rotation: [0, 0, 0]
-        },
-        {
-          assetPath: '/Game/ModularOldTown/Meshes/SM_OT_Wall_01a',
-          name: 'TestWall_South', 
-          location: [0, 300, 0],
-          rotation: [0, 0, 180]
-        },
-        {
-          assetPath: '/Game/ModularOldTown/Meshes/SM_OT_Wall_01a',
-          name: 'TestWall_East',
-          location: [300, 0, 0],
-          rotation: [0, 0, 90]
-        },
-        {
-          assetPath: '/Game/ModularOldTown/Meshes/SM_OT_Wall_01a',
-          name: 'TestWall_West',
-          location: [-300, 0, 0],
-          rotation: [0, 0, -90]
-        }
-      ],
-      folder: 'TestBuilding',
-      updateViewport: true
-    });
+    let batchResult;
+    try {
+      batchResult = await client.callTool('batch_spawn', {
+        actors: [
+          {
+            assetPath: '/Game/ModularOldTown/Meshes/SM_OT_Wall_01a',
+            name: 'TestWall_North',
+            location: [0, -300, 0],
+            rotation: [0, 0, 0]
+          },
+          {
+            assetPath: '/Game/ModularOldTown/Meshes/SM_OT_Wall_01a',
+            name: 'TestWall_South', 
+            location: [0, 300, 0],
+            rotation: [0, 0, 180]
+          },
+          {
+            assetPath: '/Game/ModularOldTown/Meshes/SM_OT_Wall_01a',
+            name: 'TestWall_East',
+            location: [300, 0, 0],
+            rotation: [0, 0, 90]
+          },
+          {
+            assetPath: '/Game/ModularOldTown/Meshes/SM_OT_Wall_01a',
+            name: 'TestWall_West',
+            location: [-300, 0, 0],
+            rotation: [0, 0, -90]
+          }
+        ],
+        folder: 'TestBuilding',
+        updateViewport: true
+      });
+    } catch (error) {
+      console.log('❌ Batch spawn failed:', error.message);
+      throw error;
+    }
     
     console.log(`   Spawned: ${batchResult.spawnedActors?.length || 0} actors`);
     console.log(`   Failed: ${batchResult.failedSpawns?.length || 0} spawns`);

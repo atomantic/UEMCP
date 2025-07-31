@@ -37,8 +37,14 @@ async function buildHouseWithNewTools() {
     console.log('\n');
     
     // Step 2: Calculate positions based on asset dimensions
-    const wallWidth = wallInfo.bounds.size.x; // Should be ~300
-    const cornerSize = cornerInfo.bounds.size.x; // Corner dimension
+    const wallWidth = wallInfo.bounds.size.x;
+    if (wallWidth <= 0) {
+      throw new Error(`Invalid wall width retrieved: ${wallWidth}. Please check the asset dimensions.`);
+    }
+    const cornerSize = cornerInfo.bounds.size.x;
+    if (cornerSize <= 0) {
+      throw new Error(`Invalid corner size retrieved: ${cornerSize}. Please check the asset dimensions.`);
+    }
     
     console.log('3. Building house foundation with batch_spawn...\n');
     
