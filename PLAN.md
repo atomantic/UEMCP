@@ -113,6 +113,60 @@ Based on our house building experiment and current capabilities, here are the ne
 - Simulate structural integrity
 - Add realistic object interactions
 
+### Option F: AI-Generated 3D Asset Pipeline
+**Objective**: Generate 3D models from text/images using local AI models and import them into UE
+
+**New MCP Tools**:
+1. **diffusion_generate_image** - Generate images from text prompts using local Stable Diffusion
+2. **image_to_3d_model** - Convert 2D images to 3D models using TripoSR or similar
+3. **mesh_cleanup** - Optimize and clean generated meshes
+4. **auto_uv_unwrap** - Generate UV maps for texturing
+5. **texture_from_image** - Create textures from generated images
+
+**Integration Requirements**:
+- Local Stable Diffusion setup (ComfyUI, A1111, or similar)
+- Image-to-3D model (TripoSR, Shap-E, or similar)
+- Mesh processing tools (trimesh, pymeshlab)
+- Format conversion (OBJ/PLY to FBX)
+
+**Workflow Example**:
+```
+User: "Create a fantasy sword and place it in the scene"
+
+Claude Code:
+1. Generating concept art with Stable Diffusion...
+   Prompt: "fantasy sword, game asset, orthographic view, white background"
+   
+2. Converting to 3D model with TripoSR...
+   Generated mesh with 5,000 triangles
+   
+3. Cleaning up mesh and generating UVs...
+   Optimized to 2,500 triangles, UV unwrapped
+   
+4. Creating textures from concept art...
+   Diffuse, normal, and metallic maps generated
+   
+5. Importing to Unreal Engine...
+   Asset created at: /Game/Generated/FantasySword
+   
+6. Placing in scene...
+   [Shows screenshot of placed sword]
+```
+
+**Use Cases**:
+- Rapid prototyping of unique assets
+- Creating placeholder meshes for level design
+- Generating variations of existing assets
+- Building custom props from descriptions
+- Creating stylized environment pieces
+
+**Technical Challenges**:
+- Integration with local AI services (not cloud-based for privacy/control)
+- Mesh quality and topology cleanup
+- UV mapping for generated meshes
+- Texture projection and material setup
+- Performance optimization of generated assets
+
 ## Recommendation
 
 Based on user needs and maximum impact, I recommend proceeding with **Option A: Blueprint Tools** as the next phase. This would:
@@ -124,22 +178,45 @@ Based on user needs and maximum impact, I recommend proceeding with **Option A: 
 
 The Blueprint tools would complement our existing building tools perfectly, allowing users to not just build structures but make them interactive and functional.
 
+**Alternative High-Impact Option**: The AI-Generated 3D Asset Pipeline (Option F) could be transformative for rapid prototyping and content creation, especially if you already have local AI infrastructure set up. This would be particularly valuable for:
+- Indie developers needing unique assets quickly
+- Rapid iteration on design concepts
+- Creating placeholder content for level blockouts
+- Generating variations of existing themes
+
+The choice between Blueprint Tools and AI Asset Pipeline depends on whether your priority is making existing content interactive (Blueprint) or rapidly generating new content (AI Pipeline).
+
 ## Implementation Priority
 
-If we proceed with Blueprint tools, here's the recommended implementation order:
-
+### If proceeding with Blueprint Tools:
 1. **blueprint_create** - Foundation for all other Blueprint operations
 2. **blueprint_add_component** - Essential for actor composition
 3. **blueprint_set_variable** - Enable data-driven Blueprints
 4. **blueprint_create_event** - Add interactivity
 5. **blueprint_compile** - Ensure changes take effect
 
+### If proceeding with AI Asset Pipeline:
+1. **diffusion_generate_image** - Text-to-image foundation
+2. **image_to_3d_model** - Core 3D generation capability
+3. **mesh_cleanup** - Essential for usable meshes
+4. **auto_uv_unwrap** - Required for texturing
+5. **texture_from_image** - Complete the asset pipeline
+
 ## Technical Considerations
 
+### For Blueprint Tools:
 - Blueprint manipulation requires careful handling of the UE reflection system
 - Need to ensure proper compilation and validation after modifications
 - Should provide templates for common patterns (door, switch, trigger, etc.)
 - Must handle Blueprint inheritance chains correctly
+
+### For AI Asset Pipeline:
+- Requires local GPU with sufficient VRAM (8GB+ recommended)
+- Need to handle async operations for AI generation (can take 30s-2min per asset)
+- Mesh topology from AI models often needs significant cleanup
+- Should implement quality checks and automatic retries
+- Consider caching generated assets to avoid regeneration
+- Need robust error handling for AI model failures
 
 ## Development Principles
 
