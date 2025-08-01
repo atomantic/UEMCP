@@ -203,7 +203,20 @@ def tick_handler(delta_time):
             if restart_countdown <= 0:
                 restart_scheduled = False
                 stop_server()
-                # The restart will be handled by uemcp_helpers
+                # Schedule restart after server is fully stopped
+                unreal.log("UEMCP: Listener stopped, restarting in 1 second...")
+                
+                # Create a one-time tick handler for restart
+                restart_timer = {'time': 1.0}
+                
+                def restart_tick_handler(delta):
+                    restart_timer['time'] -= delta
+                    if restart_timer['time'] <= 0:
+                        unreal.unregister_slate_post_tick_callback(restart_handle)
+                        unreal.log("UEMCP: Restarting listener now...")
+                        start_server()
+                
+                restart_handle = unreal.register_slate_post_tick_callback(restart_tick_handler)
                 return
                 
     except Exception as e:
@@ -231,22 +244,28 @@ def start_server():
         # Start HTTP server in separate thread
         def run_server():
             global httpd, server_running
+            local_httpd = None
             try:
-                httpd = HTTPServer(('localhost', 8765), UEMCPHandler)
-                httpd.timeout = 0.5
+                local_httpd = HTTPServer(('localhost', 8765), UEMCPHandler)
+                local_httpd.timeout = 0.5
+                httpd = local_httpd
                 server_running = True
                 log_debug("HTTP server started on port 8765")
                 
                 while server_running:
-                    httpd.handle_request()
+                    local_httpd.handle_request()
                     
             except Exception as e:
                 log_error(f"HTTP server error: {str(e)}")
             finally:
                 server_running = False
-                if httpd:
-                    httpd.server_close()
-                    httpd = None
+                # Ensure socket is properly closed
+                if local_httpd:
+                    try:
+                        local_httpd.server_close()
+                    except:
+                        pass
+                httpd = None
         
         server_thread = threading.Thread(target=run_server, daemon=True)
         server_thread.start()
@@ -283,29 +302,39 @@ def stop_server():
         # Signal server to stop
         server_running = False
         
-        # Unregister tick handler
+        # Unregister tick handler first
         if tick_handle:
             unreal.unregister_slate_post_tick_callback(tick_handle)
             tick_handle = None
             log_debug("Unregistered tick handler")
         
-        # Stop HTTP server
-        if httpd:
-            httpd.shutdown()
-            httpd.server_close()
-            httpd = None
-            
-        # Wait for server thread to finish
+        # Give the server thread time to notice the flag and exit gracefully
         if server_thread and server_thread.is_alive():
-            server_thread.join(timeout=2.0)
+            # Wait a bit for the thread to exit
+            for i in range(20):  # Wait up to 2 seconds
+                if not server_thread.is_alive():
+                    break
+                time.sleep(0.1)
             
+            # If still alive, force kill the port
+            if server_thread.is_alive():
+                log_error("Server thread did not stop gracefully, forcing port cleanup")
+                try:
+                    from utils import force_free_port_silent
+                    force_free_port_silent(8765)
+                except:
+                    pass
+        
+        # Clean up references
+        httpd = None
+        server_thread = None
+        
         # Clean up thread tracking
         try:
             uemcp_thread_tracker.untrack_thread('uemcp_server')
         except:
             pass
             
-        server_thread = None
         unreal.log("UEMCP: Modular listener stopped")
         return True
         
@@ -344,18 +373,16 @@ def stop_listener():
 
 def restart_listener():
     """Restart the UEMCP listener (module-level function for compatibility)."""
-    stop_server()
-    time.sleep(0.5)
-    return start_server()
+    # Use the safer scheduled restart to avoid threading issues
+    result = schedule_restart()
+    if result['success']:
+        unreal.log("UEMCP: Restart scheduled - will restart automatically")
+        return True
+    return False
 
 
-# Auto-start if imported
-if __name__ != "__main__":
-    # Check if we should auto-start
-    if os.environ.get('UEMCP_AUTOSTART', '1') == '1':
-        try:
-            # Small delay to ensure Unreal is ready
-            unreal.log("UEMCP: Auto-starting modular listener...")
-            start_server()
-        except Exception as e:
-            log_error(f"Auto-start failed: {str(e)}")
+# Auto-start only if running as main script
+# When imported as a module, init_unreal.py handles startup
+if __name__ == "__main__":
+    # Start server when run directly
+    start_server()
