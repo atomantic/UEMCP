@@ -10,7 +10,8 @@ This document outlines future development plans for the Unreal Engine Model Cont
 ✅ **Phase 2: Basic MCP Implementation** - COMPLETE  
 ✅ **Phase 3: Python-UE Bridge** - COMPLETE
 ✅ **Phase 4: House Building Experiment** - COMPLETE (see [docs/house-building-experiment.md](docs/house-building-experiment.md))
-🚧 **Phase 5: Enhanced Features** - IN PLANNING
+✅ **Phase 5: Core Enhancement Tools** - COMPLETE
+🚧 **Phase 6: Next Development Phase** - IN PLANNING
 
 ### Implemented Architecture
 
@@ -19,87 +20,126 @@ The current architecture is stable and production-ready:
 - **Content-only UE Plugin** (no C++ compilation required)
 - **Python HTTP Listener** running inside UE on port 8765
 - **Full bidirectional communication** between Claude and UE
-- **22 working MCP tools** organized by category
+- **25 working MCP tools** organized by category
 - **Hot reload support** via `restart_listener()`
 - **Comprehensive error handling** and diagnostics
 - **CI/CD pipeline** with automated testing
 
-## Phase 5: FAB Asset Integration
+### Recently Completed Tools (Phase 5)
 
-### Overview
+1. ✅ **Enhanced asset_info** - Comprehensive bounds, pivot, socket, and collision data
+2. ✅ **batch_spawn** - Efficient multi-actor spawning with 4-5x performance improvement
+3. ✅ **placement_validate** - Gap/overlap detection for modular building validation
+4. ✅ **asset_import** - FAB marketplace and local asset import with advanced settings
 
-**Objective**: Enable UEMCP to import and use FAB marketplace assets that users have downloaded, providing a streamlined workflow for using FAB content in projects.
+## Phase 6: Next Development Options
 
-**Important**: Direct FAB marketplace API access is not available through Unreal Engine's Python API. Users must manually download assets from FAB, then we can automate the import and usage.
+Based on our house building experiment and current capabilities, here are the next potential development phases:
 
-### Implementation Plan
+### Option A: Blueprint Tools
+**Objective**: Enable programmatic creation and modification of Blueprint classes
 
-#### New MCP Tools Required
+**New MCP Tools**:
+1. **blueprint_create** - Create new Blueprint classes from C++ or Blueprint parents
+2. **blueprint_add_component** - Add components to Blueprint actors
+3. **blueprint_set_variable** - Create and modify Blueprint variables
+4. **blueprint_add_function** - Add custom functions with parameters
+5. **blueprint_create_event_graph** - Set up event-driven logic
 
-1. **Enhanced Asset Import Tool**
-```typescript
-// asset_import - Import downloaded assets
-{
-  sourcePath: string,
-  targetPath: string,
-  importOptions?: {
-    generateLightmapUVs?: boolean,
-    autoGenerateCollision?: boolean,
-    materialImportMethod?: string
-  }
-}
-```
+**Use Cases**:
+- Create interactive doors/windows with open/close functionality
+- Build reusable gameplay mechanics
+- Set up trigger volumes with custom events
+- Create UI widgets programmatically
 
-2. **Folder Scanning Tool**
-```typescript
-// scan_import_folder - Detect downloadable assets
-{
-  folderPath: string,
-  recursive?: boolean,
-  fileTypes?: string[]
-}
-```
+### Option B: Material & Rendering Tools
+**Objective**: Dynamic material creation and modification
 
-### Expected User Experience
+**New MCP Tools**:
+1. **material_create_instance** - Create material instances from parent materials
+2. **material_set_parameter** - Modify scalar/vector/texture parameters
+3. **material_apply_to_actor** - Apply materials to specific actors/components
+4. **render_settings_modify** - Adjust post-processing and rendering settings
 
-```
-User: "I just downloaded some medieval furniture from FAB to ~/Downloads/FAB/Medieval. Import them into my project and place a few pieces"
+**Use Cases**:
+- Change building colors/textures dynamically
+- Create weather effects (wet surfaces, snow accumulation)
+- Adjust lighting mood and atmosphere
+- Optimize material usage across many actors
 
-Claude Code:
-1. Scanning folder for FAB assets...
-   Found: SM_Medieval_Table.fbx, SM_Medieval_Chair.fbx, textures, materials
-   
-2. Importing assets with collision generation...
-   Import successful! Assets are now in /Game/FAB/Medieval/
-   
-3. Placing furniture in your level...
-   [Uses actor_spawn for each asset]
-   
-4. Here's your medieval furniture setup:
-   [Uses viewport_screenshot]
-```
+### Option C: Level & World Composition Tools
+**Objective**: Advanced level management and world building
 
-## Phase 6: Enhanced MCP Tools
+**New MCP Tools**:
+1. **level_create** - Create new levels/sublevels
+2. **level_stream** - Set up level streaming volumes
+3. **world_partition_setup** - Configure world partition settings
+4. **landscape_sculpt** - Basic landscape modification tools
+5. **foliage_paint** - Procedural foliage placement
 
-Based on the house building experiment, these tools would significantly improve workflows:
+**Use Cases**:
+- Create large open worlds with streaming
+- Organize complex projects into sublevels
+- Set up interior/exterior transitions
+- Build natural environments
 
-### Critical Priority
-1. **Asset Snapping System** - Socket-based placement
-2. **Batch Operations** - Spawn/modify multiple actors
-3. **Placement Validation** - Detect gaps and overlaps
-4. **Enhanced Asset Info** - Sockets, bounds, pivot data
+### Option D: Animation & Sequencer Tools
+**Objective**: Create cinematics and animated sequences
 
-### High Priority
-1. **Blueprint Graph Editing** - Modify existing Blueprints
-2. **Material Instance Creation** - Runtime material customization
-3. **Selection Groups** - Work with multiple actors
-4. **Grid Snap Control** - Toggle and configure grid snapping
+**New MCP Tools**:
+1. **sequencer_create** - Create new level sequences
+2. **sequencer_add_track** - Add animation tracks for actors
+3. **camera_animate** - Create camera movements and cuts
+4. **sequencer_export** - Export cinematics as video
 
-### Future Considerations
-1. **Lighting Preview** - Real-time lighting changes
-2. **Physics Simulation** - Test structural integrity
-3. **Performance Metrics** - FPS and complexity tracking
-4. **Level Streaming** - Handle large worlds
+**Use Cases**:
+- Create architectural walkthroughs
+- Build cutscenes for games
+- Animate doors, elevators, moving platforms
+- Generate marketing videos of levels
+
+### Option E: Physics & Simulation Tools
+**Objective**: Add physics-based interactions and simulations
+
+**New MCP Tools**:
+1. **physics_enable** - Enable physics simulation on actors
+2. **constraint_create** - Create physics constraints between actors
+3. **destructible_setup** - Configure destructible meshes
+4. **physics_simulate** - Run physics simulations
+
+**Use Cases**:
+- Create destructible environments
+- Build physics puzzles
+- Simulate structural integrity
+- Add realistic object interactions
+
+## Recommendation
+
+Based on user needs and maximum impact, I recommend proceeding with **Option A: Blueprint Tools** as the next phase. This would:
+
+1. Enable creation of interactive elements (doors, switches, triggers)
+2. Allow building reusable gameplay systems
+3. Provide the foundation for more complex automation
+4. Have high value for both architectural visualization and game development
+
+The Blueprint tools would complement our existing building tools perfectly, allowing users to not just build structures but make them interactive and functional.
+
+## Implementation Priority
+
+If we proceed with Blueprint tools, here's the recommended implementation order:
+
+1. **blueprint_create** - Foundation for all other Blueprint operations
+2. **blueprint_add_component** - Essential for actor composition
+3. **blueprint_set_variable** - Enable data-driven Blueprints
+4. **blueprint_create_event** - Add interactivity
+5. **blueprint_compile** - Ensure changes take effect
+
+## Technical Considerations
+
+- Blueprint manipulation requires careful handling of the UE reflection system
+- Need to ensure proper compilation and validation after modifications
+- Should provide templates for common patterns (door, switch, trigger, etc.)
+- Must handle Blueprint inheritance chains correctly
 
 ## Development Principles
 
