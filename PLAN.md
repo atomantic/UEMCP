@@ -114,44 +114,61 @@ Based on our house building experiment and current capabilities, here are the ne
 - Add realistic object interactions
 
 ### Option F: AI-Generated 3D Asset Pipeline
-**Objective**: Generate 3D models from text/images using local AI models and import them into UE
+**Objective**: Generate 3D models from text/images using ComfyUI and ComfyUI-3D-Pack
 
 **New MCP Tools**:
-1. **diffusion_generate_image** - Generate images from text prompts using local Stable Diffusion
-2. **image_to_3d_model** - Convert 2D images to 3D models using TripoSR or similar
-3. **mesh_cleanup** - Optimize and clean generated meshes
-4. **auto_uv_unwrap** - Generate UV maps for texturing
-5. **texture_from_image** - Create textures from generated images
+1. **comfyui_connect** - Connect to local ComfyUI API server
+2. **comfyui_workflow_execute** - Execute custom ComfyUI workflows
+3. **comfyui_generate_image** - Generate images using Stable Diffusion workflows
+4. **comfyui_image_to_3d** - Convert images to 3D using ComfyUI-3D-Pack nodes
+5. **mesh_import_cleanup** - Import and optimize generated meshes for UE
 
 **Integration Requirements**:
-- Local Stable Diffusion setup (ComfyUI, A1111, or similar)
-- Image-to-3D model (TripoSR, Shap-E, or similar)
-- Mesh processing tools (trimesh, pymeshlab)
-- Format conversion (OBJ/PLY to FBX)
+- ComfyUI with API enabled (`--enable-cors-header` flag)
+- [ComfyUI-3D-Pack](https://github.com/MrForExample/ComfyUI-3D-Pack) installed
+- Required 3D models: TripoSR, Zero123Plus, MVDream, etc.
+- Python libraries: trimesh, numpy, pillow
+- GPU with 8GB+ VRAM (16GB recommended for larger models)
 
 **Workflow Example**:
 ```
 User: "Create a fantasy sword and place it in the scene"
 
 Claude Code:
-1. Generating concept art with Stable Diffusion...
+1. Connecting to ComfyUI API...
+   ✓ Connected to localhost:8188
+   
+2. Loading image generation workflow...
+   Using: SD XL + ControlNet for orthographic views
    Prompt: "fantasy sword, game asset, orthographic view, white background"
    
-2. Converting to 3D model with TripoSR...
-   Generated mesh with 5,000 triangles
+3. Generating multi-view images...
+   ✓ Generated 4 views (front, side, top, perspective)
    
-3. Cleaning up mesh and generating UVs...
-   Optimized to 2,500 triangles, UV unwrapped
+4. Running 3D generation with ComfyUI-3D-Pack...
+   Model: TripoSR
+   ✓ Generated mesh: 8,000 vertices, 15,000 faces
    
-4. Creating textures from concept art...
-   Diffuse, normal, and metallic maps generated
+5. Post-processing in ComfyUI...
+   - Mesh decimation to 3,000 faces
+   - UV unwrapping with xatlas
+   - Texture baking from input images
    
-5. Importing to Unreal Engine...
-   Asset created at: /Game/Generated/FantasySword
+6. Importing to Unreal Engine...
+   ✓ Converted to FBX format
+   ✓ Imported to: /Game/Generated/FantasySword
+   ✓ Applied generated textures
    
-6. Placing in scene...
+7. Placing in scene...
    [Shows screenshot of placed sword]
 ```
+
+**ComfyUI Workflow Benefits**:
+- Visual node-based workflow creation
+- Extensive model support (Stable Diffusion, TripoSR, Zero123Plus, etc.)
+- Built-in mesh processing nodes
+- Batch processing capabilities
+- Easy workflow sharing and version control
 
 **Use Cases**:
 - Rapid prototyping of unique assets
@@ -160,12 +177,28 @@ Claude Code:
 - Building custom props from descriptions
 - Creating stylized environment pieces
 
+**Technical Architecture**:
+```
+UEMCP <--> ComfyUI API <--> ComfyUI-3D-Pack
+  |            |                    |
+  |            |                    +-- TripoSR
+  |            |                    +-- Zero123Plus
+  |            |                    +-- MVDream
+  |            +-- Stable Diffusion +-- Instant3D
+  |            +-- ControlNet       +-- Mesh Processing
+  |            +-- Custom Workflows
+  |
+  +-- Asset Import Pipeline
+  +-- Material Setup
+  +-- Actor Placement
+```
+
 **Technical Challenges**:
-- Integration with local AI services (not cloud-based for privacy/control)
-- Mesh quality and topology cleanup
-- UV mapping for generated meshes
-- Texture projection and material setup
-- Performance optimization of generated assets
+- ComfyUI API integration and workflow management
+- Handling long-running async operations (30s-2min per model)
+- Mesh quality varies by model and input image
+- Memory management for large models
+- Workflow versioning and compatibility
 
 ## Recommendation
 
@@ -196,11 +229,11 @@ The choice between Blueprint Tools and AI Asset Pipeline depends on whether your
 5. **blueprint_compile** - Ensure changes take effect
 
 ### If proceeding with AI Asset Pipeline:
-1. **diffusion_generate_image** - Text-to-image foundation
-2. **image_to_3d_model** - Core 3D generation capability
-3. **mesh_cleanup** - Essential for usable meshes
-4. **auto_uv_unwrap** - Required for texturing
-5. **texture_from_image** - Complete the asset pipeline
+1. **comfyui_connect** - Establish API connection and validate setup
+2. **comfyui_workflow_execute** - Core workflow execution engine
+3. **comfyui_generate_image** - Stable Diffusion integration
+4. **comfyui_image_to_3d** - 3D generation with ComfyUI-3D-Pack
+5. **mesh_import_cleanup** - UE-ready asset preparation
 
 ## Technical Considerations
 
@@ -210,13 +243,15 @@ The choice between Blueprint Tools and AI Asset Pipeline depends on whether your
 - Should provide templates for common patterns (door, switch, trigger, etc.)
 - Must handle Blueprint inheritance chains correctly
 
-### For AI Asset Pipeline:
-- Requires local GPU with sufficient VRAM (8GB+ recommended)
-- Need to handle async operations for AI generation (can take 30s-2min per asset)
-- Mesh topology from AI models often needs significant cleanup
-- Should implement quality checks and automatic retries
-- Consider caching generated assets to avoid regeneration
-- Need robust error handling for AI model failures
+### For AI Asset Pipeline with ComfyUI:
+- Requires ComfyUI server running with API enabled: `python main.py --enable-cors-header`
+- GPU with 8GB+ VRAM (16GB recommended for best quality models)
+- ComfyUI-3D-Pack installation with model weights downloaded
+- Workflow files (.json) for different generation tasks
+- WebSocket connection for progress monitoring
+- Result polling system for long-running operations
+- Proper error handling for ComfyUI node failures
+- Consider implementing workflow templates for common asset types
 
 ## Development Principles
 
