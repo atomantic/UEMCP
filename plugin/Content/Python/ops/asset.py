@@ -127,10 +127,14 @@ class AssetOperations:
             dict: Asset information
         """
         try:
+            # Check if asset exists first
+            if not asset_exists(assetPath):
+                return {'success': False, 'error': f'Asset does not exist: {assetPath}'}
+            
             # Load the asset
             asset = load_asset(assetPath)
             if not asset:
-                return {'success': False, 'error': f'Could not load asset: {assetPath}'}
+                return {'success': False, 'error': f'Failed to load asset (exists but could not be loaded): {assetPath}'}
             
             info = {
                 'success': True,
@@ -203,9 +207,19 @@ class AssetOperations:
                 
                 # Get collision info
                 collision_info = {
-                    'hasCollision': asset.get_num_collision_primitives() > 0,
-                    'numCollisionPrimitives': asset.get_num_collision_primitives()
+                    'hasCollision': False,
+                    'numCollisionPrimitives': 0
                 }
+                
+                # Try to get collision primitive count (not all meshes have this method)
+                try:
+                    if hasattr(asset, 'get_num_collision_primitives'):
+                        num_primitives = asset.get_num_collision_primitives()
+                        collision_info['hasCollision'] = num_primitives > 0
+                        collision_info['numCollisionPrimitives'] = num_primitives
+                except Exception as e:
+                    # Some assets may not support collision primitives
+                    pass
                 
                 # Try to get more collision details
                 body_setup = asset.get_editor_property('body_setup')
