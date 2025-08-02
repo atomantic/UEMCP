@@ -20,6 +20,11 @@ export const TOOL_NAMES = [
   'asset_list',
   'asset_info',
   'asset_import',
+  // Material tools
+  'material_list',
+  'material_info',
+  'material_create',
+  'material_apply',
   // Level tools
   'level_actors',
   'level_save',

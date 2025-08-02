@@ -185,7 +185,7 @@ def register_all_operations():
     
     try:
         # Import and register all operations from ops package
-        from ops import ActorOperations, AssetOperations, LevelOperations, ViewportOperations
+        from ops import ActorOperations, AssetOperations, LevelOperations, ViewportOperations, MaterialOperations
         
         # Register actor operations
         actor_ops = ActorOperations()
@@ -202,6 +202,10 @@ def register_all_operations():
         # Register level operations
         level_ops = LevelOperations()
         registry.register_operations(level_ops)
+        
+        # Register material operations
+        material_ops = MaterialOperations()
+        registry.register_operations(material_ops)
         
         log_debug(f"Registered {len(registry.handlers)} commands")
         
