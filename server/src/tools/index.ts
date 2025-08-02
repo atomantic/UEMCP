@@ -33,6 +33,14 @@ export {
   assetImportTool,
 } from './assets/index.js';
 
+// Material tools
+export {
+  materialListTool,
+  materialInfoTool,
+  materialCreateTool,
+  materialApplyTool,
+} from './materials/index.js';
+
 // Level tools
 export {
   levelActorsTool,
@@ -54,5 +62,6 @@ export {
 export * from './actors/index.js';
 export * from './viewport/index.js';
 export * from './assets/index.js';
+export * from './materials/index.js';
 export * from './level/index.js';
 export * from './system/index.js';
