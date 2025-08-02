@@ -32,6 +32,7 @@ class SystemOperations:
                 'level': ['level_actors', 'level_save', 'level_outliner'],
                 'viewport': ['viewport_screenshot', 'viewport_camera', 'viewport_mode', 'viewport_focus', 
                            'viewport_render_mode', 'viewport_bounds', 'viewport_fit', 'viewport_look_at'],
+                'material': ['material_list', 'material_info', 'material_create', 'material_apply'],
                 'advanced': ['python_proxy'],
                 'system': ['test_connection', 'restart_listener', 'ue_logs', 'help']
             }
@@ -76,6 +77,57 @@ class SystemOperations:
                     'examples': [
                         'python_proxy({ code: "import unreal\\nprint(unreal.SystemLibrary.get_project_name())" })',
                         'python_proxy({ code: "result = len(unreal.EditorLevelLibrary.get_all_level_actors())" })'
+                    ]
+                },
+                'material_list': {
+                    'description': 'List materials in the project with optional filtering',
+                    'parameters': {
+                        'path': 'Content browser path to search (default: /Game)',
+                        'pattern': 'Filter pattern for material names (optional)',
+                        'limit': 'Maximum number of materials to return (default: 50)'
+                    },
+                    'examples': [
+                        'material_list({ path: "/Game/Materials" })',
+                        'material_list({ pattern: "Wood", limit: 20 })'
+                    ]
+                },
+                'material_info': {
+                    'description': 'Get detailed information about a material',
+                    'parameters': {
+                        'materialPath': 'Path to the material (e.g., /Game/Materials/M_Wood)'
+                    },
+                    'examples': [
+                        'material_info({ materialPath: "/Game/Materials/M_Wood_Pine" })'
+                    ]
+                },
+                'material_create': {
+                    'description': 'Create a new material or material instance',
+                    'parameters': {
+                        'materialName': 'Name for new material (creates simple material)',
+                        'parentMaterialPath': 'Path to parent material (creates material instance)',
+                        'instanceName': 'Name for new material instance',
+                        'targetFolder': 'Destination folder (default: /Game/Materials)',
+                        'baseColor': 'RGB color values {r, g, b} in 0-1 range',
+                        'metallic': 'Metallic value (0-1)',
+                        'roughness': 'Roughness value (0-1)',
+                        'emissive': 'RGB emissive color {r, g, b}',
+                        'parameters': 'Parameter overrides for material instance'
+                    },
+                    'examples': [
+                        'material_create({ materialName: "M_Sand", baseColor: {r: 0.8, g: 0.7, b: 0.5}, roughness: 0.8 })',
+                        'material_create({ parentMaterialPath: "/Game/M_Master", instanceName: "MI_Custom", parameters: { BaseColor: {r: 0.5, g: 0.5, b: 0.7} } })'
+                    ]
+                },
+                'material_apply': {
+                    'description': 'Apply a material to an actor',
+                    'parameters': {
+                        'actorName': 'Name of the actor to apply material to',
+                        'materialPath': 'Path to the material to apply',
+                        'slotIndex': 'Material slot index (default: 0)'
+                    },
+                    'examples': [
+                        'material_apply({ actorName: "Floor_01", materialPath: "/Game/Materials/M_Sand" })',
+                        'material_apply({ actorName: "Wall_01", materialPath: "/Game/Materials/M_Brick", slotIndex: 1 })'
                     ]
                 }
             }
