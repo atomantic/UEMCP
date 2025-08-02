@@ -101,7 +101,7 @@ node init.js --claude-code --project "/path/to/project.uproject" --no-interactiv
 
 ## 🛠 Available Tools
 
-UEMCP provides 25 tools to Claude for controlling Unreal Engine:
+UEMCP provides 29 tools to Claude for controlling Unreal Engine:
 
 ### Project & Assets
 - **project_info** - Get current project information
@@ -130,6 +130,12 @@ UEMCP provides 25 tools to Claude for controlling Unreal Engine:
 - **viewport_bounds** - Get current viewport boundaries and visible area
 - **viewport_fit** - Auto-frame actors in viewport
 - **viewport_look_at** - Point camera at specific coordinates or actor with automatic Yaw calculation
+
+### Material Management
+- **material_list** - List and filter materials in the project
+- **material_info** - Get detailed material information including parameters and parent material
+- **material_create** - Create new materials or material instances with customizable parameters
+- **material_apply** - Apply materials to actors' static mesh components
 
 ### 🔍 Validation Feature
 
@@ -169,6 +175,41 @@ actor_modify({
   - `help({})` - Overview with categories and common workflows
   - `help({ tool: "actor_spawn" })` - Detailed examples for specific tools
   - `help({ category: "viewport" })` - List all tools in a category
+
+### Example: Material Management Tools
+
+```javascript
+// List all materials in a folder
+material_list({ path: "/Game/Materials", pattern: "Wood" })
+
+// Get detailed information about a material
+material_info({ materialPath: "/Game/Materials/M_Wood_Pine" })
+
+// Create a simple sand material
+material_create({ 
+  materialName: "M_Sand", 
+  baseColor: { r: 0.8, g: 0.7, b: 0.5 },
+  roughness: 0.8,
+  metallic: 0.0
+})
+
+// Create a material instance from a parent
+material_create({
+  parentMaterialPath: "/Game/Materials/M_Master",
+  instanceName: "MI_CustomWall",
+  parameters: {
+    "BaseColor": { r: 0.5, g: 0.5, b: 0.7 },
+    "Roughness": 0.6
+  }
+})
+
+// Apply material to an actor
+material_apply({
+  actorName: "Floor_01",
+  materialPath: "/Game/Materials/M_Sand",
+  slotIndex: 0
+})
+```
 
 ### Example: Using python_proxy for Complex Operations
 
