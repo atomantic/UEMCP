@@ -369,7 +369,7 @@ class ActorOperations:
                             if actor_name in actors:
                                 actor.set_folder_path(folder)
                                 organized_actors.append(actor_name)
-                    except:
+                    except Exception:
                         continue
             
             # If pattern is provided
@@ -381,7 +381,7 @@ class ActorOperations:
                             if pattern in actor_name:
                                 actor.set_folder_path(folder)
                                 organized_actors.append(actor_name)
-                    except:
+                    except Exception:
                         continue
             
             organized_actors.sort()

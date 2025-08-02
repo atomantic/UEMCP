@@ -21,7 +21,7 @@ def force_cleanup():
         if hasattr(mod, 'httpd') and mod.httpd:
             try:
                 mod.httpd.server_close()
-            except:
+            except Exception:
                 pass
         unreal.log("UEMCP: ✓ Signaled listener to stop")
     

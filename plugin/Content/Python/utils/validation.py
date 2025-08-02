@@ -180,7 +180,7 @@ def validate_actor_exists(actor_name):
             try:
                 if actor and hasattr(actor, 'get_actor_label') and actor.get_actor_label() == actor_name:
                     return result  # Success
-            except:
+            except Exception:
                 continue
         
         result.add_error(f"Actor '{actor_name}' not found in level")
@@ -202,7 +202,7 @@ def validate_actor_deleted(actor_name):
                 if actor and hasattr(actor, 'get_actor_label') and actor.get_actor_label() == actor_name:
                     result.add_error(f"Actor '{actor_name}' still exists in level")
                     return result
-            except:
+            except Exception:
                 continue
         
         # Success - actor not found
@@ -222,11 +222,11 @@ def find_actor_by_name(actor_name):
             try:
                 if actor and hasattr(actor, 'get_actor_label') and actor.get_actor_label() == actor_name:
                     return actor
-            except:
+            except Exception:
                 continue
         
         return None
-    except:
+    except Exception:
         return None
 
 

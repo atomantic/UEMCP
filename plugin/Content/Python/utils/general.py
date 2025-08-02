@@ -73,7 +73,7 @@ def find_actor_by_name(actor_name):
         try:
             if actor and hasattr(actor, 'get_actor_label') and actor.get_actor_label() == actor_name:
                 return actor
-        except:
+        except Exception:
             # Skip actors that cause errors
             continue
     
@@ -108,7 +108,7 @@ def get_all_actors(filter_text=None, limit=30):
                 
                 if filter_lower in actor_name or filter_lower in actor_class:
                     filtered_actors.append(actor)
-            except:
+            except Exception:
                 continue
         
         actors_to_process = filtered_actors
@@ -153,7 +153,7 @@ def get_all_actors(filter_text=None, limit=30):
                     actor_data['assetPath'] = mesh_component.static_mesh.get_path_name().split(':')[0]
             
             actor_list.append(actor_data)
-        except:
+        except Exception:
             continue
     
     return actor_list

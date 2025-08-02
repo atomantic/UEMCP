@@ -274,7 +274,7 @@ class SystemOperations:
                     # Try to convert to dict
                     try:
                         result = {k: v for k, v in result.__dict__.items() if not k.startswith('_')}
-                    except:
+                    except Exception:
                         result = str(result)
                 elif isinstance(result, (list, tuple)):
                     # Convert any Unreal objects in lists
