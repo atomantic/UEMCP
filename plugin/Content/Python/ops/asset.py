@@ -235,41 +235,74 @@ class AssetOperations:
                 info['collision'] = collision_info
                 
                 # Get sockets if any
-                sockets = asset.get_sockets()
-                if sockets:
-                    socket_info = []
-                    for socket in sockets:
-                        socket_info.append({
-                            'name': str(socket.socket_name),
-                            'location': {
-                                'x': float(socket.relative_location.x),
-                                'y': float(socket.relative_location.y),
-                                'z': float(socket.relative_location.z)
-                            },
-                            'rotation': {
-                                'roll': float(socket.relative_rotation.roll),
-                                'pitch': float(socket.relative_rotation.pitch),
-                                'yaw': float(socket.relative_rotation.yaw)
-                            },
-                            'scale': {
-                                'x': float(socket.relative_scale.x),
-                                'y': float(socket.relative_scale.y),
-                                'z': float(socket.relative_scale.z)
-                            }
-                        })
-                    info['sockets'] = socket_info
-                else:
-                    info['sockets'] = []
+                info['sockets'] = []
+                try:
+                    if hasattr(asset, 'get_sockets'):
+                        sockets = asset.get_sockets()
+                        if sockets:
+                            socket_info = []
+                            for socket in sockets:
+                                socket_info.append({
+                                    'name': str(socket.socket_name),
+                                    'location': {
+                                        'x': float(socket.relative_location.x),
+                                        'y': float(socket.relative_location.y),
+                                        'z': float(socket.relative_location.z)
+                                    },
+                                    'rotation': {
+                                        'roll': float(socket.relative_rotation.roll),
+                                        'pitch': float(socket.relative_rotation.pitch),
+                                        'yaw': float(socket.relative_rotation.yaw)
+                                    },
+                                    'scale': {
+                                        'x': float(socket.relative_scale.x),
+                                        'y': float(socket.relative_scale.y),
+                                        'z': float(socket.relative_scale.z)
+                                    }
+                                })
+                            info['sockets'] = socket_info
+                except Exception as e:
+                    # Some assets may not support sockets
+                    pass
                 
                 # Get material slots
                 material_slots = []
-                static_materials = asset.get_static_materials()
-                for i, mat_slot in enumerate(static_materials):
-                    material_slots.append({
-                        'slotName': str(mat_slot.material_slot_name) if mat_slot.material_slot_name else f"Slot_{i}",
-                        'materialPath': str(mat_slot.material_interface.get_path_name()) 
-                                        if mat_slot.material_interface else None
-                    })
+                try:
+                    # Try the correct method name
+                    if hasattr(asset, 'static_materials'):
+                        static_materials = asset.static_materials
+                    elif hasattr(asset, 'get_static_mesh_materials'):
+                        static_materials = asset.get_static_mesh_materials()
+                    else:
+                        # Fallback to section materials
+                        static_materials = []
+                        num_sections = asset.get_num_sections(0)
+                        for i in range(num_sections):
+                            mat = asset.get_material(i)
+                            if mat:
+                                static_materials.append({'material_interface': mat})
+                    
+                    for i, mat_slot in enumerate(static_materials):
+                        slot_info = {
+                            'slotIndex': i,
+                            'slotName': f"Slot_{i}"
+                        }
+                        
+                        # Handle different material slot structures
+                        if hasattr(mat_slot, 'material_slot_name'):
+                            slot_info['slotName'] = str(mat_slot.material_slot_name) if mat_slot.material_slot_name else f"Slot_{i}"
+                        
+                        if hasattr(mat_slot, 'material_interface') and mat_slot.material_interface:
+                            slot_info['materialPath'] = str(mat_slot.material_interface.get_path_name())
+                        elif isinstance(mat_slot, dict) and 'material_interface' in mat_slot:
+                            slot_info['materialPath'] = str(mat_slot['material_interface'].get_path_name()) if mat_slot['material_interface'] else None
+                        else:
+                            slot_info['materialPath'] = None
+                            
+                        material_slots.append(slot_info)
+                except Exception as e:
+                    log_error(f"Error getting materials: {e}")
+                    
                 info['materialSlots'] = material_slots
             
             # Get info for blueprints
