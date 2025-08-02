@@ -76,14 +76,14 @@ def kill_process_on_port(port):
     
     success = True
     for pid, process_name in processes:
-        unreal.log(f"Killing process {process_name} (PID: {pid}) using port {port}")
+        unreal.log(f"UEMCP: Killing process {process_name} (PID: {pid}) using port {port}")
         try:
             if platform.system() == "Darwin":
                 subprocess.run(['kill', '-9', str(pid)], check=True)
-                unreal.log(f"Killed process {pid}")
+                unreal.log(f"UEMCP: Killed process {pid}")
             elif platform.system() == "Windows":
                 subprocess.run(['taskkill', '/F', '/PID', str(pid)], check=True)
-                unreal.log(f"Killed process {pid}")
+                unreal.log(f"UEMCP: Killed process {pid}")
         except Exception as e:
             unreal.log_error(f"Failed to kill process {pid}: {e}")
             success = False
@@ -118,7 +118,7 @@ def wait_for_port_available(port, timeout=5):
 def force_free_port(port):
     """Force free a port by killing the process using it"""
     if is_port_available(port):
-        unreal.log(f"Port {port} is already available")
+        unreal.log(f"UEMCP: Port {port} is already available")
         return True
     
     pid, process_name = find_process_using_port(port)
@@ -126,7 +126,7 @@ def force_free_port(port):
         unreal.log_warning(f"Port {port} is in use but could not find process")
         return False
     
-    unreal.log(f"Port {port} is used by {process_name} (PID: {pid})")
+    unreal.log(f"UEMCP: Port {port} is used by {process_name} (PID: {pid})")
     
     # Ask user for confirmation with dialog
     dialog_result = unreal.EditorDialog.show_message(
@@ -139,7 +139,7 @@ def force_free_port(port):
         if kill_process_on_port(port):
             # Wait for port to be freed
             if wait_for_port_available(port):
-                unreal.log(f"Successfully freed port {port}")
+                unreal.log(f"UEMCP: Successfully freed port {port}")
                 return True
             else:
                 unreal.log_error(f"Killed process but port {port} is still in use")
@@ -148,7 +148,7 @@ def force_free_port(port):
             unreal.log_error("Failed to kill process")
             return False
     else:
-        unreal.log("User cancelled port cleanup")
+        unreal.log("UEMCP: User cancelled port cleanup")
         return False
 
 def force_free_port_silent(port):

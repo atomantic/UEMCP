@@ -67,9 +67,23 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             
             # Log incoming command
             cmd_type = command.get('type', 'unknown')
-            # Only log in debug mode to reduce overhead
-            if os.environ.get('UEMCP_DEBUG'):
-                log_debug(f"Received command: {cmd_type} (ID: {request_id})")
+            # Always log MCP tool requests
+            if cmd_type == 'python_proxy':
+                # Don't log full code for python_proxy
+                unreal.log(f"UEMCP: Handling MCP tool: {cmd_type}")
+            else:
+                # Log tool name and key parameters
+                params = command.get('parameters', {})
+                if params:
+                    # Get first few parameters for logging
+                    param_info = []
+                    for k, v in list(params.items())[:3]:
+                        if isinstance(v, str) and len(v) > 50:
+                            v = v[:50] + "..."
+                        param_info.append(f"{k}={v}")
+                    unreal.log(f"UEMCP: Handling MCP tool: {cmd_type}({', '.join(param_info)})")
+                else:
+                    unreal.log(f"UEMCP: Handling MCP tool: {cmd_type}()")
             
             # Queue command for main thread
             command_queue.put((request_id, command))
@@ -175,8 +189,16 @@ def process_commands():
         while not command_queue.empty():
             try:
                 request_id, command = command_queue.get_nowait()
+                cmd_type = command.get('type', 'unknown')
                 result = execute_on_main_thread(command)
                 response_queue[request_id] = result
+                
+                # Log command completion
+                if result.get('success'):
+                    unreal.log(f"UEMCP: Completed MCP tool: {cmd_type} ✓")
+                else:
+                    error_msg = result.get('error', 'Unknown error')
+                    unreal.log(f"UEMCP: Failed MCP tool: {cmd_type} - {error_msg}")
             except queue.Empty:
                 break
             except Exception as e:

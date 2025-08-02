@@ -43,13 +43,13 @@ def status():
         import uemcp_listener
         if hasattr(uemcp_listener, 'server_running') and uemcp_listener.server_running:
             unreal.log("UEMCP: Listener is RUNNING on http://localhost:8765")
-            unreal.log("Commands: restart_listener(), stop_listener(), status()")
+            unreal.log("UEMCP: Commands: restart_listener(), stop_listener(), status()")
         else:
             unreal.log("UEMCP: Listener is STOPPED")
-            unreal.log("Run: start_listener() to start")
+            unreal.log("UEMCP: Run: start_listener() to start")
     except ImportError:
         unreal.log("UEMCP: Listener module not loaded")
-        unreal.log("Run: import uemcp_listener")
+        unreal.log("UEMCP: Run: import uemcp_listener")
 
 def start_listener():
     """Start the listener"""
