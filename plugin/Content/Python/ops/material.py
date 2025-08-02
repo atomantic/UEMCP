@@ -92,28 +92,28 @@ class MaterialOperations:
             log_error(f"Failed to list materials: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_material_info(self, materialPath: str) -> Dict[str, Any]:
+    def get_material_info(self, material_path: str) -> Dict[str, Any]:
         """Get detailed information about a material.
         
         Args:
-            materialPath: Path to the material
+            material_path: Path to the material
             
         Returns:
             dict: Material information including parameters, textures, and properties
         """
         try:
             # Check if material exists first
-            if not asset_exists(materialPath):
-                return {'success': False, 'error': f'Material does not exist: {materialPath}'}
+            if not asset_exists(material_path):
+                return {'success': False, 'error': f'Material does not exist: {material_path}'}
             
             # Load the material
-            material = load_asset(materialPath)
+            material = load_asset(material_path)
             if not material:
-                return {'success': False, 'error': f'Failed to load material: {materialPath}'}
+                return {'success': False, 'error': f'Failed to load material: {material_path}'}
             
             info = {
                 'success': True,
-                'materialPath': materialPath,
+                'material_path': material_path,
                 'materialType': material.get_class().get_name(),
                 'name': str(material.get_name())
             }
@@ -195,15 +195,15 @@ class MaterialOperations:
             log_error(f"Failed to get material info: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def create_material_instance(self, parentMaterialPath: str, instanceName: str, 
-                                targetFolder: str = '/Game/Materials', 
+    def create_material_instance(self, parent_material_path: str, instance_name: str, 
+                                target_folder: str = '/Game/Materials', 
                                 parameters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Create a new material instance from a parent material.
         
         Args:
-            parentMaterialPath: Path to the parent material
-            instanceName: Name for the new material instance
-            targetFolder: Destination folder in content browser
+            parent_material_path: Path to the parent material
+            instance_name: Name for the new material instance
+            target_folder: Destination folder in content browser
             parameters: Dictionary of parameter overrides to set
             
         Returns:
@@ -211,15 +211,15 @@ class MaterialOperations:
         """
         try:
             # Validate parent material exists
-            if not asset_exists(parentMaterialPath):
-                return {'success': False, 'error': f'Parent material does not exist: {parentMaterialPath}'}
+            if not asset_exists(parent_material_path):
+                return {'success': False, 'error': f'Parent material does not exist: {parent_material_path}'}
             
-            parent_material = load_asset(parentMaterialPath)
+            parent_material = load_asset(parent_material_path)
             if not parent_material:
-                return {'success': False, 'error': f'Failed to load parent material: {parentMaterialPath}'}
+                return {'success': False, 'error': f'Failed to load parent material: {parent_material_path}'}
             
             # Create the target path
-            target_path = f"{targetFolder}/{instanceName}"
+            target_path = f"{target_folder}/{instance_name}"
             
             # Check if material instance already exists
             if asset_exists(target_path):
@@ -230,8 +230,8 @@ class MaterialOperations:
             
             # Create material instance constant
             material_instance = asset_tools.create_asset(
-                asset_name=instanceName,
-                package_path=targetFolder,
+                asset_name=instance_name,
+                package_path=target_folder,
                 asset_class=unreal.MaterialInstanceConstant,
                 factory=unreal.MaterialInstanceConstantFactoryNew()
             )
@@ -252,8 +252,8 @@ class MaterialOperations:
             return {
                 'success': True,
                 'materialInstancePath': target_path,
-                'parentMaterial': parentMaterialPath,
-                'name': instanceName,
+                'parentMaterial': parent_material_path,
+                'name': instance_name,
                 'appliedParameters': list(parameters.keys()) if parameters else []
             }
             
@@ -261,31 +261,31 @@ class MaterialOperations:
             log_error(f"Failed to create material instance: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def apply_material_to_actor(self, actorName: str, materialPath: str, 
-                               slotIndex: int = 0) -> Dict[str, Any]:
+    def apply_material_to_actor(self, actor_name: str, material_path: str, 
+                               slot_index: int = 0) -> Dict[str, Any]:
         """Apply a material to a specific material slot on an actor.
         
         Args:
-            actorName: Name of the actor to modify
-            materialPath: Path to the material to apply
-            slotIndex: Material slot index (default: 0)
+            actor_name: Name of the actor to modify
+            material_path: Path to the material to apply
+            slot_index: Material slot index (default: 0)
             
         Returns:
             dict: Application result
         """
         try:
             # Find the actor by name
-            actor = find_actor_by_name(actorName)
+            actor = find_actor_by_name(actor_name)
             if not actor:
-                return {'success': False, 'error': f'Actor not found: {actorName}'}
+                return {'success': False, 'error': f'Actor not found: {actor_name}'}
             
             # Load the material
-            if not asset_exists(materialPath):
-                return {'success': False, 'error': f'Material does not exist: {materialPath}'}
+            if not asset_exists(material_path):
+                return {'success': False, 'error': f'Material does not exist: {material_path}'}
             
-            material = load_asset(materialPath)
+            material = load_asset(material_path)
             if not material:
-                return {'success': False, 'error': f'Failed to load material: {materialPath}'}
+                return {'success': False, 'error': f'Failed to load material: {material_path}'}
             
             # Get the static mesh component
             static_mesh_component = None
@@ -302,10 +302,10 @@ class MaterialOperations:
                     static_mesh_component = components[0]
             
             if not static_mesh_component:
-                return {'success': False, 'error': f'No static mesh component found on actor: {actorName}'}
+                return {'success': False, 'error': f'No static mesh component found on actor: {actor_name}'}
             
             # Apply the material to the specified slot
-            static_mesh_component.set_material(slotIndex, material)
+            static_mesh_component.set_material(slot_index, material)
             
             # Mark actor as modified  
             editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
@@ -313,9 +313,9 @@ class MaterialOperations:
             
             return {
                 'success': True,
-                'actorName': actorName,
-                'materialPath': materialPath,
-                'slotIndex': slotIndex,
+                'actor_name': actor_name,
+                'material_path': material_path,
+                'slot_index': slot_index,
                 'componentName': static_mesh_component.get_name()
             }
             
@@ -323,16 +323,16 @@ class MaterialOperations:
             log_error(f"Failed to apply material to actor: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def create_simple_material(self, materialName: str, targetFolder: str = '/Game/Materials',
-                              baseColor: Optional[Dict[str, float]] = None,
+    def create_simple_material(self, material_name: str, target_folder: str = '/Game/Materials',
+                              base_color: Optional[Dict[str, float]] = None,
                               metallic: float = 0.0, roughness: float = 0.5,
                               emissive: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
         """Create a simple material with basic parameters.
         
         Args:
-            materialName: Name for the new material
-            targetFolder: Destination folder in content browser
-            baseColor: RGB color values (0-1 range) e.g. {'r': 1.0, 'g': 0.5, 'b': 0.0}
+            material_name: Name for the new material
+            target_folder: Destination folder in content browser
+            base_color: RGB color values (0-1 range) e.g. {'r': 1.0, 'g': 0.5, 'b': 0.0}
             metallic: Metallic value (0-1)
             roughness: Roughness value (0-1)
             emissive: RGB emissive color values (0-1 range)
@@ -342,7 +342,7 @@ class MaterialOperations:
         """
         try:
             # Create the target path
-            target_path = f"{targetFolder}/{materialName}"
+            target_path = f"{target_folder}/{material_name}"
             
             # Check if material already exists
             if asset_exists(target_path):
@@ -352,8 +352,8 @@ class MaterialOperations:
             asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
             
             material = asset_tools.create_asset(
-                asset_name=materialName,
-                package_path=targetFolder,
+                asset_name=material_name,
+                package_path=target_folder,
                 asset_class=unreal.Material,
                 factory=unreal.MaterialFactoryNew()
             )
@@ -368,16 +368,16 @@ class MaterialOperations:
             material_editor = unreal.MaterialEditingLibrary
             
             # Base Color
-            if baseColor:
+            if base_color:
                 color_node = unreal.MaterialEditingLibrary.create_material_expression(
                     material, unreal.MaterialExpressionVectorParameter
                 )
                 color_node.set_editor_property('parameter_name', 'BaseColor')
                 color_node.set_editor_property('default_value', 
                     unreal.LinearColor(
-                        baseColor.get('r', 1.0),
-                        baseColor.get('g', 1.0), 
-                        baseColor.get('b', 1.0),
+                        base_color.get('r', 1.0),
+                        base_color.get('g', 1.0), 
+                        base_color.get('b', 1.0),
                         1.0
                     )
                 )
@@ -437,10 +437,10 @@ class MaterialOperations:
             
             return {
                 'success': True,
-                'materialPath': target_path,
-                'name': materialName,
+                'material_path': target_path,
+                'name': material_name,
                 'properties': {
-                    'baseColor': baseColor,
+                    'base_color': base_color,
                     'metallic': metallic,
                     'roughness': roughness,
                     'emissive': emissive

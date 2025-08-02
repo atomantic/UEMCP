@@ -8,6 +8,7 @@ interface MaterialCreateArgs {
   baseColor?: { r: number; g: number; b: number };
   metallic?: number;
   roughness?: number;
+  specular?: number;
   emissive?: { r: number; g: number; b: number };
 }
 
@@ -101,22 +102,49 @@ export class MaterialCreateTool extends MaterialTool<MaterialCreateArgs | Materi
     // Determine if creating simple material or material instance
     if ('materialName' in args) {
       // Create simple material
-      const result = await this.executePythonCommand('material.create_simple_material', args);
+      const result = await this.executePythonCommand('material.create_simple_material', {
+        material_name: args.materialName,
+        target_folder: args.targetFolder,
+        base_color: args.baseColor,
+        metallic: args.metallic,
+        roughness: args.roughness,
+        emissive: args.emissive
+      });
       
       if (!result.success) {
         return this.formatError(result.error || 'Failed to create material');
       }
       
-      return this.formatMaterialCreationResult(result);
+      return this.formatMaterialCreationResult({
+        name: args.materialName,
+        materialPath: result.materialPath as string,
+        properties: {
+          baseColor: args.baseColor,
+          roughness: args.roughness,
+          metallic: args.metallic,
+          specular: args.specular,
+          emissive: args.emissive
+        }
+      });
     } else {
       // Create material instance
-      const result = await this.executePythonCommand('material.create_material_instance', args);
+      const result = await this.executePythonCommand('material.create_material_instance', {
+        parent_material_path: args.parentMaterialPath,
+        instance_name: args.instanceName,
+        target_folder: args.targetFolder,
+        parameters: args.parameters
+      });
       
       if (!result.success) {
         return this.formatError(result.error || 'Failed to create material instance');
       }
       
-      return this.formatMaterialCreationResult(result);
+      return this.formatMaterialCreationResult({
+        name: args.instanceName,
+        materialInstancePath: result.materialInstancePath as string,
+        parentMaterial: args.parentMaterialPath,
+        appliedParameters: result.appliedParameters as string[] | undefined
+      });
     }
   }
 }

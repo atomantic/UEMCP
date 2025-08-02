@@ -178,4 +178,11 @@ export abstract class MaterialTool<TArgs = unknown> extends BaseTool<TArgs> {
     
     return ResponseFormatter.success(text);
   }
+
+  /**
+   * Format error response
+   */
+  protected formatError(error: string): ReturnType<typeof ResponseFormatter.error> {
+    return ResponseFormatter.error(error);
+  }
 }

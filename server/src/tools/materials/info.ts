@@ -28,16 +28,30 @@ export class MaterialInfoTool extends MaterialTool<MaterialInfoArgs> {
   }
 
   protected async execute(args: MaterialInfoArgs): Promise<ToolResponse> {
-    const result = await this.executePythonCommand('material.get_material_info', args);
+    const result = await this.executePythonCommand('material.get_material_info', {
+      material_path: args.materialPath
+    });
     
     if (!result.success) {
       return this.formatError(result.error || 'Failed to get material info');
     }
     
-    // Remove the success flag since it's not part of DetailedMaterialInfo
-    const { success, ...materialInfo } = result;
+    // Map the result to DetailedMaterialInfo structure
+    const materialInfo: DetailedMaterialInfo = {
+      materialPath: (result.materialPath as string) || args.materialPath,
+      materialType: (result.materialType as string) || 'Unknown',
+      name: (result.name as string) || args.materialPath.split('/').pop() || 'Unknown',
+      domain: result.domain as string | undefined,
+      blendMode: result.blendMode as string | undefined,
+      shadingModel: result.shadingModel as string | undefined,
+      twoSided: result.twoSided as boolean | undefined,
+      parentMaterial: result.parentMaterial as string | undefined,
+      scalarParameters: result.scalarParameters as Array<{ name: string; value: number }> | undefined,
+      vectorParameters: result.vectorParameters as Array<{ name: string; value: { r: number; g: number; b: number; a: number } }> | undefined,
+      textureParameters: result.textureParameters as Array<{ name: string; texture: string | null }> | undefined
+    };
     
-    return this.formatMaterialInfo(materialInfo as DetailedMaterialInfo);
+    return this.formatMaterialInfo(materialInfo);
   }
 }
 

@@ -39,13 +39,22 @@ export class MaterialApplyTool extends MaterialTool<MaterialApplyArgs> {
   }
 
   protected async execute(args: MaterialApplyArgs): Promise<ToolResponse> {
-    const result = await this.executePythonCommand('material.apply_material_to_actor', args);
+    const result = await this.executePythonCommand('material.apply_material_to_actor', {
+      actor_name: args.actorName,
+      material_path: args.materialPath,
+      slot_index: args.slotIndex
+    });
     
     if (!result.success) {
       return this.formatError(result.error || 'Failed to apply material');
     }
     
-    return this.formatMaterialApplicationResult(result);
+    return this.formatMaterialApplicationResult({
+      actorName: args.actorName,
+      materialPath: args.materialPath,
+      slotIndex: args.slotIndex || 0,
+      componentName: result.componentName as string | undefined
+    });
   }
 }
 
