@@ -32,6 +32,35 @@ The current architecture is stable and production-ready:
 3. ✅ **placement_validate** - Gap/overlap detection for modular building validation
 4. ✅ **asset_import** - FAB marketplace and local asset import with advanced settings
 
+## Recently Completed Fixes (2025-08-02)
+
+### Major Bug Fixes Completed
+1. ✅ **Fixed restart_listener crashes**
+   - Removed double-start issue on plugin initialization
+   - Implemented safe automatic restart using UE tick callbacks
+   - Fixed thread deadlock that was freezing Unreal Engine
+   - Restart now completes reliably in ~2 seconds
+
+2. ✅ **Fixed asset_info material retrieval**
+   - Replaced deprecated `get_static_materials()` with proper API detection
+   - Now checks for `static_materials` attribute first (UE 5.6)
+   - Falls back to `get_static_mesh_materials()` method
+   - Final fallback to `get_material()` for section materials
+   - Properly handles different material slot data structures
+
+3. ✅ **Enhanced error handling**
+   - Asset info returns clear message for non-existent assets
+   - Graceful handling of missing collision/socket methods
+   - Better error messages throughout the system
+
+### Verified Working Tools
+All 25 MCP tools are now functioning correctly:
+- **restart_listener** - Hot reloads without crashes
+- **asset_info** - Returns complete asset data including materials
+- **batch_spawn** - Efficient multi-actor spawning
+- **placement_validate** - Gap/overlap detection for modular building
+- All other tools tested and operational
+
 ## Phase 6: Next Development Options
 
 Based on our house building experiment and current capabilities, here are the next potential development phases:
