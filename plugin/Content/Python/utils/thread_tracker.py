@@ -33,7 +33,7 @@ def cleanup_all():
             if hasattr(httpd, 'socket'):
                 httpd.socket.close()
             httpd.server_close()
-        except:
+        except Exception:
             pass
     
     # Clear the list

@@ -41,7 +41,7 @@ def find_all_processes_using_port(port):
                         )
                         process_name = name_result.stdout.strip()
                         processes.append((pid, process_name))
-                    except:
+                    except Exception:
                         processes.append((pid, "Unknown"))
         elif system == "Windows":
             # Use netstat for Windows

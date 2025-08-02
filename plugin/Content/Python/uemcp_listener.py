@@ -285,7 +285,7 @@ def start_server():
                 if local_httpd:
                     try:
                         local_httpd.server_close()
-                    except:
+                    except Exception:
                         pass
                 httpd = None
         
@@ -295,7 +295,7 @@ def start_server():
         # Track thread for cleanup
         try:
             uemcp_thread_tracker.track_thread('uemcp_server', server_thread)
-        except:
+        except Exception:
             pass
         
         # Wait a moment for server to start
@@ -344,7 +344,7 @@ def stop_server():
                 try:
                     from utils import force_free_port_silent
                     force_free_port_silent(8765)
-                except:
+                except Exception:
                     pass
         
         # Clean up references
@@ -354,7 +354,7 @@ def stop_server():
         # Clean up thread tracking
         try:
             uemcp_thread_tracker.untrack_thread('uemcp_server')
-        except:
+        except Exception:
             pass
             
         unreal.log("UEMCP: Modular listener stopped")
