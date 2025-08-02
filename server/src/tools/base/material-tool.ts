@@ -141,11 +141,11 @@ export abstract class MaterialTool<TArgs = unknown> extends BaseTool<TArgs> {
       text += `\nProperties:\n`;
       Object.entries(result.properties).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
-          if (typeof value === 'object' && 'r' in (value as any)) {
+          if (typeof value === 'object' && value !== null && 'r' in value) {
             const color = value as { r: number; g: number; b: number };
             text += `  - ${key}: RGB(${color.r}, ${color.g}, ${color.b})\n`;
           } else {
-            text += `  - ${key}: ${value}\n`;
+            text += `  - ${key}: ${String(value)}\n`;
           }
         }
       });

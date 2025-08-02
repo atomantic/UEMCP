@@ -3,7 +3,7 @@ UEMCP Material Operations - All material creation and management operations
 """
 
 import unreal
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from utils import load_asset, asset_exists, log_error, log_debug
 from utils.general import find_actor_by_name
 
@@ -73,7 +73,12 @@ class MaterialOperations:
                                 material_info['parentMaterial'] = str(parent.get_path_name())
                         
                         # Get basic material properties
-                        material_info['domain'] = str(material.get_editor_property('material_domain')) if hasattr(material, 'get_editor_property') else 'Unknown'
+                        if hasattr(material, 'get_editor_property'):
+                            material_info['domain'] = str(
+                                material.get_editor_property('material_domain')
+                            )
+                        else:
+                            material_info['domain'] = 'Unknown'
                         
                 except Exception as e:
                     log_debug(f"Could not load additional info for material {material_info['path']}: {e}")

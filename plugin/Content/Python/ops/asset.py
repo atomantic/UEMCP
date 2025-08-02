@@ -3,7 +3,7 @@ UEMCP Asset Operations - All asset and content browser operations
 """
 
 import unreal
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from utils import load_asset, asset_exists, log_error
 
 
@@ -217,7 +217,7 @@ class AssetOperations:
                         num_primitives = asset.get_num_collision_primitives()
                         collision_info['hasCollision'] = num_primitives > 0
                         collision_info['numCollisionPrimitives'] = num_primitives
-                except Exception as e:
+                except Exception:
                     # Some assets may not support collision primitives
                     pass
                 
@@ -261,7 +261,7 @@ class AssetOperations:
                                     }
                                 })
                             info['sockets'] = socket_info
-                except Exception as e:
+                except Exception:
                     # Some assets may not support sockets
                     pass
                 
@@ -473,7 +473,6 @@ class AssetOperations:
         """
         import os
         import time
-        from pathlib import Path
         
         try:
             start_time = time.time()
@@ -585,15 +584,7 @@ class AssetOperations:
             if not folder_path.startswith('/Game'):
                 folder_path = f'/Game/{folder_path.lstrip("/")}'
             
-            # Use AssetTools to create folder if it doesn't exist
-            asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
-            
-            # Check if folder exists by trying to get assets in it
-            asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
-            existing_assets = asset_registry.get_assets_by_path(folder_path, recursive=False)
-            
-            # If we can't find any assets and the folder might not exist, create it
-            # Note: UE will auto-create folders when we import assets, but this ensures consistency
+            # Note: UE will auto-create folders when we import assets
             pass
             
         except Exception as e:
@@ -611,7 +602,6 @@ class AssetOperations:
             list: List of file paths to import
         """
         import os
-        from pathlib import Path
         
         # Supported file extensions by type
         SUPPORTED_EXTENSIONS = {

@@ -730,7 +730,6 @@ class ActorOperations:
     
     def _calculate_gap_overlap(self, actor1, actor2, tolerance):
         """Calculate gap or overlap between two actors."""
-        import math
         
         # Calculate minimum distance between bounding boxes on each axis
         x_gap = max(0, max(actor1['bounds_min'][0] - actor2['bounds_max'][0],
@@ -813,7 +812,6 @@ class ActorOperations:
         
         # Only X and Y axes are checked for alignment because Z is typically not critical for modular building pieces.
         # Check alignment on X and Y axes (Z is usually fine for building pieces)
-        alignment_issues = []
         
         for axis_index, axis_name in enumerate(['X', 'Y']):
             coord = location[axis_index]

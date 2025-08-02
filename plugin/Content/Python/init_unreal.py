@@ -43,8 +43,8 @@ try:
         unreal.log("UEMCP: Commands: from uemcp_helpers import *")
         unreal.log("UEMCP: Functions: restart_listener(), stop_listener(), status(), start_listener()")
     
-    # Import helper functions for convenience
-    from uemcp_helpers import restart_listener, reload_uemcp, status, start_listener, stop_listener
+    # Import helper functions for convenience (made available to Python console)
+    from uemcp_helpers import restart_listener, reload_uemcp, status, start_listener, stop_listener  # noqa: F401
         
 except ImportError as e:
     unreal.log_error(f"UEMCP: Could not import module: {e}")
