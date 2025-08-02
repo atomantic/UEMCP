@@ -118,7 +118,7 @@ class MaterialOperations:
             
             info = {
                 'success': True,
-                'material_path': material_path,
+                'materialPath': material_path,
                 'materialType': material.get_class().get_name(),
                 'name': str(material.get_name())
             }
@@ -318,9 +318,9 @@ class MaterialOperations:
             
             return {
                 'success': True,
-                'actor_name': actor_name,
-                'material_path': material_path,
-                'slot_index': slot_index,
+                'actorName': actor_name,
+                'materialPath': material_path,
+                'slotIndex': slot_index,
                 'componentName': static_mesh_component.get_name()
             }
             
@@ -442,10 +442,10 @@ class MaterialOperations:
             
             return {
                 'success': True,
-                'material_path': target_path,
+                'materialPath': target_path,
                 'name': material_name,
                 'properties': {
-                    'base_color': base_color,
+                    'baseColor': base_color,
                     'metallic': metallic,
                     'roughness': roughness,
                     'emissive': emissive
