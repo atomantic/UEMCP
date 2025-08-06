@@ -346,23 +346,13 @@ npm run lint          # Linting
 
 ## 📚 Documentation
 
-### Setup & Configuration
-- [Quick Start Guide](docs/quickstart.md) - Detailed setup instructions
-- [Environment Setup](docs/environment-setup.md) - Environment variables and configuration
-- [Claude Desktop Setup](docs/claude-desktop-setup-current.md) - Manual Claude Desktop configuration
-- [Claude Code Setup](docs/claude-code-mcp-setup.md) - Setup for claude.ai/code
-- [Plugin Installation](docs/plugin-installation.md) - Installing the UE plugin
+See the **[Documentation Index](docs/README.md)** for organized access to all documentation.
 
-### Development & Testing
-- [Development Guide](CLAUDE.md) - Core development patterns and workflow
-- [Code Standards](docs/code-standards.md) - TypeScript and Python coding standards
-- [Architecture & Communication](docs/architecture-communication.md) - System design details
-- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
-
-### Reference
-- [MCP Enhancement Needs](docs/mcp-enhancement-needs.md) - Future roadmap ideas
-- [House Building Experiment](docs/house-building-experiment.md) - Learnings from complex construction
-- [Python API Workarounds](docs/python-api-workarounds.md) - Solutions for UE Python limitations
+### Quick Links
+- **[Quick Start Guide](docs/setup/quickstart.md)** - Get started in 2 minutes
+- **[Development Guide](CLAUDE.md)** - Core development patterns
+- **[MCP Tools vs Python Proxy](docs/reference/mcp-tools-vs-python-proxy.md)** - 85% code reduction examples
+- **[Troubleshooting](docs/development/troubleshooting.md)** - Common issues and solutions
 
 ## ⚠️ Known Limitations
 
