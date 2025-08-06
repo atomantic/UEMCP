@@ -122,7 +122,7 @@ result = f"Screenshot saved to: {filepath}"
 
 Think of it like this: `python_proxy` is the powerful command line, while other tools are the convenient GUI buttons.
 
-📊 **[See detailed comparison of MCP tools vs python_proxy →](docs/mcp-tools-vs-python-proxy.md)** (average 80%+ code reduction!)
+📊 **[See detailed comparison of MCP tools vs python_proxy →](docs/reference/mcp-tools-vs-python-proxy.md)** (average 80%+ code reduction!)
 
 ## 🛠 Available Tools
 
