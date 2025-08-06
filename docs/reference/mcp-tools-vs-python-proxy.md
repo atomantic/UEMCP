@@ -1141,6 +1141,108 @@ While MCP tools are ideal for common operations, `python_proxy` is still valuabl
 - One-off scripts that don't warrant a dedicated tool
 - Learning and experimenting with the UE Python API
 
+## Example: Material Management Tools
+
+The material management tools demonstrate the significant code reduction and improved usability of dedicated MCP tools:
+
+### Using MCP Tools (Clean and Simple)
+```javascript
+// List all materials in a folder
+material_list({ path: "/Game/Materials", pattern: "Wood" })
+
+// Get detailed information about a material
+material_info({ materialPath: "/Game/Materials/M_Wood_Pine" })
+
+// Create a simple sand material
+material_create({ 
+  materialName: "M_Sand", 
+  baseColor: { r: 0.8, g: 0.7, b: 0.5 },
+  roughness: 0.8,
+  metallic: 0.0
+})
+
+// Create a material instance from a parent
+material_create({
+  parentMaterialPath: "/Game/Materials/M_Master",
+  instanceName: "MI_CustomWall",
+  parameters: {
+    "BaseColor": { r: 0.5, g: 0.5, b: 0.7 },
+    "Roughness": 0.6
+  }
+})
+
+// Apply material to an actor
+material_apply({
+  actorName: "Floor_01",
+  materialPath: "/Game/Materials/M_Sand",
+  slotIndex: 0
+})
+```
+
+### Equivalent with python_proxy (Complex and Error-Prone)
+```python
+python_proxy({
+  code: `
+import unreal
+
+# List materials (much more complex)
+all_assets = unreal.EditorAssetLibrary.list_assets("/Game/Materials", recursive=False)
+materials = []
+for asset_path in all_assets:
+    if "Wood" in asset_path:
+        asset = unreal.EditorAssetLibrary.load_asset(asset_path)
+        if isinstance(asset, (unreal.Material, unreal.MaterialInstance)):
+            materials.append(asset_path)
+
+# Get material info (requires extensive property extraction)
+material = unreal.EditorAssetLibrary.load_asset("/Game/Materials/M_Wood_Pine")
+if material:
+    # Extract all the properties manually
+    base_color = material.get_editor_property('base_color') if hasattr(material, 'base_color') else None
+    roughness = material.get_editor_property('roughness') if hasattr(material, 'roughness') else None
+    # ... many more properties to extract
+
+# Create material (requires asset factory setup)
+asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
+factory = unreal.MaterialFactoryNew()
+material = asset_tools.create_asset("M_Sand", "/Game/Materials", unreal.Material, factory)
+if material:
+    # Setting parameters is complex and may not work directly
+    material_editor = unreal.MaterialEditingLibrary
+    # No direct way to set base color/roughness on base materials
+
+# Create material instance (complex factory and parameter setup)
+factory = unreal.MaterialInstanceConstantFactoryNew()
+parent = unreal.EditorAssetLibrary.load_asset("/Game/Materials/M_Master")
+factory.initial_parent = parent  # May not work depending on UE version
+instance = asset_tools.create_asset("MI_CustomWall", "/Game/Materials", unreal.MaterialInstanceConstant, factory)
+if instance:
+    # Setting parameters requires specific API calls
+    unreal.MaterialEditingLibrary.set_material_instance_vector_parameter_value(
+        instance, "BaseColor", unreal.LinearColor(0.5, 0.5, 0.7, 1.0)
+    )
+    unreal.MaterialEditingLibrary.set_material_instance_scalar_parameter_value(
+        instance, "Roughness", 0.6
+    )
+
+# Apply material (requires component access and slot management)
+actors = unreal.EditorLevelLibrary.get_all_level_actors()
+for actor in actors:
+    if actor.get_actor_label() == "Floor_01":
+        mesh_comp = actor.get_component_by_class(unreal.StaticMeshComponent)
+        if mesh_comp:
+            material = unreal.EditorAssetLibrary.load_asset("/Game/Materials/M_Sand")
+            if material:
+                mesh_comp.set_material(0, material)
+`
+})
+```
+
+**Code Reduction**: ~80% less code with MCP tools
+**Error Handling**: Built-in validation vs manual checking
+**Readability**: Clear intent vs implementation details
+**Reliability**: Tested patterns vs potential API misuse
+
 ## Conclusion
 
 The dedicated MCP tools provide an average **85% reduction in code** while improving readability, maintainability, and reliability. They abstract away the complexity of the Unreal Engine Python API while still allowing full access through `python_proxy` when needed.

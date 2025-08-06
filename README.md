@@ -6,6 +6,67 @@
 
 UEMCP bridges AI assistants with Unreal Engine, enabling intelligent control of game development workflows through the Model Context Protocol (MCP).
 
+
+## 🚀 Quick Start (2 minutes)
+
+```bash
+# Clone and setup
+git clone https://github.com/atomantic/UEMCP.git
+cd UEMCP
+node init.js
+
+# Restart Claude Desktop or Claude Code and test:
+# "List available UEMCP tools"
+# "Organize the actors in the current map into a sensible folder structure and naming convention"
+```
+
+The init script automatically:
+- ✅ Installs dependencies and builds the server
+- ✅ Configures Claude Desktop (or Claude Code with `--claude-code` flag)
+- ✅ Sets up your Unreal Engine project path
+- ✅ Optionally installs the UEMCP plugin to your project
+
+**Advanced options:**
+```bash
+# Configure for Claude Code (claude.ai/code)
+node init.js --claude-code
+
+# Specify UE project (automatically installs plugin to specified unreal engine project)
+node init.js --project "/path/to/project.uproject"
+
+# Install with symlink for plugin development
+node init.js --project "/path/to/project.uproject" --symlink
+
+# Non-interactive with all options
+node init.js --claude-code --project "/path/to/project.uproject" --no-interactive
+```
+
+## Prompt Examples
+
+The sky is the limit with what you can ask the agent to do. Here are example prompts organized by complexity:
+
+### Basic Commands
+- Show me all wall meshes in the ModularOldTown folder
+- Spawn a cube at location 1000, 500, 0
+- Take a screenshot of the current viewport
+- List all actors with 'Door' in their name
+- Focus the camera on the player start
+- Check the UE logs for any errors
+
+### Complex Tasks
+- Add the Rive Unreal plugin to this project: https://github.com/rive-app/rive-unreal
+- Use the OldModularTown assets in this project to build the first floor of a house
+- Find all the maze walls and invert them on the X axis to flip the maze over
+- Add a textured and colored material to the HorseArena floor
+
+### Advanced Python Control
+- Use python_proxy to get all actors of type StaticMeshActor
+- Execute Python to change all lights to blue
+- Run Python code to analyze material usage in the level
+- Batch rename all actors to follow a consistent naming convention
+- Create a custom layout algorithm for procedural level generation
+
+
 ## 🎯 Key Feature: Full Python Access in Editor Mode
 
 **The `python_proxy` tool provides complete, unrestricted access to Unreal Engine's Python API.** This means AI assistants can execute ANY Python code within the UE editor - from simple queries to complex automation scripts. All other MCP tools are essentially convenience wrappers around common operations that could be done through `python_proxy`.
@@ -61,43 +122,7 @@ result = f"Screenshot saved to: {filepath}"
 
 Think of it like this: `python_proxy` is the powerful command line, while other tools are the convenient GUI buttons.
 
-📊 **[See detailed comparison of MCP tools vs python_proxy →](docs/mcp-tools-vs-python-proxy.md)** (average 80%+ code reduction!)
-
-> Note: This project was made because I wanted to have my own UE MCP since Epic does not have plans to create one (or at least has not alluded to one being on the roadmap)--and I wanted this to do some things that other WIP UE MCP projects didn't support. This is working for me on my macbook with UE 5.6. As I test it with other environments and unreal versions (I do have plans to do so), I will update it. If you happen to want to use it and find it doesn't work in another environment or version of unreal, please open a pull-request. This project is entirely coded with Claude Code so feel free to use the CLAUDE.md and other files in here that can aid in development and testing. Or file issues, and I (or claude, or codex) will take a look.
-
-## 🚀 Quick Start (2 minutes)
-
-```bash
-# Clone and setup
-git clone https://github.com/atomantic/UEMCP.git
-cd UEMCP
-node init.js
-
-# Restart Claude Desktop or Claude Code and test:
-# "List available UEMCP tools"
-# "Organize the actors in the current map into a sensible folder structure and naming convention"
-```
-
-The init script automatically:
-- ✅ Installs dependencies and builds the server
-- ✅ Configures Claude Desktop (or Claude Code with `--claude-code` flag)
-- ✅ Sets up your Unreal Engine project path
-- ✅ Optionally installs the UEMCP plugin to your project
-
-**Advanced options:**
-```bash
-# Configure for Claude Code (claude.ai/code)
-node init.js --claude-code
-
-# Specify UE project (automatically installs plugin to specified unreal engine project)
-node init.js --project "/path/to/project.uproject"
-
-# Install with symlink for plugin development
-node init.js --project "/path/to/project.uproject" --symlink
-
-# Non-interactive with all options
-node init.js --claude-code --project "/path/to/project.uproject" --no-interactive
-```
+📊 **[See detailed comparison of MCP tools vs python_proxy →](docs/reference/mcp-tools-vs-python-proxy.md)** (average 80%+ code reduction!)
 
 ## 🛠 Available Tools
 
@@ -176,40 +201,6 @@ actor_modify({
   - `help({ tool: "actor_spawn" })` - Detailed examples for specific tools
   - `help({ category: "viewport" })` - List all tools in a category
 
-### Example: Material Management Tools
-
-```javascript
-// List all materials in a folder
-material_list({ path: "/Game/Materials", pattern: "Wood" })
-
-// Get detailed information about a material
-material_info({ materialPath: "/Game/Materials/M_Wood_Pine" })
-
-// Create a simple sand material
-material_create({ 
-  materialName: "M_Sand", 
-  baseColor: { r: 0.8, g: 0.7, b: 0.5 },
-  roughness: 0.8,
-  metallic: 0.0
-})
-
-// Create a material instance from a parent
-material_create({
-  parentMaterialPath: "/Game/Materials/M_Master",
-  instanceName: "MI_CustomWall",
-  parameters: {
-    "BaseColor": { r: 0.5, g: 0.5, b: 0.7 },
-    "Roughness": 0.6
-  }
-})
-
-// Apply material to an actor
-material_apply({
-  actorName: "Floor_01",
-  materialPath: "/Game/Materials/M_Sand",
-  slotIndex: 0
-})
-```
 
 ### Example: Using python_proxy for Complex Operations
 
@@ -243,32 +234,6 @@ def auto_layout_actors(spacing=500):
 - Python 3.11 (matches UE's built-in version)
 - An MCP-compatible AI client (Claude Desktop, Claude Code, Cursor)
 
-## 🔧 Installation Options
-
-### Option 1: Automated Setup (Recommended)
-```bash
-node init.js
-```
-
-### Option 2: Manual Setup
-```bash
-# Install dependencies
-cd server && npm install
-pip install -r requirements.txt
-
-# Build server
-npm run build
-
-# Configure Claude Desktop
-# Copy claude-desktop-config.example.json to:
-# macOS: ~/Library/Application Support/Claude/claude_desktop_config.json
-# Windows: %APPDATA%\Claude\claude_desktop_config.json
-# Update paths in the config
-
-# Set environment
-export UE_PROJECT_PATH="/path/to/your/project"
-```
-
 ## 💡 Usage Examples
 
 ### Getting Started with Help
@@ -300,23 +265,6 @@ When using UEMCP with Claude Code, the proper workflow is:
    - You'll see connection status in the Claude Code logs
 
 **Note**: The MCP server is (theoretically) resilient to UE restarts - you don't need to restart Claude Code when restarting Unreal Engine. The connection will automatically restore once UE is running again.
-
-### Natural Language Commands
-Ask Claude:
-- "Show me all wall meshes in the ModularOldTown folder"
-- "Spawn a cube at location 1000, 500, 0"
-- "Take a screenshot of the current viewport"
-- "List all actors with 'Door' in their name"
-- "Focus the camera on the player start"
-- "Check the UE logs for any errors"
-
-### Python Proxy for Advanced Control
-```python
-# Claude can execute any UE Python API command:
-"Use python_proxy to get all actors of type StaticMeshActor"
-"Execute Python to change all lights to blue"
-"Run Python code to analyze material usage in the level"
-```
 
 ## 🏗 Architecture
 
@@ -374,22 +322,11 @@ start_listener()    # Start listener
 
 ### Hot Reloading Code Changes
 
-**Important**: Due to UE's Python environment, `restart_listener()` requires manual completion to prevent crashes:
+you can reload the unreal plugin and restart the python server from the mcp or from the unreal engine python command prompt:
 
 ```python
-# Step 1: Run restart_listener() - this stops the server
 restart_listener()
-
-# Step 2: Complete the restart manually (prevents crashes)
-import importlib
-importlib.reload(uemcp_listener)
-uemcp_listener.start_listener()
 ```
-
-This two-step process is necessary because:
-- Reloading Python modules while they're running can crash UE
-- The HTTP server can't safely restart itself while handling requests
-- Manual completion ensures a clean restart in a fresh Python context
 
 ### Adding New Tools
 1. Add command handler in `plugin/Content/Python/uemcp_listener.py`
@@ -409,23 +346,13 @@ npm run lint          # Linting
 
 ## 📚 Documentation
 
-### Setup & Configuration
-- [Quick Start Guide](docs/quickstart.md) - Detailed setup instructions
-- [Environment Setup](docs/environment-setup.md) - Environment variables and configuration
-- [Claude Desktop Setup](docs/claude-desktop-setup-current.md) - Manual Claude Desktop configuration
-- [Claude Code Setup](docs/claude-code-mcp-setup.md) - Setup for claude.ai/code
-- [Plugin Installation](docs/plugin-installation.md) - Installing the UE plugin
+See the **[Documentation Index](docs/README.md)** for organized access to all documentation.
 
-### Development & Testing
-- [Development Guide](CLAUDE.md) - Core development patterns and workflow
-- [Code Standards](docs/code-standards.md) - TypeScript and Python coding standards
-- [Architecture & Communication](docs/architecture-communication.md) - System design details
-- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
-
-### Reference
-- [MCP Enhancement Needs](docs/mcp-enhancement-needs.md) - Future roadmap ideas
-- [House Building Experiment](docs/house-building-experiment.md) - Learnings from complex construction
-- [Python API Workarounds](docs/python-api-workarounds.md) - Solutions for UE Python limitations
+### Quick Links
+- **[Quick Start Guide](docs/setup/quickstart.md)** - Get started in 2 minutes
+- **[Development Guide](CLAUDE.md)** - Core development patterns
+- **[MCP Tools vs Python Proxy](docs/reference/mcp-tools-vs-python-proxy.md)** - 85% code reduction examples
+- **[Troubleshooting](docs/development/troubleshooting.md)** - Common issues and solutions
 
 ## ⚠️ Known Limitations
 
