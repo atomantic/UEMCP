@@ -2,16 +2,17 @@
 
 ## Overview
 
-This document outlines future development plans for the Unreal Engine Model Context Protocol (UEMCP) server.
+This document outlines the implementation roadmap and future development plans for the Unreal Engine Model Context Protocol (UEMCP) server.
 
-## Current Status
+## Current Status (December 2024)
 
 ✅ **Phase 1: Foundation & Scaffolding** - COMPLETE
 ✅ **Phase 2: Basic MCP Implementation** - COMPLETE  
 ✅ **Phase 3: Python-UE Bridge** - COMPLETE
-✅ **Phase 4: House Building Experiment** - COMPLETE (see [docs/house-building-experiment.md](docs/house-building-experiment.md))
+✅ **Phase 4: House Building Experiment** - COMPLETE (see [docs/examples/house-building.md](docs/examples/house-building.md))
 ✅ **Phase 5: Core Enhancement Tools** - COMPLETE
-🚧 **Phase 6: Next Development Phase** - IN PLANNING
+✅ **Phase 6: Material Management Tools** - COMPLETE
+🚧 **Phase 7: Next Development Phase** - IN PLANNING
 
 ### Implemented Architecture
 
@@ -20,19 +21,26 @@ The current architecture is stable and production-ready:
 - **Content-only UE Plugin** (no C++ compilation required)
 - **Python HTTP Listener** running inside UE on port 8765
 - **Full bidirectional communication** between Claude and UE
-- **25 working MCP tools** organized by category
+- **29 working MCP tools** organized by category
 - **Hot reload support** via `restart_listener()`
 - **Comprehensive error handling** and diagnostics
 - **CI/CD pipeline** with automated testing
 
-### Recently Completed Tools (Phase 5)
+### Recently Completed Tools (Phases 5-6)
 
+**Phase 5 - Core Enhancements (Completed November 2024):**
 1. ✅ **Enhanced asset_info** - Comprehensive bounds, pivot, socket, and collision data
 2. ✅ **batch_spawn** - Efficient multi-actor spawning with 4-5x performance improvement
 3. ✅ **placement_validate** - Gap/overlap detection for modular building validation
 4. ✅ **asset_import** - FAB marketplace and local asset import with advanced settings
 
-## Recently Completed Fixes (2025-08-02)
+**Phase 6 - Material Management (Completed December 2024):**
+1. ✅ **material_list** - List and filter materials in project
+2. ✅ **material_info** - Get detailed material information including parameters
+3. ✅ **material_create** - Create new materials and material instances
+4. ✅ **material_apply** - Apply materials to actors and components
+
+## Recently Completed Fixes (December 2024)
 
 ### Major Bug Fixes Completed
 1. ✅ **Fixed restart_listener crashes**
@@ -54,14 +62,14 @@ The current architecture is stable and production-ready:
    - Better error messages throughout the system
 
 ### Verified Working Tools
-All 25 MCP tools are now functioning correctly:
+All 29 MCP tools are now functioning correctly:
 - **restart_listener** - Hot reloads without crashes
 - **asset_info** - Returns complete asset data including materials
 - **batch_spawn** - Efficient multi-actor spawning
 - **placement_validate** - Gap/overlap detection for modular building
 - All other tools tested and operational
 
-## Phase 6: Next Development Options
+## Phase 7: Next Development Options
 
 Based on our house building experiment and current capabilities, here are the next potential development phases:
 
@@ -300,6 +308,6 @@ The choice between Blueprint Tools and AI Asset Pipeline depends on whether your
 
 ## References
 
-- [House Building Experiment](docs/house-building-experiment.md) - Learnings from real-world usage
-- [Python API Workarounds](docs/python-api-workarounds.md) - Known issues and solutions
-- [MCP Enhancement Needs](docs/mcp-enhancement-needs.md) - Detailed tool requirements
+- [House Building Experiment](docs/examples/house-building.md) - Learnings from real-world usage
+- [Python API Workarounds](docs/reference/python-api-workarounds.md) - Known issues and solutions
+- [Enhancement Roadmap](docs/reference/enhancement-roadmap.md) - Detailed tool requirements

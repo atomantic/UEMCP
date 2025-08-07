@@ -47,6 +47,30 @@ The UEMCP plugin is now a **content-only plugin** that requires no C++ compilati
    - Use `restart_listener()` to reload changes without restarting UE
    - Instant development iteration
 
+## Plugin Module Structure
+
+The Python plugin follows a modular architecture for better maintainability:
+
+### Core Modules
+- **`uemcp_utils.py`** - Common utilities (vector creation, actor finding, logging)
+- **`uemcp_validation.py`** - Post-operation validation framework
+- **`uemcp_command_registry.py`** - Command registration and dispatch system
+
+### Operation Modules
+- **`uemcp_actor_ops.py`** - Actor spawn, delete, modify, duplicate, organize
+- **`uemcp_viewport_ops.py`** - Camera, screenshot, render modes, view fitting
+- **`uemcp_asset_ops.py`** - Asset listing, info, validation
+- **`uemcp_level_ops.py`** - Level save, project info, outliner structure
+- **`uemcp_system_ops.py`** - Help, connection test, logs, python proxy
+
+### Architecture Benefits
+- **85% code reduction** when using dedicated MCP tools vs python_proxy
+- **Better maintainability** with focused, single-responsibility modules
+- **Easier testing** with isolated components
+- **Type safety** and parameter validation
+- **Consistent error handling** across all operations
+- **Hot-reloadable** modules for faster development
+
 ## Communication Flow Details
 
 ### Request Flow:

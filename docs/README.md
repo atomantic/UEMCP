@@ -19,6 +19,8 @@ Resources for developing with and contributing to UEMCP.
 - **[Architecture Overview](development/architecture.md)** - System design and communication flow
 - **[Code Standards](development/code-standards.md)** - TypeScript and Python coding guidelines
 - **[Troubleshooting](development/troubleshooting.md)** - Common issues and solutions
+- **[Versioning Policy](development/versioning.md)** - Semantic versioning guidelines
+- **[Release Checklist](development/release-checklist.md)** - Steps for releasing new versions
 
 ### 📖 Reference
 In-depth technical documentation and comparisons.
@@ -26,6 +28,7 @@ In-depth technical documentation and comparisons.
 - **[MCP Tools vs Python Proxy](reference/mcp-tools-vs-python-proxy.md)** - Detailed comparison showing 85% code reduction
 - **[Python API Workarounds](reference/python-api-workarounds.md)** - Solutions for UE Python limitations
 - **[Enhancement Roadmap](reference/enhancement-roadmap.md)** - Future improvements and ideas
+- **[Implementation Plan](../PLAN.md)** - Development roadmap and future phases
 
 ### 💡 Examples & Experiments
 Real-world examples and experimental features.
@@ -34,6 +37,13 @@ Real-world examples and experimental features.
 - **[House Building Experiment](examples/house-building.md)** - Complex construction automation
 - **[Asset Import Tool](examples/asset-import.md)** - Importing and managing assets
 - **[Placement Validation](examples/placement-validation.md)** - Validating modular building placement
+
+### 📝 Project Management
+Contributing and project information.
+
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to UEMCP
+- **[Changelog](CHANGELOG.md)** - Version history and changes
+- **[Release Notes](release-notes/)** - Detailed release information
 
 ## 🎯 Quick Links
 
