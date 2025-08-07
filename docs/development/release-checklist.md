@@ -33,9 +33,9 @@ Use this checklist when preparing a new release of UEMCP.
   - [ ] `server/package-lock.json`
 
 ### 4. Documentation
-- [ ] Update CHANGELOG.md with all changes
+- [ ] Update docs/CHANGELOG.md with all changes
 - [ ] Update README.md if needed
-- [ ] Update VERSIONING.md compatibility matrix
+- [ ] Update docs/development/versioning.md compatibility matrix
 - [ ] Review and update API documentation
 
 ## Release Process

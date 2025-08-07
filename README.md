@@ -290,8 +290,6 @@ The Python plugin uses a clean, modular architecture (refactored from a monolith
 - **Consistent Error Handling**: Standardized across all operations
 - **85% Code Reduction**: When using dedicated MCP tools vs python_proxy
 
-See [Modular Architecture Documentation](docs/modularization/MODULAR_ARCHITECTURE.md) for implementation details.
-
 ## 🧑‍💻 Development
 
 ### Plugin Development
