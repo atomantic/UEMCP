@@ -28,6 +28,7 @@ In-depth technical documentation and comparisons.
 - **[MCP Tools vs Python Proxy](reference/mcp-tools-vs-python-proxy.md)** - Detailed comparison showing 85% code reduction
 - **[Python API Workarounds](reference/python-api-workarounds.md)** - Solutions for UE Python limitations
 - **[Enhancement Roadmap](reference/enhancement-roadmap.md)** - Future improvements and ideas
+- **[Implementation Plan](../PLAN.md)** - Development roadmap and future phases
 
 ### 💡 Examples & Experiments
 Real-world examples and experimental features.
