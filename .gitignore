@@ -77,3 +77,10 @@ coverage/
 *.app
 
 .claude/settings.local.json
+
+# Demo folder (Unreal Engine experimental/test content)
+Demo/*
+# Keep source content and assets
+!Demo/Content/
+!Demo/Source/
+!Demo/*.uproject
