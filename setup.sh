@@ -610,21 +610,22 @@ import sys
 import os
 
 # For reading TOML: use built-in tomllib (Python 3.11+) or tomli
+toml_reader = None
 try:
     import tomllib
-    has_tomllib = True
+    toml_reader = tomllib
 except ImportError:
     try:
-        import tomli as tomllib
-        has_tomllib = True
+        import tomli
+        toml_reader = tomli
     except ImportError:
-        has_tomllib = False
+        pass
 
 config_file = '$CODEX_CONFIG_FILE'
 project_path = '$project_path'
 script_dir = '$SCRIPT_DIR'
 
-if not has_tomllib:
+if toml_reader is None:
     print('Warning: Cannot read TOML config without tomllib (Python 3.11+) or tomli package')
     print('To proceed, either:')
     print('  1. Upgrade to Python 3.11 or later')
@@ -638,8 +639,8 @@ if not has_tomllib:
 
 # Read existing config
 try:
-    with open(config_file, 'rb') as f:  # tomllib requires binary mode
-        config = tomllib.load(f)
+    with open(config_file, 'rb') as f:  # Both tomllib and tomli require binary mode
+        config = toml_reader.load(f)
 except FileNotFoundError:
     config = {}
 except Exception as e:
