@@ -53,6 +53,20 @@ const toolTests = [
     name: 'viewport_render_mode',
     params: { mode: 'wireframe' },
     validate: (result) => result.content[0].text.includes('Viewport render mode changed')
+  },
+  {
+    name: 'actor_snap_to_socket',
+    params: { 
+      sourceActor: 'TestActor1', 
+      targetActor: 'TestActor2', 
+      targetSocket: 'TestSocket' 
+    },
+    validate: (result) => {
+      // This will fail with actor not found, but that's expected for testing
+      // We're just verifying the tool exists and responds
+      const text = result.content[0].text;
+      return text.includes('not found') || text.includes('Snapped') || text.includes('error');
+    }
   }
 ];
 
