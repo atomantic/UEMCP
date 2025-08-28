@@ -169,82 +169,146 @@ class ActorOperations:
         """
         try:
             actor = find_actor_by_name(actorName)
-
             if not actor:
                 return {"success": False, "error": f"Actor not found: {actorName}"}
 
-            # Apply modifications
-            if location is not None:
-                ue_location = create_vector(location)
-                actor.set_actor_location(ue_location, False, False)
+            # Apply all modifications
+            modifications = self._apply_actor_modifications(
+                actor, location, rotation, scale, folder, mesh
+            )
+            if not modifications["success"]:
+                return modifications
 
-            if rotation is not None:
-                ue_rotation = create_rotator(rotation)
-                actor.set_actor_rotation(ue_rotation, False)
-
-            if scale is not None:
-                ue_scale = create_vector(scale)
-                actor.set_actor_scale3d(ue_scale)
-
-            if folder is not None:
-                actor.set_folder_path(folder)
-
-            if mesh is not None:
-                # Change static mesh for StaticMeshActors
-                mesh_component = actor.get_component_by_class(unreal.StaticMeshComponent)
-                if mesh_component:
-                    # Try to load the new mesh
-                    new_mesh = load_asset(mesh)
-                    if new_mesh:
-                        mesh_component.set_static_mesh(new_mesh)
-                        actor.modify()  # Force update
-                    else:
-                        return {"success": False, "error": f"Could not load mesh: {mesh}"}
-                else:
-                    return {"success": False, "error": f"Actor {actorName} does not have a StaticMeshComponent"}
-
-            # Get updated transform
-            current_location = actor.get_actor_location()
-            current_rotation = actor.get_actor_rotation()
-            current_scale = actor.get_actor_scale3d()
-
-            result = {
-                "success": True,
-                "actorName": actorName,
-                "location": [current_location.x, current_location.y, current_location.z],
-                "rotation": [current_rotation.roll, current_rotation.pitch, current_rotation.yaw],
-                "scale": [current_scale.x, current_scale.y, current_scale.z],
-                "message": f"Modified actor: {actorName}",
-            }
+            # Build result
+            result = self._build_modification_result(actor, actorName)
 
             # Add validation if requested
             if validate:
-                from utils import validate_actor_modifications
-
-                modifications = {}
-                if location is not None:
-                    modifications["location"] = location
-                if rotation is not None:
-                    modifications["rotation"] = rotation
-                if scale is not None:
-                    modifications["scale"] = scale
-                if folder is not None:
-                    modifications["folder"] = folder
-                if mesh is not None:
-                    modifications["mesh"] = mesh
-
-                validation_result = validate_actor_modifications(actor, modifications)
-                result["validated"] = validation_result.success
-                if validation_result.errors:
-                    result["validation_errors"] = validation_result.errors
-                if validation_result.warnings:
-                    result["validation_warnings"] = validation_result.warnings
+                self._add_validation_to_result(
+                    result, actor, location, rotation, scale, folder, mesh
+                )
 
             return result
 
         except Exception as e:
             log_error(f"Failed to modify actor: {str(e)}")
             return {"success": False, "error": str(e)}
+
+    def _apply_actor_modifications(self, actor, location, rotation, scale, folder, mesh):
+        """Apply modifications to an actor.
+
+        Args:
+            actor: Actor to modify
+            location: New location or None
+            rotation: New rotation or None
+            scale: New scale or None
+            folder: New folder or None
+            mesh: New mesh path or None
+
+        Returns:
+            dict: Success status and error if any
+        """
+        # Apply transform modifications
+        if location is not None:
+            actor.set_actor_location(create_vector(location), False, False)
+
+        if rotation is not None:
+            actor.set_actor_rotation(create_rotator(rotation), False)
+
+        if scale is not None:
+            actor.set_actor_scale3d(create_vector(scale))
+
+        if folder is not None:
+            actor.set_folder_path(folder)
+
+        # Apply mesh modification if needed
+        if mesh is not None:
+            mesh_result = self._apply_mesh_modification(actor, mesh)
+            if not mesh_result["success"]:
+                return mesh_result
+
+        return {"success": True}
+
+    def _apply_mesh_modification(self, actor, mesh_path):
+        """Apply mesh modification to an actor.
+
+        Args:
+            actor: Actor to modify
+            mesh_path: Path to new mesh
+
+        Returns:
+            dict: Success status and error if any
+        """
+        mesh_component = actor.get_component_by_class(unreal.StaticMeshComponent)
+        if not mesh_component:
+            return {
+                "success": False,
+                "error": f"Actor {actor.get_actor_label()} does not have a StaticMeshComponent"
+            }
+
+        new_mesh = load_asset(mesh_path)
+        if not new_mesh:
+            return {"success": False, "error": f"Could not load mesh: {mesh_path}"}
+
+        mesh_component.set_static_mesh(new_mesh)
+        actor.modify()  # Force update
+        return {"success": True}
+
+    def _build_modification_result(self, actor, actor_name):
+        """Build the result dictionary after modifications.
+
+        Args:
+            actor: Modified actor
+            actor_name: Name of the actor
+
+        Returns:
+            dict: Result with actor properties
+        """
+        current_location = actor.get_actor_location()
+        current_rotation = actor.get_actor_rotation()
+        current_scale = actor.get_actor_scale3d()
+
+        return {
+            "success": True,
+            "actorName": actor_name,
+            "location": [current_location.x, current_location.y, current_location.z],
+            "rotation": [current_rotation.roll, current_rotation.pitch, current_rotation.yaw],
+            "scale": [current_scale.x, current_scale.y, current_scale.z],
+            "message": f"Modified actor: {actor_name}",
+        }
+
+    def _add_validation_to_result(self, result, actor, location, rotation, scale, folder, mesh):
+        """Add validation information to the result.
+
+        Args:
+            result: Result dictionary to update
+            actor: Actor that was modified
+            location: Location modification or None
+            rotation: Rotation modification or None
+            scale: Scale modification or None
+            folder: Folder modification or None
+            mesh: Mesh modification or None
+        """
+        from utils import validate_actor_modifications
+
+        # Build modifications dict
+        modifications = {}
+        for key, value in [
+            ("location", location),
+            ("rotation", rotation),
+            ("scale", scale),
+            ("folder", folder),
+            ("mesh", mesh),
+        ]:
+            if value is not None:
+                modifications[key] = value
+
+        validation_result = validate_actor_modifications(actor, modifications)
+        result["validated"] = validation_result.success
+        if validation_result.errors:
+            result["validation_errors"] = validation_result.errors
+        if validation_result.warnings:
+            result["validation_warnings"] = validation_result.warnings
 
     def duplicate(self, sourceName, name=None, offset={"x": 0, "y": 0, "z": 0}, validate=True):
         """Duplicate an existing actor.

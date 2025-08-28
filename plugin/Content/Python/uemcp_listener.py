@@ -45,7 +45,8 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "application/json")
         self.end_headers()
 
-        # Minimal status for health check - only what Python bridge actually uses
+        # Minimal status for health check - only what Python bridge actually
+        # uses
         status = {
             "status": "online",
             "service": "UEMCP Listener",
@@ -59,66 +60,126 @@ class UEMCPHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Handle command execution"""
         try:
-            content_length = int(self.headers["Content-Length"])
-            post_data = self.rfile.read(content_length)
-            command = json.loads(post_data.decode("utf-8"))
-
-            # Create unique request ID
-            request_id = f"req_{time.time()}_{threading.get_ident()}"
-
-            # Log incoming command
-            cmd_type = command.get("type", "unknown")
-            # Always log MCP tool requests
-            if cmd_type == "python_proxy":
-                # Don't log full code for python_proxy
-                unreal.log(f"UEMCP: Handling MCP tool: {cmd_type}")
-            else:
-                # Log tool name and key parameters
-                params = command.get("parameters", {})
-                if params:
-                    # Get first few parameters for logging
-                    param_info = []
-                    for k, v in list(params.items())[:3]:
-                        if isinstance(v, str) and len(v) > 50:
-                            v = v[:50] + "..."
-                        param_info.append(f"{k}={v}")
-                    unreal.log(f"UEMCP: Handling MCP tool: {cmd_type}({', '.join(param_info)})")
-                else:
-                    unreal.log(f"UEMCP: Handling MCP tool: {cmd_type}()")
+            command = self._parse_command()
+            request_id = self._generate_request_id()
+            self._log_command(command)
 
             # Queue command for main thread
             command_queue.put((request_id, command))
 
             # Wait for response
-            timeout = 10.0
-            start_time = time.time()
+            result = self._wait_for_response(request_id)
+            if result is None:
+                self.send_error(504, "Command execution timeout")
+                return
 
-            while request_id not in response_queue:
-                if time.time() - start_time > timeout:
-                    self.send_error(504, "Command execution timeout")
-                    return
-                time.sleep(0.01)
-
-            # Get and send response
-            result = response_queue.pop(request_id)
-
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(result, indent=2).encode("utf-8"))
+            # Send response
+            self._send_json_response(200, result)
 
         except Exception as e:
-            log_error(f"POST request handler error: {str(e)}")
-            log_error(f"Error type: {type(e).__name__}")
-            import traceback
+            self._handle_error(e)
 
-            log_error(f"Traceback: {traceback.format_exc()}")
+    def _parse_command(self):
+        """Parse command from POST data.
 
-            self.send_response(500)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            error = {"success": False, "error": str(e), "error_type": type(e).__name__}
-            self.wfile.write(json.dumps(error).encode("utf-8"))
+        Returns:
+            dict: Parsed command
+        """
+        content_length = int(self.headers["Content-Length"])
+        post_data = self.rfile.read(content_length)
+        return json.loads(post_data.decode("utf-8"))
+
+    def _generate_request_id(self):
+        """Generate unique request ID.
+
+        Returns:
+            str: Unique request ID
+        """
+        return f"req_{time.time()}_{threading.get_ident()}"
+
+    def _log_command(self, command):
+        """Log incoming command details.
+
+        Args:
+            command: Command dictionary
+        """
+        cmd_type = command.get("type", "unknown")
+
+        if cmd_type == "python_proxy":
+            # Don't log full code for python_proxy
+            unreal.log(f"UEMCP: Handling MCP tool: {cmd_type}")
+        else:
+            params = command.get("parameters", {})
+            param_str = self._format_params_for_logging(params)
+            unreal.log(f"UEMCP: Handling MCP tool: {cmd_type}({param_str})")
+
+    def _format_params_for_logging(self, params):
+        """Format parameters for logging.
+
+        Args:
+            params: Parameters dictionary
+
+        Returns:
+            str: Formatted parameter string
+        """
+        if not params:
+            return ""
+
+        param_info = []
+        for k, v in list(params.items())[:3]:
+            if isinstance(v, str) and len(v) > 50:
+                v = v[:50] + "..."
+            param_info.append(f"{k}={v}")
+        return ', '.join(param_info)
+
+    def _wait_for_response(self, request_id, timeout=10.0):
+        """Wait for command response.
+
+        Args:
+            request_id: Request ID to wait for
+            timeout: Maximum wait time in seconds
+
+        Returns:
+            dict or None: Response if received, None on timeout
+        """
+        start_time = time.time()
+
+        while request_id not in response_queue:
+            if time.time() - start_time > timeout:
+                return None
+            time.sleep(0.01)
+
+        return response_queue.pop(request_id)
+
+    def _send_json_response(self, code, data):
+        """Send JSON response.
+
+        Args:
+            code: HTTP response code
+            data: Data to send as JSON
+        """
+        self.send_response(code)
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(data, indent=2).encode("utf-8"))
+
+    def _handle_error(self, e):
+        """Handle and log errors.
+
+        Args:
+            e: Exception that occurred
+        """
+        log_error(f"POST request handler error: {str(e)}")
+        log_error(f"Error type: {type(e).__name__}")
+
+        import traceback
+        log_error(f"Traceback: {traceback.format_exc()}")
+
+        error = {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__}
+        self._send_json_response(500, error)
 
     def log_message(self, format, *args):
         """Suppress default logging"""
@@ -175,7 +236,8 @@ def execute_on_main_thread(command):
         import traceback
 
         log_error(f"Traceback: {traceback.format_exc()}")
-        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
+        return {"success": False, "error": str(
+            e), "traceback": traceback.format_exc()}
 
 
 def process_commands():
@@ -193,12 +255,14 @@ def process_commands():
                     unreal.log(f"UEMCP: Completed MCP tool: {cmd_type} ✓")
                 else:
                     error_msg = result.get("error", "Unknown error")
-                    unreal.log(f"UEMCP: Failed MCP tool: {cmd_type} - {error_msg}")
+                    unreal.log(
+                        f"UEMCP: Failed MCP tool: {cmd_type} - {error_msg}")
             except queue.Empty:
                 break
             except Exception as e:
                 log_error(f"Error processing command: {str(e)}")
-                response_queue[request_id] = {"success": False, "error": str(e)}
+                response_queue[request_id] = {
+                    "success": False, "error": str(e)}
     except Exception as e:
         log_error(f"Command processing error: {str(e)}")
 
@@ -218,7 +282,8 @@ def tick_handler(delta_time):
                 restart_scheduled = False
                 stop_server()
                 # Schedule restart after server is fully stopped
-                unreal.log("UEMCP: Listener stopped, restarting in 1 second...")
+                unreal.log(
+                    "UEMCP: Listener stopped, restarting in 1 second...")
 
                 # Create a one-time tick handler for restart
                 restart_timer = {"time": 1.0}
@@ -226,11 +291,13 @@ def tick_handler(delta_time):
                 def restart_tick_handler(delta):
                     restart_timer["time"] -= delta
                     if restart_timer["time"] <= 0:
-                        unreal.unregister_slate_post_tick_callback(restart_handle)
+                        unreal.unregister_slate_post_tick_callback(
+                            restart_handle)
                         unreal.log("UEMCP: Restarting listener now...")
                         start_server()
 
-                restart_handle = unreal.register_slate_post_tick_callback(restart_tick_handler)
+                restart_handle = unreal.register_slate_post_tick_callback(
+                    restart_tick_handler)
                 return
 
     except Exception as e:
@@ -246,66 +313,111 @@ def start_server():
         return True
 
     try:
-        # Register all operations with the command registry
-        register_all_operations()
-        register_system_operations()
-        log_debug("Registered all operations with command registry")
+        # Register operations and handlers
+        _register_operations()
+        tick_handle = _register_tick_handler()
 
-        # Register tick handler for main thread processing
-        tick_handle = unreal.register_slate_post_tick_callback(tick_handler)
-        log_debug("Registered tick handler")
-
-        # Start HTTP server in separate thread
-        def run_server():
-            global httpd, server_running
-            local_httpd = None
-            try:
-                local_httpd = HTTPServer(("localhost", 8765), UEMCPHandler)
-                local_httpd.timeout = 0.5
-                httpd = local_httpd
-                server_running = True
-                log_debug("HTTP server started on port 8765")
-
-                while server_running:
-                    local_httpd.handle_request()
-
-            except Exception as e:
-                log_error(f"HTTP server error: {str(e)}")
-            finally:
-                server_running = False
-                # Ensure socket is properly closed
-                if local_httpd:
-                    try:
-                        local_httpd.server_close()
-                    except Exception:
-                        pass
-                httpd = None
-
-        server_thread = threading.Thread(target=run_server, daemon=True)
+        # Start server thread
+        server_thread = _create_server_thread()
         server_thread.start()
 
-        # Track thread for cleanup
-        try:
-            uemcp_thread_tracker.track_thread("uemcp_server", server_thread)
-        except Exception:
-            pass
-
-        # Wait a moment for server to start
-        time.sleep(0.5)
-
-        # Verify server is running
-        if server_running:
-            unreal.log("UEMCP: Modular listener started successfully on port 8765")
-            return True
-        else:
-            unreal.log_error("UEMCP: Failed to start modular listener")
-            return False
+        # Track and verify
+        _track_server_thread(server_thread)
+        return _verify_server_started()
 
     except Exception as e:
         log_error(f"Failed to start server: {str(e)}")
         import traceback
-
         log_error(f"Traceback: {traceback.format_exc()}")
+        return False
+
+
+def _register_operations():
+    """Register all operations with the command registry."""
+    register_all_operations()
+    register_system_operations()
+    log_debug("Registered all operations with command registry")
+
+
+def _register_tick_handler():
+    """Register tick handler for main thread processing.
+
+    Returns:
+        Handle for the registered tick handler
+    """
+    handle = unreal.register_slate_post_tick_callback(tick_handler)
+    log_debug("Registered tick handler")
+    return handle
+
+
+def _create_server_thread():
+    """Create the server thread.
+
+    Returns:
+        threading.Thread: The server thread
+    """
+    def run_server():
+        global httpd, server_running
+        local_httpd = None
+        try:
+            local_httpd = HTTPServer(("localhost", 8765), UEMCPHandler)
+            local_httpd.timeout = 0.5
+            httpd = local_httpd
+            server_running = True
+            log_debug("HTTP server started on port 8765")
+
+            while server_running:
+                local_httpd.handle_request()
+
+        except Exception as e:
+            log_error(f"HTTP server error: {str(e)}")
+        finally:
+            server_running = False
+            _cleanup_server(local_httpd)
+            httpd = None
+
+    return threading.Thread(target=run_server, daemon=True)
+
+
+def _cleanup_server(httpd_instance):
+    """Clean up server resources.
+
+    Args:
+        httpd_instance: The HTTP server instance to clean up
+    """
+    if httpd_instance:
+        try:
+            httpd_instance.server_close()
+        except Exception:
+            pass
+
+
+def _track_server_thread(thread):
+    """Track server thread for cleanup.
+
+    Args:
+        thread: The server thread to track
+    """
+    try:
+        uemcp_thread_tracker.track_thread("uemcp_server", thread)
+    except Exception:
+        pass
+
+
+def _verify_server_started():
+    """Verify the server started successfully.
+
+    Returns:
+        bool: True if server is running, False otherwise
+    """
+    # Wait a moment for server to start
+    time.sleep(0.5)
+
+    if server_running:
+        unreal.log("UEMCP: Modular listener started successfully on port 8765")
+        return True
+    else:
+        unreal.log_error("UEMCP: Failed to start modular listener")
         return False
 
 
@@ -333,7 +445,8 @@ def stop_server():
 
             # If still alive, force kill the port
             if server_thread.is_alive():
-                log_error("Server thread did not stop gracefully, forcing port cleanup")
+                log_error(
+                    "Server thread did not stop gracefully, forcing port cleanup")
                 try:
                     from utils import force_free_port_silent
 
@@ -369,7 +482,8 @@ def schedule_restart():
 
 def get_status():
     """Get current server status"""
-    return {"running": server_running, "port": 8765, "version": "2.0 (Modular)"}
+    return {"running": server_running,
+            "port": 8765, "version": "2.0 (Modular)"}
 
 
 # Module-level functions for compatibility with existing code

@@ -238,38 +238,36 @@ def validate_actor_spawn(
         result.add_error(f"Spawned actor '{actor_name}' not found in level")
         return result
 
-    # Validate each property if expected value provided
-    if expected_location is not None:
-        loc_result = validate_actor_location(actor, expected_location)
-        if not loc_result.success:
-            for error in loc_result.errors:
-                result.add_error(error)
+    # Build validation map
+    validations = [
+        (expected_location, validate_actor_location, actor),
+        (expected_rotation, validate_actor_rotation, actor),
+        (expected_scale, validate_actor_scale, actor),
+        (expected_mesh_path, lambda a, p: validate_actor_mesh(a, p), actor),
+        (expected_folder, lambda a, f: validate_actor_folder(a, f), actor),
+    ]
 
-    if expected_rotation is not None:
-        rot_result = validate_actor_rotation(actor, expected_rotation)
-        if not rot_result.success:
-            for error in rot_result.errors:
-                result.add_error(error)
-
-    if expected_scale is not None:
-        scale_result = validate_actor_scale(actor, expected_scale)
-        if not scale_result.success:
-            for error in scale_result.errors:
-                result.add_error(error)
-
-    if expected_mesh_path is not None:
-        mesh_result = validate_actor_mesh(actor, expected_mesh_path)
-        if not mesh_result.success:
-            for error in mesh_result.errors:
-                result.add_error(error)
-
-    if expected_folder is not None:
-        folder_result = validate_actor_folder(actor, expected_folder)
-        if not folder_result.success:
-            for error in folder_result.errors:
-                result.add_error(error)
+    # Run validations
+    for expected_value, validator, actor_obj in validations:
+        if expected_value is not None:
+            if validator == validate_actor_mesh or validator == validate_actor_folder:
+                validation_result = validator(actor_obj, expected_value)
+            else:
+                validation_result = validator(actor_obj, expected_value)
+            _merge_validation_errors(result, validation_result)
 
     return result
+
+def _merge_validation_errors(target_result, source_result):
+    """Merge errors from source result into target result.
+    
+    Args:
+        target_result: ValidationResult to add errors to
+        source_result: ValidationResult to get errors from
+    """
+    if not source_result.success:
+        for error in source_result.errors:
+            target_result.add_error(error)
 
 
 def validate_actor_modifications(actor, modifications):
@@ -280,36 +278,21 @@ def validate_actor_modifications(actor, modifications):
         result.add_error("Actor is None")
         return result
 
+    # Define validation mappings
+    validation_map = {
+        "location": validate_actor_location,
+        "rotation": validate_actor_rotation,
+        "scale": validate_actor_scale,
+        "folder": validate_actor_folder,
+        "mesh": validate_actor_mesh,
+    }
+
     # Check each modification
-    if "location" in modifications:
-        loc_result = validate_actor_location(actor, modifications["location"])
-        if not loc_result.success:
-            for error in loc_result.errors:
-                result.add_error(error)
-
-    if "rotation" in modifications:
-        rot_result = validate_actor_rotation(actor, modifications["rotation"])
-        if not rot_result.success:
-            for error in rot_result.errors:
-                result.add_error(error)
-
-    if "scale" in modifications:
-        scale_result = validate_actor_scale(actor, modifications["scale"])
-        if not scale_result.success:
-            for error in scale_result.errors:
-                result.add_error(error)
-
-    if "folder" in modifications:
-        folder_result = validate_actor_folder(actor, modifications["folder"])
-        if not folder_result.success:
-            for error in folder_result.errors:
-                result.add_error(error)
-
-    if "mesh" in modifications:
-        mesh_result = validate_actor_mesh(actor, modifications["mesh"])
-        if not mesh_result.success:
-            for error in mesh_result.errors:
-                result.add_error(error)
+    for key, expected_value in modifications.items():
+        if key in validation_map:
+            validator = validation_map[key]
+            validation_result = validator(actor, expected_value)
+            _merge_validation_errors(result, validation_result)
 
     return result
 
