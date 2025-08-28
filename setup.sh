@@ -346,9 +346,11 @@ configure_claude_code() {
         
         log_info "Adding UEMCP to Claude Code configuration..."
         
-        # Try to add, capture output
+        # Try to add, capture output (allow failure for checking)
+        set +e  # Temporarily disable exit on error
         ADD_OUTPUT=$(eval $ADD_COMMAND 2>&1)
         ADD_RESULT=$?
+        set -e  # Re-enable exit on error
         
         if [ $ADD_RESULT -eq 0 ]; then
             log_success "Claude Code configured!"
