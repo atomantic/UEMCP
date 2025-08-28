@@ -763,151 +763,286 @@ class ActorOperations:
             dict: Detailed validation results with gaps, overlaps, and alignment issues
         """
         import time
-#         import math
 
         start_time = time.time()
-
-        # Constants
         GAP_THRESHOLD = 3  # Maximum number of gaps before marking as major issues
 
         try:
-            # Find all actors to validate
-            actor_objects = []
-            missing_actors = []
+            # Gather and validate actors
+            actor_data, error = self._gather_actor_data(actors)
+            if error:
+                return {"success": False, "error": error}
 
-            for actor_name in actors:
-                actor = find_actor_by_name(actor_name)
-                if actor:
-                    actor_objects.append(actor)
-                else:
-                    missing_actors.append(actor_name)
+            # Detect placement issues
+            gaps, overlaps = self._detect_placement_issues(
+                actor_data, tolerance, modularSize)
 
-            if missing_actors:
-                return {"success": False,
-                        "error": f'Actors not found: {", ".join(missing_actors)}'}
-
-            if len(actor_objects) < 2:
-                return {
-                    "success": False, "error": "At least 2 actors are required for placement validation"}
-
-            # Get actor bounds and positions
-            actor_data = []
-            for actor in actor_objects:
-                try:
-                    location = actor.get_actor_location()
-                    bounds = actor.get_actor_bounds(
-                        only_colliding_components=False)
-
-                    # Get bounding box
-                    # bounds[1] is the extent (half-size)
-                    box_extent = bounds[1]
-
-                    actor_info = {
-                        "actor": actor,
-                        "name": actor.get_actor_label(),
-                        "location": [location.x, location.y, location.z],
-                        "bounds_min": [location.x - box_extent.x, location.y - box_extent.y, location.z - box_extent.z],
-                        "bounds_max": [location.x + box_extent.x, location.y + box_extent.y, location.z + box_extent.z],
-                        "size": [box_extent.x * 2, box_extent.y * 2, box_extent.z * 2],
-                    }
-                    actor_data.append(actor_info)
-
-                except Exception as e:
-                    log_error(
-                        f"Failed to get bounds for actor {actor.get_actor_label()}: {str(e)}")
-                    continue
-
-            if len(actor_data) < 2:
-                return {
-                    "success": False, "error": "Could not get bounds for enough actors to perform validation"}
-
-            # Detect gaps and overlaps
-            gaps = []
-            overlaps = []
-
-            for i, actor1 in enumerate(actor_data):
-                for j, actor2 in enumerate(actor_data):
-                    if i >= j:  # Avoid duplicate checks
-                        continue
-
-                    # Calculate distances between bounding boxes
-                    gap_overlap = self._calculate_gap_overlap(
-                        actor1, actor2, tolerance)
-
-                    if gap_overlap["type"] == "gap" and gap_overlap["distance"] > tolerance:
-                        gaps.append(
-                            {
-                                "location": gap_overlap["location"],
-                                "distance": gap_overlap["distance"],
-                                "actors": [actor1["name"], actor2["name"]],
-                                "direction": gap_overlap["direction"],
-                            }
-                        )
-                    elif gap_overlap["type"] == "overlap" and gap_overlap["distance"] > tolerance:
-                        # Determine overlap severity
-                        severity = "minor"
-                        if gap_overlap["distance"] > modularSize * \
-                                0.1:  # >10% of modular size
-                            severity = "major"
-                        if gap_overlap["distance"] > modularSize * \
-                                0.25:  # >25% of modular size
-                            severity = "critical"
-
-                        overlaps.append(
-                            {
-                                "location": gap_overlap["location"],
-                                "amount": gap_overlap["distance"],
-                                "actors": [actor1["name"], actor2["name"]],
-                                "severity": severity,
-                            }
-                        )
-
-            # Check alignment to modular grid
+            # Check alignment if requested
             alignment_issues = []
             if checkAlignment:
-                for actor_info in actor_data:
-                    alignment_issue = self._check_modular_alignment(
-                        actor_info, modularSize, tolerance)
-                    if alignment_issue:
-                        alignment_issues.append(alignment_issue)
+                alignment_issues = self._check_all_alignments(
+                    actor_data, modularSize, tolerance)
 
-            # Calculate summary statistics
-            total_issues = len(gaps) + len(overlaps) + len(alignment_issues)
-            critical_overlaps = len(
-                [o for o in overlaps if o["severity"] == "critical"])
-            major_overlaps = len(
-                [o for o in overlaps if o["severity"] == "major"])
-
-            # Determine overall status
-            if critical_overlaps > 0:
-                overall_status = "critical_issues"
-            elif major_overlaps > 0 or len(gaps) > GAP_THRESHOLD:
-                overall_status = "major_issues"
-            elif total_issues > 0:
-                overall_status = "minor_issues"
-            else:
-                overall_status = "good"
-
+            # Generate summary and status
             execution_time = time.time() - start_time
-
-            return {
-                "success": True,
-                "gaps": gaps,
-                "overlaps": overlaps,
-                "alignmentIssues": alignment_issues,
-                "summary": {
-                    "totalActors": len(actor_data),
-                    "gapsFound": len(gaps),
-                    "overlapsFound": len(overlaps),
-                    "alignmentIssuesFound": len(alignment_issues),
-                    "overallStatus": overall_status,
-                },
-                "executionTime": execution_time,
-            }
+            overall_status = self._determine_overall_status(
+                gaps, overlaps, alignment_issues, GAP_THRESHOLD)
+            return self._build_validation_result(
+                gaps, overlaps, alignment_issues,
+                overall_status, len(actors), execution_time
+            )
 
         except Exception as e:
             log_error(f"Failed to validate placement: {str(e)}")
             return {"success": False, "error": str(e)}
+
+    def _gather_actor_data(self, actor_names):
+        """Gather actor objects and their bounds data.
+
+        Args:
+            actor_names: List of actor names
+
+        Returns:
+            tuple: (actor_data list, error message or None)
+        """
+        actor_objects = []
+        missing_actors = []
+
+        # Find all actors
+        for actor_name in actor_names:
+            actor = find_actor_by_name(actor_name)
+            if actor:
+                actor_objects.append(actor)
+            else:
+                missing_actors.append(actor_name)
+
+        if missing_actors:
+            return None, f'Actors not found: {", ".join(missing_actors)}'
+
+        if len(actor_objects) < 2:
+            return None, "At least 2 actors are required for placement validation"
+
+        # Get bounds for each actor
+        actor_data = []
+        for actor in actor_objects:
+            bounds_info = self._get_actor_bounds_info(actor)
+            if bounds_info:
+                actor_data.append(bounds_info)
+
+        if len(actor_data) < 2:
+            return None, "Could not get bounds for enough actors to perform validation"
+
+        return actor_data, None
+
+    def _get_actor_bounds_info(self, actor):
+        """Get bounds information for a single actor.
+
+        Args:
+            actor: Actor to get bounds for
+
+        Returns:
+            dict or None: Actor bounds information
+        """
+        try:
+            location = actor.get_actor_location()
+            bounds = actor.get_actor_bounds(only_colliding_components=False)
+            box_extent = bounds[1]  # bounds[1] is the extent (half-size)
+
+            return {
+                "actor": actor,
+                "name": actor.get_actor_label(),
+                "location": [location.x, location.y, location.z],
+                "bounds_min": [
+                    location.x - box_extent.x,
+                    location.y - box_extent.y,
+                    location.z - box_extent.z
+                ],
+                "bounds_max": [
+                    location.x + box_extent.x,
+                    location.y + box_extent.y,
+                    location.z + box_extent.z
+                ],
+                "size": [box_extent.x * 2, box_extent.y * 2, box_extent.z * 2],
+            }
+        except Exception as e:
+            log_error(
+                f"Failed to get bounds for actor {actor.get_actor_label()}: {str(e)}")
+            return None
+
+    def _detect_placement_issues(self, actor_data, tolerance, modular_size):
+        """Detect gaps and overlaps between actors.
+
+        Args:
+            actor_data: List of actor bounds data
+            tolerance: Acceptable gap/overlap distance
+            modular_size: Size of modular grid
+
+        Returns:
+            tuple: (gaps list, overlaps list)
+        """
+        gaps = []
+        overlaps = []
+
+        for i, actor1 in enumerate(actor_data):
+            for j, actor2 in enumerate(actor_data):
+                if i >= j:  # Avoid duplicate checks
+                    continue
+
+                gap_overlap = self._calculate_gap_overlap(
+                    actor1, actor2, tolerance)
+
+                if gap_overlap["type"] == "gap" and gap_overlap["distance"] > tolerance:
+                    gaps.append(
+                        self._format_gap_info(
+                            gap_overlap, actor1, actor2))
+                elif gap_overlap["type"] == "overlap" and gap_overlap["distance"] > tolerance:
+                    overlaps.append(
+                        self._format_overlap_info(
+                            gap_overlap, actor1, actor2, modular_size)
+                    )
+
+        return gaps, overlaps
+
+    def _format_gap_info(self, gap_overlap, actor1, actor2):
+        """Format gap information for output.
+
+        Args:
+            gap_overlap: Gap/overlap calculation result
+            actor1: First actor data
+            actor2: Second actor data
+
+        Returns:
+            dict: Formatted gap information
+        """
+        return {
+            "location": gap_overlap["location"],
+            "distance": gap_overlap["distance"],
+            "actors": [actor1["name"], actor2["name"]],
+            "direction": gap_overlap["direction"],
+        }
+
+    def _format_overlap_info(self, gap_overlap, actor1, actor2, modular_size):
+        """Format overlap information with severity.
+
+        Args:
+            gap_overlap: Gap/overlap calculation result
+            actor1: First actor data
+            actor2: Second actor data
+            modular_size: Size of modular grid
+
+        Returns:
+            dict: Formatted overlap information
+        """
+        severity = self._calculate_overlap_severity(
+            gap_overlap["distance"], modular_size)
+        return {
+            "location": gap_overlap["location"],
+            "amount": gap_overlap["distance"],
+            "actors": [actor1["name"], actor2["name"]],
+            "severity": severity,
+        }
+
+    def _calculate_overlap_severity(self, distance, modular_size):
+        """Calculate severity of overlap.
+
+        Args:
+            distance: Overlap distance
+            modular_size: Size of modular grid
+
+        Returns:
+            str: Severity level
+        """
+        if distance > modular_size * 0.25:  # >25% of modular size
+            return "critical"
+        elif distance > modular_size * 0.1:  # >10% of modular size
+            return "major"
+        else:
+            return "minor"
+
+    def _check_all_alignments(self, actor_data, modular_size, tolerance):
+        """Check alignment for all actors.
+
+        Args:
+            actor_data: List of actor bounds data
+            modular_size: Size of modular grid
+            tolerance: Alignment tolerance
+
+        Returns:
+            list: Alignment issues
+        """
+        alignment_issues = []
+        for actor_info in actor_data:
+            alignment_issue = self._check_modular_alignment(
+                actor_info, modular_size, tolerance
+            )
+            if alignment_issue:
+                alignment_issues.append(alignment_issue)
+        return alignment_issues
+
+    def _determine_overall_status(
+            self, gaps, overlaps, alignment_issues, gap_threshold):
+        """Determine overall validation status.
+
+        Args:
+            gaps: List of gaps
+            overlaps: List of overlaps
+            alignment_issues: List of alignment issues
+            gap_threshold: Maximum acceptable gaps
+
+        Returns:
+            str: Overall status
+        """
+        critical_overlaps = sum(
+            1 for o in overlaps if o["severity"] == "critical")
+        major_overlaps = sum(1 for o in overlaps if o["severity"] == "major")
+        total_issues = len(gaps) + len(overlaps) + len(alignment_issues)
+
+        if critical_overlaps > 0:
+            return "critical_issues"
+        elif major_overlaps > 0 or len(gaps) > gap_threshold:
+            return "major_issues"
+        elif total_issues > 0:
+            return "minor_issues"
+        else:
+            return "good"
+
+    def _build_validation_result(self, gaps, overlaps, alignment_issues,
+                                 overall_status, total_actors, execution_time):
+        """Build the final validation result.
+
+        Args:
+            gaps: List of gaps
+            overlaps: List of overlaps
+            alignment_issues: List of alignment issues
+            overall_status: Overall status string
+            total_actors: Total number of actors validated
+            execution_time: Execution time in seconds
+
+        Returns:
+            dict: Validation result
+        """
+        critical_overlaps = sum(
+            1 for o in overlaps if o["severity"] == "critical")
+        major_overlaps = sum(1 for o in overlaps if o["severity"] == "major")
+        total_issues = len(gaps) + len(overlaps) + len(alignment_issues)
+
+        return {
+            "success": True,
+            "gaps": gaps,
+            "overlaps": overlaps,
+            "alignmentIssues": alignment_issues,
+            "summary": {
+                "totalIssues": total_issues,
+                "gapCount": len(gaps),
+                "overlapCount": len(overlaps),
+                "alignmentIssueCount": len(alignment_issues),
+                "criticalOverlaps": critical_overlaps,
+                "majorOverlaps": major_overlaps,
+                "status": overall_status,
+                "executionTime": execution_time,
+                "totalActors": total_actors
+            }
+        }
 
     def _calculate_gap_overlap(self, actor1, actor2, tolerance):
         """Calculate gap or overlap between two actors."""
@@ -1059,131 +1194,38 @@ class ActorOperations:
         """
         try:
             # Find the actors
-            source = find_actor_by_name(sourceActor)
-            if not source:
-                return {"success": False,
-                        "error": f"Source actor not found: {sourceActor}"}
-
-            target = find_actor_by_name(targetActor)
-            if not target:
-                return {"success": False,
-                        "error": f"Target actor not found: {targetActor}"}
+            source, target, error = self._find_source_and_target_actors(
+                sourceActor, targetActor)
+            if error:
+                return error
 
             # Get the target socket transform
-            socket_transform = None
-
-            # Try to get socket from static mesh component
-            if hasattr(target, "static_mesh_component"):
-                mesh_comp = target.static_mesh_component
-                if mesh_comp:
-                    static_mesh = mesh_comp.get_static_mesh()
-                    if static_mesh:
-                        # Get socket transform relative to component
-                        socket_found = static_mesh.find_socket(targetSocket)
-                        if socket_found:
-                            # Get world transform of the socket
-                            socket_transform = mesh_comp.get_socket_transform(
-                                targetSocket)
-                        else:
-                            # Try to list available sockets for debugging
-                            sockets = static_mesh.get_sockets()
-                            socket_names = [
-                                s.socket_name for s in sockets] if sockets else []
-                            return {
-                                "success": False,
-                                "error": f'Socket "{targetSocket}" not found on {targetActor}',
-                                "availableSockets": socket_names,
-                            }
-
-            # If socket not found on static mesh, try blueprint components
-            if not socket_transform:
-                # Try to get socket from any scene component
-                components = target.get_components_by_class(
-                    unreal.SceneComponent)
-                for comp in components:
-                    if comp.does_socket_exist(targetSocket):
-                        socket_transform = comp.get_socket_transform(
-                            targetSocket)
-                        break
-
-            if not socket_transform:
-                return {
-                    "success": False,
-                    "error": f'Socket "{targetSocket}" not found on any component of {targetActor}',
-                }
+            socket_transform, error = self._get_target_socket_transform(
+                target, targetActor, targetSocket)
+            if error:
+                return error
 
             # Calculate new transform for source actor
-            new_location = socket_transform.translation
-            new_rotation = socket_transform.rotation.rotator()
-
-            # Apply offset if provided
-            if offset and any(v != 0 for v in offset):
-                offset_vector = unreal.Vector(offset[0], offset[1], offset[2])
-                # Transform offset to world space using socket rotation
-                rotated_offset = new_rotation.rotate_vector(offset_vector)
-                new_location = new_location + rotated_offset
-
-            # If source socket is specified, calculate additional offset
-            if sourceSocket:
-                # Get source socket transform relative to source actor
-                source_socket_found = False
-
-                if hasattr(source, "static_mesh_component"):
-                    mesh_comp = source.static_mesh_component
-                    if mesh_comp and mesh_comp.does_socket_exist(sourceSocket):
-                        # Get socket location relative to actor
-                        source_socket_transform = mesh_comp.get_socket_transform(
-                            sourceSocket, unreal.RelativeTransformSpace.RTS_ACTOR
-                        )
-                        # Adjust position to align source socket with target
-                        # socket
-                        new_location = new_location - source_socket_transform.translation
-                        source_socket_found = True
-
-                if not source_socket_found:
-                    log_debug(
-                        f"Warning: Source socket '{sourceSocket}' not found, using actor pivot")
+            new_location, new_rotation = self._calculate_snap_transform(
+                socket_transform, offset, source, sourceSocket
+            )
 
             # Apply the new transform to the source actor
             source.set_actor_location(new_location, sweep=False, teleport=True)
             source.set_actor_rotation(new_rotation)
-
             log_debug(
                 f"Snapped {sourceActor} to {targetActor}'s socket '{targetSocket}'")
 
-            # Prepare response
-            result = {
-                "success": True,
-                "sourceActor": sourceActor,
-                "targetActor": targetActor,
-                "targetSocket": targetSocket,
-                "newLocation": [new_location.x, new_location.y, new_location.z],
-                "newRotation": [new_rotation.roll, new_rotation.pitch, new_rotation.yaw],
-                "message": f'Snapped {sourceActor} to {targetActor} socket "{targetSocket}"',
-            }
-
-            if sourceSocket:
-                result["sourceSocket"] = sourceSocket
+            # Build result
+            result = self._build_snap_result(
+                sourceActor, targetActor, targetSocket, sourceSocket,
+                new_location, new_rotation
+            )
 
             # Add validation if requested
             if validate:
-                actual_loc = source.get_actor_location()
-                _ = source.get_actor_rotation()
-
-                location_match = (
-                    abs(actual_loc.x - new_location.x) < 0.01
-                    and abs(actual_loc.y - new_location.y) < 0.01
-                    and abs(actual_loc.z - new_location.z) < 0.01
-                )
-
-                if not location_match:
-                    result["validation"] = {
-                        "success": False,
-                        "message": "Actor position does not match expected socket location",
-                    }
-                else:
-                    result["validation"] = {
-                        "success": True, "message": "Actor successfully snapped to socket"}
+                result["validation"] = self._validate_snap(
+                    source, new_location)
 
             return result
 
@@ -1191,3 +1233,167 @@ class ActorOperations:
             log_error(f"Error in snap_to_socket: {str(e)}")
             return {"success": False,
                     "error": f"Failed to snap actor: {str(e)}"}
+
+    def _find_source_and_target_actors(self, sourceActor, targetActor):
+        """Find source and target actors.
+
+        Returns:
+            tuple: (source, target, error_dict or None)
+        """
+        source = find_actor_by_name(sourceActor)
+        if not source:
+            return None, None, {"success": False,
+                                "error": f"Source actor not found: {sourceActor}"}
+
+        target = find_actor_by_name(targetActor)
+        if not target:
+            return None, None, {"success": False,
+                                "error": f"Target actor not found: {targetActor}"}
+
+        return source, target, None
+
+    def _get_target_socket_transform(self, target, targetActor, targetSocket):
+        """Get the target socket transform.
+
+        Returns:
+            tuple: (socket_transform, error_dict or None)
+        """
+        socket_transform = None
+
+        # Try to get socket from static mesh component
+        if hasattr(target, "static_mesh_component"):
+            socket_transform = self._get_static_mesh_socket_transform(
+                target.static_mesh_component, targetActor, targetSocket
+            )
+            if isinstance(socket_transform, dict):  # Error response
+                return None, socket_transform
+
+        # If socket not found on static mesh, try blueprint components
+        if not socket_transform:
+            socket_transform = self._get_scene_component_socket_transform(
+                target, targetSocket)
+
+        if not socket_transform:
+            return None, {
+                "success": False,
+                "error": f'Socket "{targetSocket}" not found on any component of {targetActor}',
+            }
+
+        return socket_transform, None
+
+    def _get_static_mesh_socket_transform(
+            self, mesh_comp, targetActor, targetSocket):
+        """Get socket transform from static mesh component."""
+        if not mesh_comp:
+            return None
+
+        static_mesh = mesh_comp.get_static_mesh()
+        if not static_mesh:
+            return None
+
+        # Get socket transform relative to component
+        socket_found = static_mesh.find_socket(targetSocket)
+        if socket_found:
+            # Get world transform of the socket
+            return mesh_comp.get_socket_transform(targetSocket)
+        else:
+            # Try to list available sockets for debugging
+            sockets = static_mesh.get_sockets()
+            socket_names = [s.socket_name for s in sockets] if sockets else []
+            return {
+                "success": False,
+                "error": f'Socket "{targetSocket}" not found on {targetActor}',
+                "availableSockets": socket_names,
+            }
+
+    def _get_scene_component_socket_transform(self, target, targetSocket):
+        """Get socket transform from scene components."""
+        components = target.get_components_by_class(unreal.SceneComponent)
+        for comp in components:
+            if comp.does_socket_exist(targetSocket):
+                return comp.get_socket_transform(targetSocket)
+        return None
+
+    def _calculate_snap_transform(
+            self, socket_transform, offset, source, sourceSocket):
+        """Calculate the snap transform for the source actor.
+
+        Returns:
+            tuple: (new_location, new_rotation)
+        """
+        new_location = socket_transform.translation
+        new_rotation = socket_transform.rotation.rotator()
+
+        # Apply offset if provided
+        if offset and any(v != 0 for v in offset):
+            new_location = self._apply_offset_to_location(
+                new_location, new_rotation, offset)
+
+        # If source socket is specified, calculate additional offset
+        if sourceSocket:
+            new_location = self._adjust_for_source_socket(
+                source, sourceSocket, new_location)
+
+        return new_location, new_rotation
+
+    def _apply_offset_to_location(self, location, rotation, offset):
+        """Apply offset to location in world space."""
+        offset_vector = unreal.Vector(offset[0], offset[1], offset[2])
+        # Transform offset to world space using socket rotation
+        rotated_offset = rotation.rotate_vector(offset_vector)
+        return location + rotated_offset
+
+    def _adjust_for_source_socket(self, source, sourceSocket, new_location):
+        """Adjust position to align source socket with target."""
+        if hasattr(source, "static_mesh_component"):
+            mesh_comp = source.static_mesh_component
+            if mesh_comp and mesh_comp.does_socket_exist(sourceSocket):
+                # Get socket location relative to actor
+                source_socket_transform = mesh_comp.get_socket_transform(
+                    sourceSocket, unreal.RelativeTransformSpace.RTS_ACTOR
+                )
+                # Adjust position to align source socket with target socket
+                return new_location - source_socket_transform.translation
+
+        log_debug(
+            f"Warning: Source socket '{sourceSocket}' not found, using actor pivot")
+        return new_location
+
+    def _build_snap_result(self, sourceActor, targetActor, targetSocket, sourceSocket,
+                           new_location, new_rotation):
+        """Build the snap operation result."""
+        result = {
+            "success": True,
+            "sourceActor": sourceActor,
+            "targetActor": targetActor,
+            "targetSocket": targetSocket,
+            "newLocation": [new_location.x, new_location.y, new_location.z],
+            "newRotation": [new_rotation.roll, new_rotation.pitch, new_rotation.yaw],
+            "message": f'Snapped {sourceActor} to {targetActor} socket "{targetSocket}"',
+        }
+
+        if sourceSocket:
+            result["sourceSocket"] = sourceSocket
+
+        return result
+
+    def _validate_snap(self, source, expected_location):
+        """Validate the snap operation."""
+        actual_loc = source.get_actor_location()
+
+        location_match = (
+            abs(actual_loc.x - expected_location.x) < 0.01
+            and abs(actual_loc.y - expected_location.y) < 0.01
+            and abs(actual_loc.z - expected_location.z) < 0.01
+        )
+
+        if not location_match:
+            return {
+                "success": False,
+                "message": "Actor position does not match expected socket location",
+            }
+        else:
+            return {
+                "success": True,
+                "message": "Actor successfully snapped to socket"
+            }
