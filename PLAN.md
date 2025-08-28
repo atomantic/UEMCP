@@ -1,10 +1,97 @@
-# UEMCP Implementation Plan
+# UEMCP Implementation Plan & Release Roadmap
 
 ## Overview
 
-This document outlines the implementation roadmap and future development plans for the Unreal Engine Model Context Protocol (UEMCP) server.
+This document outlines the implementation roadmap, release schedule, and future development plans for the Unreal Engine Model Context Protocol (UEMCP) server.
 
-## Current Status (December 2024)
+## Release Roadmap
+
+### ✅ Version 0.7.0 (Released: December 28, 2024)
+**Theme: "Socket-Based Building & Enhanced Workflows"**
+
+#### Completed Features
+- ✅ actor_snap_to_socket tool for socket-based placement
+- ✅ batch_spawn for efficient multi-actor operations
+- ✅ placement_validate for modular building validation
+- ✅ asset_import for FAB marketplace integration
+- ✅ Enhanced asset_info with complete bounds/pivot/socket data
+- ✅ Comprehensive test suites
+- ✅ Complete documentation and release notes
+
+**See [Release Notes](docs/release-notes/v0.7.0.md) for full details.**
+
+### 🚀 Version 0.8.0 (Target: February 2025)
+**Theme: "Blueprint Integration & Advanced Workflows"**
+
+#### Planned Features
+- [ ] Blueprint manipulation tools (create, modify components)
+- [ ] Socket pattern matching for automatic connections
+- [ ] Undo/Redo system for operations
+- [ ] Enhanced error recovery and retry mechanisms
+- [ ] Batch operations for all actor tools
+
+### 🌟 Version 0.9.0 (Target: March 2025)
+**Theme: "Production Readiness"**
+
+#### Planned Features
+- [ ] Performance optimizations for large scenes (1000+ actors)
+- [ ] Advanced caching system for repeated operations
+- [ ] Comprehensive validation suite
+- [ ] Integration test coverage > 80%
+- [ ] Production deployment guide
+- [ ] Multi-project management support
+
+### 🎉 Version 1.0.0 (Target: April 2025)
+**Theme: "Production Release"**
+
+#### Release Criteria for 1.0.0
+
+**Core Functionality (Must Have):**
+- ✅ Stable MCP server implementation
+- ✅ 30+ working MCP tools covering all essential operations
+- ✅ Full Python bridge to Unreal Engine
+- ✅ Hot reload support for development
+- [ ] Complete Blueprint manipulation capabilities
+- [ ] Full undo/redo system
+- [ ] Socket-based automatic building assembly
+
+**Quality Standards:**
+- [ ] Zero critical bugs in core operations
+- [ ] 90%+ success rate for all standard operations
+- [ ] Response time < 500ms for 95% of operations
+- [ ] Memory usage stable over 8+ hour sessions
+- [ ] Graceful handling of all error conditions
+
+**Documentation:**
+- [ ] Complete API documentation for all tools
+- [ ] Video tutorials for common workflows
+- [ ] Migration guide from manual workflows
+- [ ] Best practices guide
+- [ ] Troubleshooting guide with solutions for common issues
+
+**Testing:**
+- [ ] Integration test coverage > 80%
+- [ ] Unit test coverage > 70%
+- [ ] Tested on Windows, macOS, and Linux
+- [ ] Tested with UE 5.4, 5.5, and 5.6
+- [ ] Load tested with 10,000+ actor scenes
+- [ ] Stress tested with 100+ operations per minute
+
+**Developer Experience:**
+- [ ] New contributors can add tools in < 30 minutes
+- [ ] Clear contribution guidelines
+- [ ] Automated CI/CD pipeline
+- [ ] Published to npm registry
+- [ ] Docker container available
+
+**Community:**
+- [ ] 100+ GitHub stars
+- [ ] Active community Discord/Forum
+- [ ] 5+ external contributors
+- [ ] Used in 10+ production projects
+- [ ] Case studies from real projects
+
+## Current Status (December 2024 - v0.7.0 Released)
 
 ✅ **Phase 1: Foundation & Scaffolding** - COMPLETE
 ✅ **Phase 2: Basic MCP Implementation** - COMPLETE  
@@ -69,29 +156,12 @@ All 29 MCP tools are now functioning correctly:
 - **placement_validate** - Gap/overlap detection for modular building
 - All other tools tested and operational
 
-## Phase 7: Next Development Options
+## Next Development Phases (Post-0.7.0)
 
-Based on our house building experiment and current capabilities, here are the next potential development phases:
+Based on our roadmap to 1.0.0, here are the prioritized development phases:
 
-### Option A: Socket-Based Placement System
-**Objective**: Enable automatic actor alignment using socket information for precise modular building
-
-**New MCP Tools**:
-1. **actor_snap_to_socket** - Snap one actor to another's socket point
-2. **actor_align** - Auto-align actors based on their socket configurations  
-3. **socket_preview** - Visualize available sockets for placement
-4. **socket_connect** - Connect two actors via matching sockets
-
-**Benefits**:
-- Eliminate manual coordinate calculations for modular assets
-- Perfect alignment for doors, windows, and modular pieces
-- Faster and more accurate building workflows
-- Support for complex multi-socket connections
-
-**Implementation Notes**:
-- Leverage existing socket data from enhanced `asset_info`
-- Calculate transform matrices for socket-to-socket alignment
-- Support socket name pattern matching (e.g., "Door_*" matches "Door_Front")
+### ✅ Socket-Based Placement System (Completed in v0.7.0)
+The `actor_snap_to_socket` tool has been successfully implemented and released in v0.7.0, providing automatic actor alignment using socket information for precise modular building.
 
 ### Option B: Undo/Redo System
 **Objective**: Implement programmatic undo/redo for all MCP operations
@@ -267,12 +337,8 @@ UEMCP <--> ComfyUI API <--> ComfyUI-3D-Pack
 
 Based on addressing current limitations and user pain points, I recommend prioritizing development in this order:
 
-### 1. **Option A: Socket-Based Placement System** (HIGH PRIORITY)
-This directly addresses one of our most significant remaining limitations - manual coordinate calculation for modular building. Since we already have socket data from `asset_info`, implementing socket-based placement would:
-- Dramatically improve building workflows
-- Reduce errors in modular construction
-- Enable precise door/window placement
-- Build on existing infrastructure
+### 1. ✅ **Socket-Based Placement System** (COMPLETED in v0.7.0)
+Successfully implemented the `actor_snap_to_socket` tool which eliminates manual coordinate calculations for modular building.
 
 ### 2. **Option B: Undo/Redo System** (MEDIUM-HIGH PRIORITY)
 The lack of undo is a critical usability issue that affects user confidence. Implementation would:

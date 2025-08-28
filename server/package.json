@@ -1,6 +1,6 @@
 {
   "name": "uemcp-server",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Unreal Engine Model Context Protocol Server",
   "main": "dist/index.js",
   "scripts": {
