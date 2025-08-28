@@ -14,7 +14,8 @@ from utils import create_vector, create_rotator, find_actor_by_name, execute_con
 class ViewportOperations:
     """Handles all viewport and camera-related operations."""
 
-    def screenshot(self, width=640, height=360, screenPercentage=50, compress=True, quality=60):
+    def screenshot(self, width=640, height=360,
+                   screenPercentage=50, compress=True, quality=60):
         """Take a viewport screenshot.
 
         Args:
@@ -48,7 +49,12 @@ class ViewportOperations:
             system = py_platform.system()
 
             if system == "Darwin":  # macOS
-                expected_path = os.path.join(project_path, "Saved", "Screenshots", "MacEditor", f"{base_filename}.png")
+                expected_path = os.path.join(
+                    project_path,
+                    "Saved",
+                    "Screenshots",
+                    "MacEditor",
+                    f"{base_filename}.png")
             elif system == "Windows":
                 expected_path = os.path.join(
                     project_path, "Saved", "Screenshots", "WindowsEditor", f"{base_filename}.png"
@@ -70,7 +76,8 @@ class ViewportOperations:
             log_error(f"Failed to take screenshot: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    def set_camera(self, location=None, rotation=None, focusActor=None, distance=500):
+    def set_camera(self, location=None, rotation=None,
+                   focusActor=None, distance=500):
         """Set viewport camera position and rotation.
 
         Args:
@@ -83,14 +90,16 @@ class ViewportOperations:
             dict: Result with camera info
         """
         try:
-            editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+            editor_subsystem = unreal.get_editor_subsystem(
+                unreal.UnrealEditorSubsystem)
 
             if focusActor:
                 # Find and focus on specific actor
                 target_actor = find_actor_by_name(focusActor)
 
                 if not target_actor:
-                    return {"success": False, "error": f"Actor not found: {focusActor}"}
+                    return {"success": False,
+                            "error": f"Actor not found: {focusActor}"}
 
                 # Get actor location and bounds
                 actor_location = target_actor.get_actor_location()
@@ -98,7 +107,9 @@ class ViewportOperations:
                 _ = actor_bounds[1]  # Box extent
 
                 # Calculate camera position
-                camera_offset = unreal.Vector(-distance * 0.7, 0, distance * 0.7)  # Back  # Side  # Up
+                # Back  # Side  # Up
+                camera_offset = unreal.Vector(-distance *
+                                              0.7, 0, distance * 0.7)
                 camera_location = actor_location + camera_offset
 
                 # Calculate rotation to look at actor
@@ -106,7 +117,8 @@ class ViewportOperations:
                 camera_rotation = direction.rotation()
 
                 # Set viewport camera
-                editor_subsystem.set_level_viewport_camera_info(camera_location, camera_rotation)
+                editor_subsystem.set_level_viewport_camera_info(
+                    camera_location, camera_rotation)
 
                 # Also pilot the actor for better framing
                 unreal.EditorLevelLibrary.pilot_level_actor(target_actor)
@@ -118,7 +130,8 @@ class ViewportOperations:
             else:
                 # Manual camera positioning
                 if location is None:
-                    return {"success": False, "error": "Location required when not focusing on an actor"}
+                    return {
+                        "success": False, "error": "Location required when not focusing on an actor"}
 
                 current_loc = create_vector(location)
 
@@ -132,7 +145,8 @@ class ViewportOperations:
                     current_rot.roll = 0.0
 
                 # Set the viewport camera
-                editor_subsystem.set_level_viewport_camera_info(current_loc, current_rot)
+                editor_subsystem.set_level_viewport_camera_info(
+                    current_loc, current_rot)
 
             return {
                 "success": True,
@@ -163,18 +177,22 @@ class ViewportOperations:
             actor = find_actor_by_name(actorName)
 
             if not actor:
-                return {"success": False, "error": f"Actor not found: {actorName}"}
+                return {"success": False,
+                        "error": f"Actor not found: {actorName}"}
 
             # Select the actor
-            editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+            editor_actor_subsystem = unreal.get_editor_subsystem(
+                unreal.EditorActorSubsystem)
             editor_actor_subsystem.set_selected_level_actors([actor])
 
             # Get editor subsystem
-            editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+            editor_subsystem = unreal.get_editor_subsystem(
+                unreal.UnrealEditorSubsystem)
 
             # Get actor's location and bounds
             actor_location = actor.get_actor_location()
-            actor_bounds = actor.get_actor_bounds(only_colliding_components=False)
+            actor_bounds = actor.get_actor_bounds(
+                only_colliding_components=False)
             bounds_extent = actor_bounds[1]
 
             # Calculate camera distance
@@ -195,18 +213,22 @@ class ViewportOperations:
                 else:
                     # Calculate offset based on current rotation
                     forward_vector = current_rotation.get_forward_vector()
-                    camera_location = actor_location - (forward_vector * camera_distance)
+                    camera_location = actor_location - \
+                        (forward_vector * camera_distance)
                     camera_rotation = current_rotation
             else:
                 # Set camera to look at the actor from a nice angle
-                camera_offset = unreal.Vector(-camera_distance, -camera_distance * 0.5, camera_distance * 0.5)
+                camera_offset = unreal.Vector(-camera_distance, -
+                                              camera_distance * 0.5, camera_distance * 0.5)
                 camera_location = actor_location + camera_offset
 
                 # Calculate rotation to look at actor
-                camera_rotation = unreal.MathLibrary.find_look_at_rotation(camera_location, actor_location)
+                camera_rotation = unreal.MathLibrary.find_look_at_rotation(
+                    camera_location, actor_location)
 
             # Set the viewport camera
-            editor_subsystem.set_level_viewport_camera_info(camera_location, camera_rotation)
+            editor_subsystem.set_level_viewport_camera_info(
+                camera_location, camera_rotation)
 
             return {
                 "success": True,
@@ -245,7 +267,8 @@ class ViewportOperations:
                 }
 
             # Get editor world for console commands
-            editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+            editor_subsystem = unreal.get_editor_subsystem(
+                unreal.UnrealEditorSubsystem)
             world = editor_subsystem.get_editor_world()
 
             # Apply the render mode
@@ -273,13 +296,15 @@ class ViewportOperations:
 
             log_debug(f"Set viewport render mode to {mode}")
 
-            return {"success": True, "mode": mode, "message": f"Viewport render mode set to {mode}"}
+            return {"success": True, "mode": mode,
+                    "message": f"Viewport render mode set to {mode}"}
 
         except Exception as e:
             log_error(f"Failed to set render mode: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    def look_at_target(self, target=None, actorName=None, distance=1000, pitch=-30, height=500):
+    def look_at_target(self, target=None, actorName=None,
+                       distance=1000, pitch=-30, height=500):
         """Point viewport camera to look at specific coordinates or actor.
 
         Args:
@@ -297,12 +322,14 @@ class ViewportOperations:
             if actorName:
                 actor = find_actor_by_name(actorName)
                 if not actor:
-                    return {"success": False, "error": f"Actor not found: {actorName}"}
+                    return {"success": False,
+                            "error": f"Actor not found: {actorName}"}
                 target_location = actor.get_actor_location()
             elif target:
                 target_location = create_vector(target)
             else:
-                return {"success": False, "error": "Must provide either target coordinates or actorName"}
+                return {
+                    "success": False, "error": "Must provide either target coordinates or actorName"}
 
             # Calculate camera position
             angle = -45 * math.pi / 180  # -45 degrees in radians
@@ -325,8 +352,10 @@ class ViewportOperations:
             camera_rotation = unreal.Rotator(0, pitch, yaw)
 
             # Apply to viewport
-            editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
-            editor_subsystem.set_level_viewport_camera_info(camera_location, camera_rotation)
+            editor_subsystem = unreal.get_editor_subsystem(
+                unreal.UnrealEditorSubsystem)
+            editor_subsystem.set_level_viewport_camera_info(
+                camera_location, camera_rotation)
 
             return {
                 "success": True,
@@ -356,111 +385,22 @@ class ViewportOperations:
             mode = mode.lower()
 
             # Get editor subsystem
-            editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+            editor_subsystem = unreal.get_editor_subsystem(
+                unreal.UnrealEditorSubsystem)
 
             # Get current location to maintain position
             current_location, current_rotation = editor_subsystem.get_level_viewport_camera_info()
 
-            # Create rotation for each mode
-            # Use explicit property setting to avoid Rotator constructor issues
-            if mode == "top":
-                rotation = unreal.Rotator()
-                rotation.pitch = -90.0  # Look straight down
-                rotation.yaw = 0.0
-                rotation.roll = 0.0
-            elif mode == "bottom":
-                rotation = unreal.Rotator()
-                rotation.pitch = 90.0  # Look straight up
-                rotation.yaw = 0.0
-                rotation.roll = 0.0
-            elif mode == "front":
-                rotation = unreal.Rotator()
-                rotation.pitch = 0.0
-                rotation.yaw = 0.0  # Face north (-X)
-                rotation.roll = 0.0
-            elif mode == "back":
-                rotation = unreal.Rotator()
-                rotation.pitch = 0.0
-                rotation.yaw = 180.0  # Face south (+X)
-                rotation.roll = 0.0
-            elif mode == "left":
-                rotation = unreal.Rotator()
-                rotation.pitch = 0.0
-                rotation.yaw = -90.0  # Face east (-Y)
-                rotation.roll = 0.0
-            elif mode == "right":
-                rotation = unreal.Rotator()
-                rotation.pitch = 0.0
-                rotation.yaw = 90.0  # Face west (+Y)
-                rotation.roll = 0.0
-            elif mode == "perspective":
-                # Default perspective view
-                rotation = unreal.Rotator()
-                rotation.pitch = -30.0
-                rotation.yaw = 45.0
-                rotation.roll = 0.0
-            else:
+            # Get rotation for mode
+            rotation = self._get_mode_rotation(mode)
+            if rotation is None:
                 return {
                     "success": False,
                     "error": f"Invalid mode: {mode}. Valid modes: perspective, top, bottom, left, right, front, back",
                 }
 
-            # Check if any actors are selected for centering
-            editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
-            selected_actors = editor_actor_subsystem.get_selected_level_actors()
-
-            if selected_actors:
-                # Center on selected actors
-                bounds_origin = unreal.Vector(0, 0, 0)
-                bounds_extent = unreal.Vector(0, 0, 0)
-
-                # Calculate combined bounds
-                for i, actor in enumerate(selected_actors):
-                    actor_origin, actor_extent = actor.get_actor_bounds(False)
-                    if i == 0:
-                        bounds_origin = actor_origin
-                        bounds_extent = actor_extent
-                    else:
-                        # Expand bounds to include this actor
-                        min_point = unreal.Vector(
-                            min(bounds_origin.x - bounds_extent.x, actor_origin.x - actor_extent.x),
-                            min(bounds_origin.y - bounds_extent.y, actor_origin.y - actor_extent.y),
-                            min(bounds_origin.z - bounds_extent.z, actor_origin.z - actor_extent.z),
-                        )
-                        max_point = unreal.Vector(
-                            max(bounds_origin.x + bounds_extent.x, actor_origin.x + actor_extent.x),
-                            max(bounds_origin.y + bounds_extent.y, actor_origin.y + actor_extent.y),
-                            max(bounds_origin.z + bounds_extent.z, actor_origin.z + actor_extent.z),
-                        )
-                        bounds_origin = (min_point + max_point) * 0.5
-                        bounds_extent = (max_point - min_point) * 0.5
-
-                # Calculate camera distance based on bounds
-                max_extent = max(bounds_extent.x, bounds_extent.y, bounds_extent.z)
-                distance = max_extent * 3
-
-                # Position camera based on mode
-                if mode == "top":
-                    location = unreal.Vector(bounds_origin.x, bounds_origin.y, bounds_origin.z + distance)
-                elif mode == "bottom":
-                    location = unreal.Vector(bounds_origin.x, bounds_origin.y, bounds_origin.z - distance)
-                elif mode == "front":
-                    location = unreal.Vector(bounds_origin.x - distance, bounds_origin.y, bounds_origin.z)
-                elif mode == "back":
-                    location = unreal.Vector(bounds_origin.x + distance, bounds_origin.y, bounds_origin.z)
-                elif mode == "left":
-                    location = unreal.Vector(bounds_origin.x, bounds_origin.y - distance, bounds_origin.z)
-                elif mode == "right":
-                    location = unreal.Vector(bounds_origin.x, bounds_origin.y + distance, bounds_origin.z)
-                else:  # perspective
-                    location = unreal.Vector(
-                        bounds_origin.x - distance * 0.7,
-                        bounds_origin.y - distance * 0.7,
-                        bounds_origin.z + distance * 0.5,
-                    )
-            else:
-                # No selection, maintain current distance
-                location = current_location
+            # Calculate location based on selected actors or current position
+            location = self._calculate_camera_location(mode, current_location)
 
             # Apply the camera transform
             editor_subsystem.set_level_viewport_camera_info(location, rotation)
@@ -477,6 +417,154 @@ class ViewportOperations:
             log_error(f"Failed to set viewport mode: {str(e)}")
             return {"success": False, "error": str(e)}
 
+    def _get_mode_rotation(self, mode):
+        """Get camera rotation for a view mode.
+
+        Args:
+            mode: View mode string
+
+        Returns:
+            unreal.Rotator or None: Rotation for the mode, None if invalid
+        """
+        rotations = {
+            "top": (-90.0, 0.0, 0.0),  # Look straight down
+            "bottom": (90.0, 0.0, 0.0),  # Look straight up
+            "front": (0.0, 0.0, 0.0),  # Face north (-X)
+            "back": (0.0, 180.0, 0.0),  # Face south (+X)
+            "left": (0.0, -90.0, 0.0),  # Face east (-Y)
+            "right": (0.0, 90.0, 0.0),  # Face west (+Y)
+            "perspective": (-30.0, 45.0, 0.0),  # Default perspective view
+        }
+
+        if mode not in rotations:
+            return None
+
+        pitch, yaw, roll = rotations[mode]
+        rotation = unreal.Rotator()
+        rotation.pitch = pitch
+        rotation.yaw = yaw
+        rotation.roll = roll
+        return rotation
+
+    def _calculate_camera_location(self, mode, current_location):
+        """Calculate camera location based on mode and selected actors.
+
+        Args:
+            mode: View mode string
+            current_location: Current camera location
+
+        Returns:
+            unreal.Vector: Camera location
+        """
+        # Check if any actors are selected for centering
+        editor_actor_subsystem = unreal.get_editor_subsystem(
+            unreal.EditorActorSubsystem)
+        selected_actors = editor_actor_subsystem.get_selected_level_actors()
+
+        if not selected_actors:
+            # No selection, maintain current distance
+            return current_location
+
+        # Calculate combined bounds of selected actors
+        bounds_origin, bounds_extent = self._calculate_combined_bounds(
+            selected_actors)
+
+        # Calculate camera distance based on bounds
+        max_extent = max(bounds_extent.x, bounds_extent.y, bounds_extent.z)
+        distance = max_extent * 3
+
+        # Position camera based on mode
+        return self._get_camera_position_for_mode(
+            mode, bounds_origin, distance)
+
+    def _calculate_combined_bounds(self, actors):
+        """Calculate combined bounds of multiple actors.
+
+        Args:
+            actors: List of actors
+
+        Returns:
+            tuple: (bounds_origin, bounds_extent)
+        """
+        if not actors:
+            return unreal.Vector(0, 0, 0), unreal.Vector(0, 0, 0)
+
+        bounds_origin = unreal.Vector(0, 0, 0)
+        bounds_extent = unreal.Vector(0, 0, 0)
+
+        for i, actor in enumerate(actors):
+            actor_origin, actor_extent = actor.get_actor_bounds(False)
+
+            if i == 0:
+                bounds_origin = actor_origin
+                bounds_extent = actor_extent
+            else:
+                # Expand bounds to include this actor
+                bounds_origin, bounds_extent = self._expand_bounds(
+                    bounds_origin, bounds_extent, actor_origin, actor_extent
+                )
+
+        return bounds_origin, bounds_extent
+
+    def _expand_bounds(self, bounds_origin, bounds_extent,
+                       actor_origin, actor_extent):
+        """Expand bounds to include another actor.
+
+        Args:
+            bounds_origin: Current bounds origin
+            bounds_extent: Current bounds extent
+            actor_origin: Actor origin to include
+            actor_extent: Actor extent to include
+
+        Returns:
+            tuple: (new_origin, new_extent)
+        """
+        min_point = unreal.Vector(
+            min(bounds_origin.x - bounds_extent.x,
+                actor_origin.x - actor_extent.x),
+            min(bounds_origin.y - bounds_extent.y,
+                actor_origin.y - actor_extent.y),
+            min(bounds_origin.z - bounds_extent.z,
+                actor_origin.z - actor_extent.z),
+        )
+        max_point = unreal.Vector(
+            max(bounds_origin.x + bounds_extent.x,
+                actor_origin.x + actor_extent.x),
+            max(bounds_origin.y + bounds_extent.y,
+                actor_origin.y + actor_extent.y),
+            max(bounds_origin.z + bounds_extent.z,
+                actor_origin.z + actor_extent.z),
+        )
+        new_origin = (min_point + max_point) * 0.5
+        new_extent = (max_point - min_point) * 0.5
+        return new_origin, new_extent
+
+    def _get_camera_position_for_mode(self, mode, origin, distance):
+        """Get camera position for a specific view mode.
+
+        Args:
+            mode: View mode string
+            origin: Target origin point
+            distance: Distance from origin
+
+        Returns:
+            unreal.Vector: Camera position
+        """
+        positions = {
+            "top": unreal.Vector(origin.x, origin.y, origin.z + distance),
+            "bottom": unreal.Vector(origin.x, origin.y, origin.z - distance),
+            "front": unreal.Vector(origin.x - distance, origin.y, origin.z),
+            "back": unreal.Vector(origin.x + distance, origin.y, origin.z),
+            "left": unreal.Vector(origin.x, origin.y - distance, origin.z),
+            "right": unreal.Vector(origin.x, origin.y + distance, origin.z),
+            "perspective": unreal.Vector(
+                origin.x - distance * 0.7,
+                origin.y - distance * 0.7,
+                origin.z + distance * 0.5,
+            ),
+        }
+        return positions.get(mode, origin)
+
     def get_bounds(self):
         """Get current viewport boundaries and visible area.
 
@@ -485,7 +573,8 @@ class ViewportOperations:
         """
         try:
             # Get viewport camera info
-            editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+            editor_subsystem = unreal.get_editor_subsystem(
+                unreal.UnrealEditorSubsystem)
             camera_location, camera_rotation = editor_subsystem.get_level_viewport_camera_info()
 
             # Get FOV (default to 90 if not available)
@@ -495,7 +584,8 @@ class ViewportOperations:
             view_distance = 5000.0  # Default view distance
 
             # Calculate rough bounds based on camera position and FOV
-            # This is a simplified estimation since direct frustum API is not exposed
+            # This is a simplified estimation since direct frustum API is not
+            # exposed
             half_fov_rad = math.radians(fov / 2)
             extent_at_distance = view_distance * math.tan(half_fov_rad)
 
@@ -543,7 +633,8 @@ class ViewportOperations:
         """
         try:
             # Get all actors to check
-            editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+            editor_actor_subsystem = unreal.get_editor_subsystem(
+                unreal.EditorActorSubsystem)
             all_actors = editor_actor_subsystem.get_all_level_actors()
 
             # Filter actors based on provided criteria
@@ -563,10 +654,12 @@ class ViewportOperations:
                         if filter_lower in actor.get_actor_label().lower():
                             actors_to_fit.append(actor)
             else:
-                return {"success": False, "error": "Must provide either actors list or filter pattern"}
+                return {
+                    "success": False, "error": "Must provide either actors list or filter pattern"}
 
             if not actors_to_fit:
-                return {"success": False, "error": "No actors found matching criteria"}
+                return {"success": False,
+                        "error": "No actors found matching criteria"}
 
             # Calculate combined bounds of all actors
             combined_min = None
@@ -575,8 +668,14 @@ class ViewportOperations:
             for actor in actors_to_fit:
                 origin, extent = actor.get_actor_bounds(False)
 
-                actor_min = unreal.Vector(origin.x - extent.x, origin.y - extent.y, origin.z - extent.z)
-                actor_max = unreal.Vector(origin.x + extent.x, origin.y + extent.y, origin.z + extent.z)
+                actor_min = unreal.Vector(
+                    origin.x - extent.x,
+                    origin.y - extent.y,
+                    origin.z - extent.z)
+                actor_max = unreal.Vector(
+                    origin.x + extent.x,
+                    origin.y + extent.y,
+                    origin.z + extent.z)
 
                 if combined_min is None:
                     combined_min = actor_min
@@ -605,7 +704,8 @@ class ViewportOperations:
             camera_distance = max_dimension * padding_factor
 
             # Get current camera rotation to maintain view angle
-            editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+            editor_subsystem = unreal.get_editor_subsystem(
+                unreal.UnrealEditorSubsystem)
             current_location, current_rotation = editor_subsystem.get_level_viewport_camera_info()
 
             # Position camera to fit all actors
@@ -614,7 +714,8 @@ class ViewportOperations:
             camera_location = bounds_center - forward * camera_distance
 
             # Apply the camera position
-            editor_subsystem.set_level_viewport_camera_info(camera_location, current_rotation)
+            editor_subsystem.set_level_viewport_camera_info(
+                camera_location, current_rotation)
 
             # Also select the actors for clarity
             editor_actor_subsystem.set_selected_level_actors(actors_to_fit)
