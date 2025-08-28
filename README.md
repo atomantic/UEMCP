@@ -30,9 +30,9 @@ The setup script automatically:
 The script will detect which AI tools you have installed and offer to configure them:
 - **Claude Desktop & Claude Code**: Native MCP support
 - **Amazon Q**: MCP support via `~/.aws/amazonq/agents/default.json`
-- **Google Gemini Code Assist**: MCP support via `~/.gemini/settings.json`
+- **Google Gemini (CLI & Code Assist)**: MCP support via `~/.gemini/settings.json`
 - **OpenAI Codex**: Trusted projects via `~/.codex/config.toml`
-- **GitHub Copilot & Gemini CLI**: Usage instructions provided
+- **GitHub Copilot**: Usage instructions provided
 
 **Windows users:** Use WSL or Git Bash, then run `./setup.sh`
 
