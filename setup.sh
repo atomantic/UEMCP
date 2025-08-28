@@ -279,6 +279,14 @@ except:
 if 'mcpServers' not in config:
     config['mcpServers'] = {}
 
+# Check if already configured
+already_configured = False
+if 'uemcp' in config['mcpServers']:
+    existing_config = config['mcpServers']['uemcp']
+    if (existing_config.get('command') == 'node' and 
+        existing_config.get('args') == [server_path]):
+        already_configured = True
+
 # Configure UEMCP
 config['mcpServers']['uemcp'] = {
     'command': 'node',
@@ -295,7 +303,10 @@ if project_path:
 with open(config_file, 'w') as f:
     json.dump(config, f, indent=2)
 
-print('Claude Desktop configuration updated')
+if already_configured:
+    print('UEMCP already configured in Claude Desktop - configuration updated')
+else:
+    print('Claude Desktop configuration updated')
 " && log_success "Claude Desktop configured" || log_warning "Could not update Claude Desktop config automatically"
     else
         log_warning "Please manually add UEMCP to Claude Desktop config:"
@@ -334,7 +345,18 @@ configure_claude_code() {
         fi
         
         log_info "Adding UEMCP to Claude Code configuration..."
-        eval $ADD_COMMAND && log_success "Claude Code configured!" || log_error "Failed to configure Claude Code"
+        
+        # Try to add, capture output
+        ADD_OUTPUT=$(eval $ADD_COMMAND 2>&1)
+        ADD_RESULT=$?
+        
+        if [ $ADD_RESULT -eq 0 ]; then
+            log_success "Claude Code configured!"
+        elif echo "$ADD_OUTPUT" | grep -q "already exists"; then
+            log_success "UEMCP already configured in Claude Code"
+        else
+            log_error "Failed to configure Claude Code: $ADD_OUTPUT"
+        fi
         
         # Verify installation
         claude mcp list 2>/dev/null || true
@@ -397,13 +419,12 @@ if project_path:
     }
 
 # Check if UEMCP is already configured
-if 'uemcp' not in config['mcpServers']:
+if 'uemcp' in config['mcpServers']:
+    config['mcpServers']['uemcp'] = uemcp_config
+    print('UEMCP already configured in Amazon Q - configuration updated')
+else:
     config['mcpServers']['uemcp'] = uemcp_config
     print('Added UEMCP MCP server to Amazon Q configuration')
-else:
-    # Update existing configuration
-    config['mcpServers']['uemcp'] = uemcp_config
-    print('Updated UEMCP MCP server in Amazon Q configuration')
 
 # Write back the configuration
 with open(config_file, 'w') as f:
@@ -488,13 +509,12 @@ if project_path:
     }
 
 # Check if UEMCP is already configured
-if 'uemcp' not in config['mcpServers']:
+if 'uemcp' in config['mcpServers']:
+    config['mcpServers']['uemcp'] = uemcp_config
+    print('UEMCP already configured in Gemini - configuration updated')
+else:
     config['mcpServers']['uemcp'] = uemcp_config
     print('Added UEMCP MCP server to Gemini configuration')
-else:
-    # Update existing configuration
-    config['mcpServers']['uemcp'] = uemcp_config
-    print('Updated UEMCP MCP server in Gemini configuration')
 
 # Write back the configuration
 with open(config_file, 'w') as f:
