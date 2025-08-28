@@ -605,55 +605,69 @@ testProcess.on('close', (code) => {
         fs.chmodSync(path.join(projectRoot, 'test-connection.js'), '755');
     }
     
-    // Summary
-    console.log('');
-    log.success('════════════════════════════════════════');
-    log.success('✨ UEMCP Initialization Complete! ✨');
-    log.success('════════════════════════════════════════');
-    console.log('');
-    
-    log.info('Configuration Summary:');
-    console.log(`  • Server: Built and ready`);
-    if (!options.skipClaude) {
-        console.log(`  • Claude Desktop: Configured`);
-    }
-    if (options.claudeCode) {
-        console.log(`  • Claude Code: Configured`);
-    }
-    if (validProjectPath) {
-        console.log(`  • Project: ${validProjectPath}`);
-        if (shouldInstallPlugin) {
+    // Summary (suppress if called from setup.sh to avoid duplicate messages)
+    if (!isCalledFromSetup) {
+        console.log('');
+        log.success('════════════════════════════════════════');
+        log.success('✨ UEMCP Initialization Complete! ✨');
+        log.success('════════════════════════════════════════');
+        console.log('');
+        
+        log.info('Configuration Summary:');
+        console.log(`  • Server: Built and ready`);
+        if (!options.skipClaude) {
+            console.log(`  • Claude Desktop: Configured`);
+        }
+        if (options.claudeCode) {
+            console.log(`  • Claude Code: Configured`);
+        }
+        if (validProjectPath) {
+            console.log(`  • Project: ${validProjectPath}`);
+            if (shouldInstallPlugin) {
+                const useSymlink = options.symlink !== null ? options.symlink : true;
+                console.log(`  • Plugin: ${useSymlink ? 'Symlinked' : 'Copied'} to project`);
+            }
+        }
+        
+        console.log('');
+        log.info('Next Steps:');
+        let stepNum = 1;
+        if (!options.skipClaude) {
+            console.log(`  ${stepNum++}. Restart Claude Desktop`);
+            console.log(`  ${stepNum++}. Say "List available UEMCP tools" in Claude Desktop`);
+        }
+        if (options.claudeCode) {
+            console.log(`  ${stepNum++}. Visit claude.ai/code and say "List available UEMCP tools"`);
+        }
+        console.log(`  ${stepNum++}. Test locally: node test-connection.js`);
+        if (validProjectPath && shouldInstallPlugin) {
+            console.log(`  ${stepNum++}. Open your project in Unreal Editor`);
+            console.log(`  ${stepNum++}. The UEMCP plugin should load automatically`);
+        }
+        
+        console.log('');
+        log.info('Quick Commands:');
+        if (!validProjectPath) {
+            console.log('  • Set project: export UE_PROJECT_PATH="/path/to/project"');
+        }
+        console.log('  • Run tests: npm test');
+        console.log('  • View logs: DEBUG=uemcp:* node test-connection.js');
+        
+        console.log('');
+        log.success('Happy coding with UEMCP! 🚀');
+    } else {
+        // Minimal output when called from setup.sh
+        if (!options.skipClaude) {
+            log.success('Claude Desktop configured');
+        }
+        if (options.claudeCode) {
+            log.success('Claude Code configured');
+        }
+        if (validProjectPath && shouldInstallPlugin) {
             const useSymlink = options.symlink !== null ? options.symlink : true;
-            console.log(`  • Plugin: ${useSymlink ? 'Symlinked' : 'Copied'} to project`);
+            log.success(`Plugin ${useSymlink ? 'symlinked' : 'copied'} to ${path.basename(validProjectPath)}`);
         }
     }
-    
-    console.log('');
-    log.info('Next Steps:');
-    let stepNum = 1;
-    if (!options.skipClaude) {
-        console.log(`  ${stepNum++}. Restart Claude Desktop`);
-        console.log(`  ${stepNum++}. Say "List available UEMCP tools" in Claude Desktop`);
-    }
-    if (options.claudeCode) {
-        console.log(`  ${stepNum++}. Visit claude.ai/code and say "List available UEMCP tools"`);
-    }
-    console.log(`  ${stepNum++}. Test locally: node test-connection.js`);
-    if (validProjectPath && shouldInstallPlugin) {
-        console.log(`  ${stepNum++}. Open your project in Unreal Editor`);
-        console.log(`  ${stepNum++}. The UEMCP plugin should load automatically`);
-    }
-    
-    console.log('');
-    log.info('Quick Commands:');
-    if (!validProjectPath) {
-        console.log('  • Set project: export UE_PROJECT_PATH="/path/to/project"');
-    }
-    console.log('  • Run tests: npm test');
-    console.log('  • View logs: DEBUG=uemcp:* node test-connection.js');
-    
-    console.log('');
-    log.success('Happy coding with UEMCP! 🚀');
     
     rl.close();
 }

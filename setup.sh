@@ -466,8 +466,11 @@ EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo ""
-    log_success "🎉 UEMCP setup completed successfully!"
+    echo -e "${GREEN}════════════════════════════════════════════${NC}"
+    log_success "🎉 UEMCP Setup Complete!"
+    echo -e "${GREEN}════════════════════════════════════════════${NC}"
     echo ""
+    
     echo -e "${CYAN}Environment Summary:${NC}"
     echo "  • Node.js: $(node --version)"
     echo "  • npm: $(npm --version)"
@@ -480,23 +483,42 @@ if [ $EXIT_CODE -eq 0 ]; then
         fi
     fi
     
+    echo "  • MCP Server: Built and ready"
+    echo "  • Dependencies: All installed"
+    
     echo ""
     echo -e "${CYAN}Next Steps:${NC}"
     echo "  1. Restart Claude Desktop or Claude Code"
     echo "  2. Open your Unreal Engine project"
-    echo "  3. Test: \"List available UEMCP tools\""
+    echo "  3. Try in Claude: \"List available UEMCP tools\""
+    echo "  4. Test locally: node test-connection.js"
     
     if [ "$USE_VENV" = true ] && [ -d "$VENV_DIR" ]; then
         echo ""
-        echo -e "${CYAN}For Development:${NC}"
-        echo "  Activate virtual environment: source venv/bin/activate"
-        echo "  Run tests: pytest"
-        echo "  Lint code: flake8"
+        echo -e "${CYAN}Development Tools:${NC}"
+        echo "  • Activate venv: source venv/bin/activate"
+        echo "  • Run tests: pytest"
+        echo "  • Lint code: flake8 or ruff"
+        echo "  • Format code: black ."
     fi
+    
+    echo ""
+    echo -e "${CYAN}Quick Commands:${NC}"
+    echo "  • View logs: DEBUG=uemcp:* node test-connection.js"
+    echo "  • Rebuild server: cd server && npm run build"
+    echo "  • Hot reload in UE: restart_listener()"
+    
+    echo ""
+    log_success "Happy coding with UEMCP! 🚀"
 else
     echo ""
     log_error "Setup encountered an issue (exit code: $EXIT_CODE)"
     log_info "Check the output above for details"
+    echo ""
+    echo "Troubleshooting:"
+    echo "  • Check prerequisites: node --version && python3 --version"
+    echo "  • Try manual setup: node init.js"
+    echo "  • See docs: docs/development/troubleshooting.md"
 fi
 
 exit $EXIT_CODE
