@@ -390,22 +390,11 @@ provide_gemini_instructions() {
     fi
 }
 
-# Provide instructions for Copilot/Codex
+# Configure or provide instructions for Copilot/Codex
 provide_copilot_instructions() {
     # Check if it's Codex CLI or Copilot
     if command_exists codex || command_exists openai || command_exists openai-codex; then
-        log_info "OpenAI Codex CLI detected!"
-        echo ""
-        log_warning "Codex CLI doesn't directly support MCP servers."
-        echo "However, you can:"
-        echo ""
-        echo "  1. Run the MCP server in the background:"
-        echo "     node $SCRIPT_DIR/server/dist/index.js &"
-        echo ""
-        echo "  2. Use Codex CLI to generate code that interacts with the MCP API"
-        echo ""
-        echo "  3. Reference test-connection.js for API usage patterns"
-        echo ""
+        configure_codex "$1"
     else
         log_info "GitHub Copilot detected!"
         echo ""
@@ -419,6 +408,109 @@ provide_copilot_instructions() {
         echo ""
         echo "  3. See test-connection.js for usage examples"
         echo ""
+    fi
+}
+
+# Configure OpenAI Codex
+configure_codex() {
+    local project_path="$1"
+    
+    log_info "Configuring OpenAI Codex..."
+    
+    local CODEX_CONFIG_DIR="$HOME/.codex"
+    local CODEX_CONFIG_FILE="$CODEX_CONFIG_DIR/config.toml"
+    
+    # Create config directory if it doesn't exist
+    if [ ! -d "$CODEX_CONFIG_DIR" ]; then
+        mkdir -p "$CODEX_CONFIG_DIR"
+    fi
+    
+    # Check if config file exists
+    if [ -f "$CODEX_CONFIG_FILE" ]; then
+        log_info "Found existing Codex configuration"
+        
+        # Add UEMCP project to trusted projects
+        if [ -n "$project_path" ]; then
+            log_info "Adding $project_path to Codex trusted projects..."
+            
+            # Use Python to update TOML if available
+            if [ "$PYTHON_INSTALLED" = true ]; then
+                $PYTHON_CMD -c "
+import sys
+import os
+
+# Try to import toml, install if not available
+try:
+    import toml
+except ImportError:
+    print('Installing toml library...')
+    import subprocess
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'toml'])
+    import toml
+
+config_file = '$CODEX_CONFIG_FILE'
+project_path = '$project_path'
+script_dir = '$SCRIPT_DIR'
+
+# Read existing config
+try:
+    with open(config_file, 'r') as f:
+        config = toml.load(f)
+except:
+    config = {}
+
+# Initialize projects if not exists
+if 'projects' not in config:
+    config['projects'] = {}
+
+# Add both the UE project and UEMCP directory as trusted
+paths_to_add = []
+if project_path:
+    paths_to_add.append(project_path)
+paths_to_add.append(script_dir)
+
+for path in paths_to_add:
+    if path not in config['projects']:
+        config['projects'][path] = {'trust_level': 'trusted'}
+        print(f'Added {path} to trusted projects')
+    else:
+        print(f'{path} already in trusted projects')
+
+# Write back
+with open(config_file, 'w') as f:
+    toml.dump(config, f)
+    
+print('Codex configuration updated successfully')
+" || log_warning "Could not update Codex config automatically"
+            else
+                log_warning "Python not available - please manually add these to ~/.codex/config.toml:"
+                echo "  $project_path = { trust_level = \"trusted\" }"
+                echo "  $SCRIPT_DIR = { trust_level = \"trusted\" }"
+            fi
+        fi
+        
+        log_success "Codex configuration complete"
+        echo ""
+        log_info "To use UEMCP with Codex:"
+        echo "  1. The UEMCP directory has been added as a trusted project"
+        echo "  2. Run the MCP server: node $SCRIPT_DIR/server/dist/index.js"
+        echo "  3. Codex can now interact with your UE project through UEMCP"
+        echo ""
+    else
+        log_info "Creating new Codex configuration..."
+        
+        # Create basic config
+        cat > "$CODEX_CONFIG_FILE" << EOF
+# OpenAI Codex Configuration
+[projects]
+EOF
+        
+        if [ -n "$project_path" ]; then
+            echo "\"$project_path\" = { trust_level = \"trusted\" }" >> "$CODEX_CONFIG_FILE"
+        fi
+        echo "\"$SCRIPT_DIR\" = { trust_level = \"trusted\" }" >> "$CODEX_CONFIG_FILE"
+        
+        log_success "Created Codex configuration with UEMCP as trusted project"
     fi
 }
 
@@ -984,16 +1076,29 @@ if is_copilot_installed; then
     # Determine what type of installation
     if command_exists codex || command_exists openai || command_exists openai-codex; then
         log_success "OpenAI Codex CLI detected"
+        TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
+        
+        if [ "$INTERACTIVE" = true ]; then
+            read -p "Configure UEMCP for OpenAI Codex? (Y/n): " configure_codex_answer
+            configure_codex_lower=$(echo "$configure_codex_answer" | tr '[:upper:]' '[:lower:]')
+            if [ "$configure_codex_lower" != "n" ]; then
+                provide_copilot_instructions "$VALID_PROJECT_PATH"
+                TOOLS_CONFIGURED="$TOOLS_CONFIGURED • OpenAI Codex\n"
+            fi
+        else
+            provide_copilot_instructions "$VALID_PROJECT_PATH"
+            TOOLS_CONFIGURED="$TOOLS_CONFIGURED • OpenAI Codex\n"
+        fi
     else
         log_success "GitHub Copilot detected"
-    fi
-    TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
-    
-    if [ "$INTERACTIVE" = true ]; then
-        read -p "Show instructions for using UEMCP with Copilot/Codex? (Y/n): " show_copilot
-        show_copilot_lower=$(echo "$show_copilot" | tr '[:upper:]' '[:lower:]')
-        if [ "$show_copilot_lower" != "n" ]; then
-            provide_copilot_instructions
+        TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
+        
+        if [ "$INTERACTIVE" = true ]; then
+            read -p "Show instructions for using UEMCP with GitHub Copilot? (Y/n): " show_copilot
+            show_copilot_lower=$(echo "$show_copilot" | tr '[:upper:]' '[:lower:]')
+            if [ "$show_copilot_lower" != "n" ]; then
+                provide_copilot_instructions "$VALID_PROJECT_PATH"
+            fi
         fi
     fi
 fi
