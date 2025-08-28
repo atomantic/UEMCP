@@ -73,7 +73,48 @@ All 29 MCP tools are now functioning correctly:
 
 Based on our house building experiment and current capabilities, here are the next potential development phases:
 
-### Option A: Blueprint Tools
+### Option A: Socket-Based Placement System
+**Objective**: Enable automatic actor alignment using socket information for precise modular building
+
+**New MCP Tools**:
+1. **actor_snap_to_socket** - Snap one actor to another's socket point
+2. **actor_align** - Auto-align actors based on their socket configurations  
+3. **socket_preview** - Visualize available sockets for placement
+4. **socket_connect** - Connect two actors via matching sockets
+
+**Benefits**:
+- Eliminate manual coordinate calculations for modular assets
+- Perfect alignment for doors, windows, and modular pieces
+- Faster and more accurate building workflows
+- Support for complex multi-socket connections
+
+**Implementation Notes**:
+- Leverage existing socket data from enhanced `asset_info`
+- Calculate transform matrices for socket-to-socket alignment
+- Support socket name pattern matching (e.g., "Door_*" matches "Door_Front")
+
+### Option B: Undo/Redo System
+**Objective**: Implement programmatic undo/redo for all MCP operations
+
+**New MCP Tools**:
+1. **undo** - Undo the last operation or N operations
+2. **redo** - Redo previously undone operations
+3. **history_list** - Show operation history with timestamps
+4. **checkpoint_create** - Create named save points for batch operations
+5. **checkpoint_restore** - Restore to a named checkpoint
+
+**Benefits**:
+- Non-destructive experimentation
+- Recovery from mistakes without manual cleanup
+- Batch operation rollback
+- Better user confidence in trying complex operations
+
+**Implementation Notes**:
+- Store operation history with reversal instructions
+- Integrate with UE's transaction system where possible
+- Handle complex operations (batch spawns, etc.) as single undo units
+
+### Option C: Blueprint Tools
 **Objective**: Enable programmatic creation and modification of Blueprint classes
 
 **New MCP Tools**:
@@ -89,22 +130,7 @@ Based on our house building experiment and current capabilities, here are the ne
 - Set up trigger volumes with custom events
 - Create UI widgets programmatically
 
-### Option B: Material & Rendering Tools
-**Objective**: Dynamic material creation and modification
-
-**New MCP Tools**:
-1. **material_create_instance** - Create material instances from parent materials
-2. **material_set_parameter** - Modify scalar/vector/texture parameters
-3. **material_apply_to_actor** - Apply materials to specific actors/components
-4. **render_settings_modify** - Adjust post-processing and rendering settings
-
-**Use Cases**:
-- Change building colors/textures dynamically
-- Create weather effects (wet surfaces, snow accumulation)
-- Adjust lighting mood and atmosphere
-- Optimize material usage across many actors
-
-### Option C: Level & World Composition Tools
+### Option D: Level & World Composition Tools
 **Objective**: Advanced level management and world building
 
 **New MCP Tools**:
@@ -120,7 +146,7 @@ Based on our house building experiment and current capabilities, here are the ne
 - Set up interior/exterior transitions
 - Build natural environments
 
-### Option D: Animation & Sequencer Tools
+### Option E: Animation & Sequencer Tools
 **Objective**: Create cinematics and animated sequences
 
 **New MCP Tools**:
@@ -135,7 +161,7 @@ Based on our house building experiment and current capabilities, here are the ne
 - Animate doors, elevators, moving platforms
 - Generate marketing videos of levels
 
-### Option E: Physics & Simulation Tools
+### Option F: Physics & Simulation Tools
 **Objective**: Add physics-based interactions and simulations
 
 **New MCP Tools**:
@@ -150,7 +176,7 @@ Based on our house building experiment and current capabilities, here are the ne
 - Simulate structural integrity
 - Add realistic object interactions
 
-### Option F: AI-Generated 3D Asset Pipeline
+### Option G: AI-Generated 3D Asset Pipeline
 **Objective**: Generate 3D models from text/images using ComfyUI and ComfyUI-3D-Pack
 
 **New MCP Tools**:
@@ -239,38 +265,58 @@ UEMCP <--> ComfyUI API <--> ComfyUI-3D-Pack
 
 ## Recommendation
 
-Based on user needs and maximum impact, I recommend proceeding with **Option A: Blueprint Tools** as the next phase. This would:
+Based on addressing current limitations and user pain points, I recommend prioritizing development in this order:
 
-1. Enable creation of interactive elements (doors, switches, triggers)
-2. Allow building reusable gameplay systems
-3. Provide the foundation for more complex automation
-4. Have high value for both architectural visualization and game development
+### 1. **Option A: Socket-Based Placement System** (HIGH PRIORITY)
+This directly addresses one of our most significant remaining limitations - manual coordinate calculation for modular building. Since we already have socket data from `asset_info`, implementing socket-based placement would:
+- Dramatically improve building workflows
+- Reduce errors in modular construction
+- Enable precise door/window placement
+- Build on existing infrastructure
 
-The Blueprint tools would complement our existing building tools perfectly, allowing users to not just build structures but make them interactive and functional.
+### 2. **Option B: Undo/Redo System** (MEDIUM-HIGH PRIORITY)
+The lack of undo is a critical usability issue that affects user confidence. Implementation would:
+- Allow safe experimentation
+- Reduce fear of making mistakes
+- Enable complex iterative workflows
+- Improve overall user experience
 
-**Alternative High-Impact Option**: The AI-Generated 3D Asset Pipeline (Option F) could be transformative for rapid prototyping and content creation, especially if you already have local AI infrastructure set up. This would be particularly valuable for:
-- Indie developers needing unique assets quickly
-- Rapid iteration on design concepts
-- Creating placeholder content for level blockouts
-- Generating variations of existing themes
+### 3. **Option C: Blueprint Tools** (MEDIUM PRIORITY)
+While Blueprint graph editing remains a limitation, the ability to create and configure Blueprints would:
+- Enable interactive elements (doors, switches, triggers)
+- Support gameplay mechanics
+- Complement our building tools with functionality
 
-The choice between Blueprint Tools and AI Asset Pipeline depends on whether your priority is making existing content interactive (Blueprint) or rapidly generating new content (AI Pipeline).
+### 4. **Option G: AI-Generated 3D Asset Pipeline** (FUTURE CONSIDERATION)
+The AI asset pipeline could be transformative but requires significant infrastructure:
+- Needs local GPU and ComfyUI setup
+- Complex integration work
+- Best suited for users with existing AI workflows
+
+**Immediate Next Steps**: Focus on Socket-Based Placement System as it addresses a critical limitation, builds on existing work, and provides immediate value to users doing modular building.
 
 ## Implementation Priority
 
-### If proceeding with Blueprint Tools:
+### For Socket-Based Placement System (Recommended):
+1. **actor_snap_to_socket** - Core socket alignment functionality
+2. **actor_align** - Multi-actor alignment based on sockets
+3. **socket_preview** - Visual feedback for available connections
+4. **socket_connect** - Advanced multi-socket connections
+5. **socket_validate** - Verify proper socket connections
+
+### For Undo/Redo System:
+1. **Operation history storage** - Track all MCP operations
+2. **undo** - Basic single operation undo
+3. **redo** - Redo functionality
+4. **checkpoint_create/restore** - Save points for complex operations
+5. **history_list** - View and manage operation history
+
+### For Blueprint Tools:
 1. **blueprint_create** - Foundation for all other Blueprint operations
 2. **blueprint_add_component** - Essential for actor composition
 3. **blueprint_set_variable** - Enable data-driven Blueprints
 4. **blueprint_create_event** - Add interactivity
 5. **blueprint_compile** - Ensure changes take effect
-
-### If proceeding with AI Asset Pipeline:
-1. **comfyui_connect** - Establish API connection and validate setup
-2. **comfyui_workflow_execute** - Core workflow execution engine
-3. **comfyui_generate_image** - Stable Diffusion integration
-4. **comfyui_image_to_3d** - 3D generation with ComfyUI-3D-Pack
-5. **mesh_import_cleanup** - UE-ready asset preparation
 
 ## Technical Considerations
 

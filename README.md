@@ -126,7 +126,7 @@ Think of it like this: `python_proxy` is the powerful command line, while other 
 
 ## 🛠 Available Tools
 
-UEMCP provides 29 tools to Claude for controlling Unreal Engine:
+UEMCP provides 30 tools to Claude for controlling Unreal Engine:
 
 ### Project & Assets
 - **project_info** - Get current project information
@@ -141,6 +141,7 @@ UEMCP provides 29 tools to Claude for controlling Unreal Engine:
 - **actor_delete** - Delete actors by name
 - **actor_modify** - Change actor transform and organization
 - **actor_organize** - Organize actors into World Outliner folders
+- **actor_snap_to_socket** - Snap actors to socket points for precise modular placement
 - **placement_validate** - Validate modular building placement to detect gaps, overlaps, and alignment issues
 - **level_actors** - List all actors in the current level
 - **level_save** - Save the current level
@@ -357,19 +358,22 @@ See the **[Documentation Index](docs/README.md)** for organized access to all do
 While UEMCP provides comprehensive UE control, there are some current limitations:
 
 ### MCP Tool Limitations
-- **No Asset Snapping**: Manual coordinate calculation required (no socket-based placement)
-- **Blueprint Creation Only**: Can create but not edit Blueprint graphs
-- **No Material Editing**: Cannot create material instances or modify materials
+- **No Asset Snapping**: Manual coordinate calculation required (no automated socket-based placement)
+- **Blueprint Graph Editing**: Can spawn Blueprint actors but cannot programmatically edit Blueprint node graphs
 - **No Undo/Redo**: Operations cannot be undone programmatically
 
 ### Python API Issues
-- **Actor References**: `get_actor_reference()` doesn't work with display names
+- **Actor References**: `get_actor_reference()` doesn't work with display names (workaround implemented)
 - **Viewport Methods**: Several deprecated (see [Python API Workarounds](docs/python-api-workarounds.md))
-- **No Placement Validation**: Cannot detect collisions or gaps between actors
-- **Limited Asset Info**: No socket, bounds, or pivot data from asset_info
+
+### Recently Resolved ✅
+These limitations have been addressed in recent updates:
+- ✅ **Material Creation & Editing**: Full material management via `material_create`, `material_apply`, etc.
+- ✅ **Placement Validation**: Gap/overlap detection via `placement_validate` tool
+- ✅ **Asset Information**: Complete bounds, pivot, socket, and collision data via enhanced `asset_info`
 
 ### Workarounds Available
-Most limitations can be worked around using the `python_proxy` tool. See our documentation:
+Most remaining limitations can be worked around using the `python_proxy` tool. See our documentation:
 - [Python API Workarounds](docs/python-api-workarounds.md) - Common fixes
 - [House Building Experiment](docs/house-building-experiment.md) - Real-world solutions
 

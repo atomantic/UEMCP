@@ -28,7 +28,7 @@ class SystemOperations:
             tool_categories = {
                 'project': ['project_info'],
                 'asset': ['asset_list', 'asset_info'],
-                'actor': ['actor_spawn', 'actor_duplicate', 'actor_delete', 'actor_modify', 'actor_organize'],
+                'actor': ['actor_spawn', 'actor_duplicate', 'actor_delete', 'actor_modify', 'actor_organize', 'actor_snap_to_socket', 'batch_spawn', 'placement_validate'],
                 'level': ['level_actors', 'level_save', 'level_outliner'],
                 'viewport': ['viewport_screenshot', 'viewport_camera', 'viewport_mode', 'viewport_focus', 
                            'viewport_render_mode', 'viewport_bounds', 'viewport_fit', 'viewport_look_at'],
@@ -128,6 +128,21 @@ class SystemOperations:
                     'examples': [
                         'material_apply({ actorName: "Floor_01", materialPath: "/Game/Materials/M_Sand" })',
                         'material_apply({ actorName: "Wall_01", materialPath: "/Game/Materials/M_Brick", slotIndex: 1 })'
+                    ]
+                },
+                'actor_snap_to_socket': {
+                    'description': 'Snap an actor to another actor\'s socket for precise modular placement',
+                    'parameters': {
+                        'sourceActor': 'Name of actor to snap (will be moved)',
+                        'targetActor': 'Name of target actor with socket',
+                        'targetSocket': 'Socket name on target actor',
+                        'sourceSocket': 'Optional socket on source actor (defaults to pivot)',
+                        'offset': 'Optional [X, Y, Z] offset from socket position',
+                        'validate': 'Validate snap operation (default: true)'
+                    },
+                    'examples': [
+                        'actor_snap_to_socket({ sourceActor: "Door_01", targetActor: "Wall_01", targetSocket: "DoorSocket" })',
+                        'actor_snap_to_socket({ sourceActor: "Window_01", targetActor: "Wall_02", targetSocket: "WindowSocket", offset: [0, 0, 10] })'
                     ]
                 }
             }

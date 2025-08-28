@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **actor_snap_to_socket Tool**: Snap actors to socket points for precise modular placement
+  - Automatically aligns position and rotation based on socket transforms
+  - Support for source and target sockets
+  - Optional offset from socket position
+  - Returns available sockets if target not found
+  - Built-in validation to confirm successful placement
+  - Eliminates manual coordinate calculations for modular building
+
 - **batch_spawn Tool**: Spawn multiple actors efficiently in a single operation
   - Reduces overhead compared to individual spawn commands
   - Automatic viewport update batching for better performance

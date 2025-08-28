@@ -19,6 +19,7 @@ import {
   actorOrganizeTool,
   batchSpawnTool,
   placementValidateTool,
+  actorSnapToSocketTool,
   // Viewport tools
   viewportScreenshotTool,
   viewportCameraTool,
@@ -31,6 +32,12 @@ import {
   // Asset tools
   assetListTool,
   assetInfoTool,
+  assetImportTool,
+  // Material tools
+  materialListTool,
+  materialInfoTool,
+  materialCreateTool,
+  materialApplyTool,
   // Level tools
   levelActorsTool,
   levelSaveTool,
@@ -53,6 +60,7 @@ const allTools = [
   actorOrganizeTool,
   batchSpawnTool,
   placementValidateTool,
+  actorSnapToSocketTool,
   viewportScreenshotTool,
   viewportCameraTool,
   viewportModeTool,
@@ -63,6 +71,11 @@ const allTools = [
   viewportLookAtTool,
   assetListTool,
   assetInfoTool,
+  assetImportTool,
+  materialListTool,
+  materialInfoTool,
+  materialCreateTool,
+  materialApplyTool,
   levelActorsTool,
   levelSaveTool,
   levelOutlinerTool,

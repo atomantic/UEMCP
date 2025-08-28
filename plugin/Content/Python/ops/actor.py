@@ -838,3 +838,147 @@ class ActorOperations:
                 }
         
         return None
+    
+    def snap_to_socket(self, sourceActor, targetActor, targetSocket, sourceSocket=None, 
+                      offset=[0, 0, 0], validate=True):
+        """Snap an actor to another actor's socket for precise modular placement.
+        
+        Args:
+            sourceActor: Name of the actor to snap (will be moved)
+            targetActor: Name of the target actor with the socket
+            targetSocket: Name of the socket on the target actor
+            sourceSocket: Optional socket on source actor to align (defaults to pivot)
+            offset: Optional offset from socket position [X, Y, Z]
+            validate: Whether to validate the snap operation
+            
+        Returns:
+            dict: Result with new location and rotation
+        """
+        try:
+            # Find the actors
+            source = find_actor_by_name(sourceActor)
+            if not source:
+                return {'success': False, 'error': f'Source actor not found: {sourceActor}'}
+            
+            target = find_actor_by_name(targetActor)
+            if not target:
+                return {'success': False, 'error': f'Target actor not found: {targetActor}'}
+            
+            # Get the target socket transform
+            socket_transform = None
+            
+            # Try to get socket from static mesh component
+            if hasattr(target, 'static_mesh_component'):
+                mesh_comp = target.static_mesh_component
+                if mesh_comp:
+                    static_mesh = mesh_comp.get_static_mesh()
+                    if static_mesh:
+                        # Get socket transform relative to component
+                        socket_found = static_mesh.find_socket(targetSocket)
+                        if socket_found:
+                            # Get world transform of the socket
+                            socket_transform = mesh_comp.get_socket_transform(targetSocket)
+                        else:
+                            # Try to list available sockets for debugging
+                            sockets = static_mesh.get_sockets()
+                            socket_names = [s.socket_name for s in sockets] if sockets else []
+                            return {
+                                'success': False, 
+                                'error': f'Socket "{targetSocket}" not found on {targetActor}',
+                                'availableSockets': socket_names
+                            }
+            
+            # If socket not found on static mesh, try blueprint components
+            if not socket_transform:
+                # Try to get socket from any scene component
+                components = target.get_components_by_class(unreal.SceneComponent)
+                for comp in components:
+                    if comp.does_socket_exist(targetSocket):
+                        socket_transform = comp.get_socket_transform(targetSocket)
+                        break
+            
+            if not socket_transform:
+                return {
+                    'success': False,
+                    'error': f'Socket "{targetSocket}" not found on any component of {targetActor}'
+                }
+            
+            # Calculate new transform for source actor
+            new_location = socket_transform.translation
+            new_rotation = socket_transform.rotation.rotator()
+            
+            # Apply offset if provided
+            if offset and any(v != 0 for v in offset):
+                offset_vector = unreal.Vector(offset[0], offset[1], offset[2])
+                # Transform offset to world space using socket rotation
+                rotated_offset = new_rotation.rotate_vector(offset_vector)
+                new_location = new_location + rotated_offset
+            
+            # If source socket is specified, calculate additional offset
+            if sourceSocket:
+                # Get source socket transform relative to source actor
+                source_socket_found = False
+                
+                if hasattr(source, 'static_mesh_component'):
+                    mesh_comp = source.static_mesh_component
+                    if mesh_comp and mesh_comp.does_socket_exist(sourceSocket):
+                        # Get socket location relative to actor
+                        source_socket_transform = mesh_comp.get_socket_transform(sourceSocket, 
+                                                                                unreal.RelativeTransformSpace.RTS_ACTOR)
+                        # Adjust position to align source socket with target socket
+                        new_location = new_location - source_socket_transform.translation
+                        source_socket_found = True
+                
+                if not source_socket_found:
+                    log_debug(f"Warning: Source socket '{sourceSocket}' not found, using actor pivot")
+            
+            # Apply the new transform to the source actor
+            source.set_actor_location(new_location, sweep=False, teleport=True)
+            source.set_actor_rotation(new_rotation)
+            
+            log_debug(f"Snapped {sourceActor} to {targetActor}'s socket '{targetSocket}'")
+            
+            # Prepare response
+            result = {
+                'success': True,
+                'sourceActor': sourceActor,
+                'targetActor': targetActor,
+                'targetSocket': targetSocket,
+                'newLocation': [new_location.x, new_location.y, new_location.z],
+                'newRotation': [new_rotation.roll, new_rotation.pitch, new_rotation.yaw],
+                'message': f'Snapped {sourceActor} to {targetActor} socket "{targetSocket}"'
+            }
+            
+            if sourceSocket:
+                result['sourceSocket'] = sourceSocket
+            
+            # Add validation if requested
+            if validate:
+                actual_loc = source.get_actor_location()
+                actual_rot = source.get_actor_rotation()
+                
+                location_match = (
+                    abs(actual_loc.x - new_location.x) < 0.01 and
+                    abs(actual_loc.y - new_location.y) < 0.01 and
+                    abs(actual_loc.z - new_location.z) < 0.01
+                )
+                
+                if not location_match:
+                    result['validation'] = {
+                        'success': False,
+                        'message': 'Actor position does not match expected socket location'
+                    }
+                else:
+                    result['validation'] = {
+                        'success': True,
+                        'message': 'Actor successfully snapped to socket'
+                    }
+            
+            return result
+            
+        except Exception as e:
+            log_error(f"Error in snap_to_socket: {str(e)}")
+            return {
+                'success': False,
+                'error': f'Failed to snap actor: {str(e)}'
+            }

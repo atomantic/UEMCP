@@ -12,6 +12,7 @@ export {
   actorOrganizeTool,
   batchSpawnTool,
   placementValidateTool,
+  actorSnapToSocketTool,
 } from './actors/index.js';
 
 // Viewport tools
