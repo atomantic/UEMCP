@@ -258,9 +258,10 @@ def validate_actor_spawn(
 
     return result
 
+
 def _merge_validation_errors(target_result, source_result):
     """Merge errors from source result into target result.
-    
+
     Args:
         target_result: ValidationResult to add errors to
         source_result: ValidationResult to get errors from
