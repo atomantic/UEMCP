@@ -603,48 +603,75 @@ configure_codex() {
 import sys
 import os
 
-# Try to import toml, install if not available
+# For reading TOML: use built-in tomllib (Python 3.11+) or tomli
 try:
-    import toml
+    import tomllib
+    has_tomllib = True
 except ImportError:
-    print('Installing toml library...')
-    import subprocess
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'toml'])
-    import toml
+    try:
+        import tomli as tomllib
+        has_tomllib = True
+    except ImportError:
+        has_tomllib = False
 
 config_file = '$CODEX_CONFIG_FILE'
 project_path = '$project_path'
 script_dir = '$SCRIPT_DIR'
 
+if not has_tomllib:
+    print('Warning: Cannot read TOML config without tomllib (Python 3.11+) or tomli package')
+    print('To proceed, either:')
+    print('  1. Upgrade to Python 3.11 or later')
+    print('  2. Install tomli: pip install tomli')
+    print('')
+    print('Alternatively, manually add these lines to ~/.codex/config.toml:')
+    if project_path:
+        print(f'  \"{project_path}\" = {{ trust_level = \"trusted\" }}')
+    print(f'  \"{script_dir}\" = {{ trust_level = \"trusted\" }}')
+    sys.exit(1)
+
 # Read existing config
 try:
-    with open(config_file, 'r') as f:
-        config = toml.load(f)
-except:
+    with open(config_file, 'rb') as f:  # tomllib requires binary mode
+        config = tomllib.load(f)
+except FileNotFoundError:
+    config = {}
+except Exception as e:
+    print(f'Error reading config: {e}')
     config = {}
 
 # Initialize projects if not exists
 if 'projects' not in config:
     config['projects'] = {}
 
-# Add both the UE project and UEMCP directory as trusted
+# Check what needs to be added
 paths_to_add = []
 if project_path:
     paths_to_add.append(project_path)
 paths_to_add.append(script_dir)
 
+needs_update = False
 for path in paths_to_add:
     if path not in config['projects']:
-        config['projects'][path] = {'trust_level': 'trusted'}
-        print(f'Added {path} to trusted projects')
+        needs_update = True
+        print(f'Need to add {path} to trusted projects')
     else:
         print(f'{path} already in trusted projects')
 
-# Write back
-with open(config_file, 'w') as f:
-    toml.dump(config, f)
-    
-print('Codex configuration updated successfully')
+if needs_update:
+    print('')
+    print('Manual configuration required:')
+    print('Please add the following to ~/.codex/config.toml:')
+    print('')
+    if 'projects' not in config or not config['projects']:
+        print('[projects]')
+    for path in paths_to_add:
+        if path not in config.get('projects', {}):
+            print(f'\"{path}\" = {{ trust_level = \"trusted\" }}')
+    print('')
+    print('Note: TOML writing requires additional packages that we do not install automatically for security.')
+else:
+    print('Codex configuration already complete')
 " || log_warning "Could not update Codex config automatically"
             else
                 log_warning "Python not available - please manually add these to ~/.codex/config.toml:"
