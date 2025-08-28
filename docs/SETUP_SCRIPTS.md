@@ -8,10 +8,14 @@ The recommended way to set up UEMCP is using the universal setup script:
 ./setup.sh
 ```
 
-This script:
-- ✅ **Checks for Node.js** - Required dependency for MCP server
-- ✅ **Auto-installs Node.js** - Via Homebrew, apt, yum, or nvm if not present
-- ✅ **Runs init.js** - Handles all configuration automatically
+This script handles everything:
+- ✅ **Checks and installs Node.js** - Via Homebrew, apt, yum, or nvm if not present
+- ✅ **Checks and installs Python** - For development tools (optional)
+- ✅ **Sets up virtual environment** - Isolates Python dependencies
+- ✅ **Installs all dependencies** - Both Node.js and Python packages
+- ✅ **Builds the MCP server** - Compiles TypeScript to JavaScript
+- ✅ **Configures Claude** - Sets up Claude Desktop and/or Claude Code
+- ✅ **Installs UE plugin** - Optionally installs to your project
 - ✅ **Cross-platform** - Works on macOS, Linux, and WSL/Git Bash
 
 **Windows users:** Use WSL (Windows Subsystem for Linux) or Git Bash to run `./setup.sh`
@@ -20,16 +24,20 @@ This script:
 
 1. **Detects your OS** - macOS, Linux, or Windows (WSL)
 2. **Checks Node.js** - Verifies version 18+ is installed
-3. **Installs if needed** - Uses the best method for your system:
+3. **Installs Node.js if needed** - Uses the best method for your system:
    - macOS: Homebrew
    - Ubuntu/Debian: apt-get with NodeSource
    - RHEL/Fedora: yum with NodeSource
    - Fallback: nvm (Node Version Manager)
-4. **Runs init.js** - The Node.js script that does the actual setup
+4. **Checks Python** - For optional development tools
+5. **Installs Python if needed** - Via Homebrew, apt, or yum
+6. **Sets up virtual environment** - Creates isolated Python environment
+7. **Installs all dependencies** - Node.js and Python packages
+8. **Builds MCP server** - Compiles TypeScript
+9. **Configures Claude** - Sets up MCP for Claude Desktop/Code
+10. **Installs UE plugin** - Optionally adds to your project
 
 ## Command-Line Options
-
-All options are passed through to the underlying init.js script:
 
 ```bash
 ./setup.sh [options]
@@ -77,46 +85,29 @@ No prompts, perfect for automated environments.
 ```
 Configures for use with claude.ai/code instead of Claude Desktop.
 
-### Direct Node.js Usage (if Node.js is already installed)
-```bash
-node init.js [options]
-```
-Skip the Node.js check/installation and run the init script directly.
 
-## What init.js Does
+## What setup.sh Does
 
-1. **Checks Prerequisites**
-   - Node.js and npm (required)
-   - Python and pip (optional, for development tools)
+1. **Environment Setup**
+   - Installs Node.js if not present
+   - Installs Python if not present (optional)
+   - Creates virtual environment for Python
 
-2. **Installs Dependencies**
+2. **Dependency Installation**
    - Node.js packages for MCP server
    - Python packages for testing/linting (optional)
 
-3. **Builds the Server**
+3. **Server Build**
    - Compiles TypeScript to JavaScript
    - Prepares MCP server for use
 
-4. **Configures Claude**
+4. **MCP Configuration**
    - Sets up Claude Desktop config automatically
-   - Or configures Claude Code via CLI tool
+   - Configures Claude Code via CLI tool
 
-5. **Installs Plugin** (if project specified)
+5. **Plugin Installation** (if project specified)
    - Creates symlink (development) or copies files (production)
    - Updates .uproject file to enable plugin
-
-6. **Creates Test Scripts**
-   - Generates test-connection.js for verification
-
-## Alternative: Direct init.js Usage
-
-If you already have Node.js 18+ installed, you can run the init script directly:
-
-```bash
-node init.js [options]
-```
-
-This skips the Node.js installation check and goes straight to UEMCP setup.
 
 ## Python Dependencies
 

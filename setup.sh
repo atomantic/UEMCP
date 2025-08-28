@@ -1,524 +1,772 @@
 #!/bin/bash
 
+# ============================================================================
 # UEMCP Complete Setup Script
-# Handles all prerequisites: Node.js, Python, virtual environments, and dependencies
-# Then runs init.js for MCP-specific configuration
+# Handles environment setup AND MCP configuration - no sub-scripts needed!
+# ============================================================================
 
 set -e  # Exit on error
 
-# Color codes for output
+# Get script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# ============================================================================
+# Parse Command Line Arguments
+# ============================================================================
+
+PROJECT_PATH=""
+INTERACTIVE=true
+SKIP_CLAUDE=false
+CLAUDE_CODE=false
+SYMLINK=""  # Empty means ask, "true" means symlink, "false" means copy
+SHOW_HELP=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --project)
+            PROJECT_PATH="$2"
+            shift 2
+            ;;
+        --symlink)
+            SYMLINK="true"
+            shift
+            ;;
+        --copy)
+            SYMLINK="false"
+            shift
+            ;;
+        --no-interactive)
+            INTERACTIVE=false
+            shift
+            ;;
+        --skip-claude)
+            SKIP_CLAUDE=true
+            shift
+            ;;
+        --claude-code)
+            CLAUDE_CODE=true
+            shift
+            ;;
+        --help|-h)
+            SHOW_HELP=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            SHOW_HELP=true
+            shift
+            ;;
+    esac
+done
+
+# ============================================================================
+# Colors for output
+# ============================================================================
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
-MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
-# Helper functions
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+log_info() {
+    echo -e "${BLUE}$1${NC}"
+}
+
 log_success() {
-    echo -e "${GREEN}✅ $1${NC}"
+    echo -e "${GREEN}✓ $1${NC}"
+}
+
+log_warning() {
+    echo -e "${YELLOW}⚠ $1${NC}"
 }
 
 log_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
-log_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
-}
-
-log_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}"
-}
-
 log_section() {
     echo ""
     echo -e "${CYAN}$1${NC}"
-    echo -e "${CYAN}$(echo "$1" | sed 's/./=/g')${NC}"
 }
 
-# Banner
-echo -e "${MAGENTA}"
-echo "╔════════════════════════════════════════════╗"
-echo "║                                            ║"
-echo "║            UEMCP Setup Script              ║"
-echo "║     Complete Environment Setup             ║"
-echo "║                                            ║"
-echo "╚════════════════════════════════════════════╝"
-echo -e "${NC}"
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
 
-# Get the script directory
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$SCRIPT_DIR"
+# Function to detect OS
+detect_os() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "macos"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        if [ -f /etc/redhat-release ]; then
+            echo "rhel"
+        elif [ -f /etc/debian_version ]; then
+            echo "debian"
+        else
+            echo "linux"
+        fi
+    elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+        echo "windows"
+    else
+        echo "unknown"
+    fi
+}
 
-# Detect OS
-OS="Unknown"
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    OS="macOS"
-elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    OS="Linux"
-elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
-    OS="Windows (WSL/Git Bash)"
+# Get Claude config directory based on OS
+get_claude_config_dir() {
+    case "$(uname -s)" in
+        Darwin)
+            echo "$HOME/Library/Application Support/Claude"
+            ;;
+        Linux)
+            echo "$HOME/.config/claude"
+            ;;
+        MINGW*|CYGWIN*|MSYS*)
+            if [ -n "$APPDATA" ]; then
+                echo "$APPDATA/Claude"
+            else
+                echo "$HOME/AppData/Roaming/Claude"
+            fi
+            ;;
+        *)
+            echo "$HOME/.config/claude"
+            ;;
+    esac
+}
+
+# ============================================================================
+# Help Message
+# ============================================================================
+
+if [ "$SHOW_HELP" = true ]; then
+    echo "UEMCP Complete Setup Script"
+    echo ""
+    echo "This script handles everything:"
+    echo "  • Installs Node.js if not present"
+    echo "  • Installs Python if not present"
+    echo "  • Sets up virtual environment"
+    echo "  • Installs all dependencies"
+    echo "  • Builds the MCP server"
+    echo "  • Configures Claude Desktop/Code"
+    echo "  • Installs the UE plugin"
+    echo ""
+    echo "Usage:"
+    echo "  ./setup.sh [options]"
+    echo ""
+    echo "Options:"
+    echo "  --project <path>    Path to Unreal Engine project (will install plugin)"
+    echo "  --symlink           Create symlink instead of copying plugin (dev mode)"
+    echo "  --copy              Copy plugin files instead of symlinking"
+    echo "  --no-interactive    Run without prompts (automation/CI)"
+    echo "  --skip-claude       Skip Claude Desktop configuration"
+    echo "  --claude-code       Configure Claude Code (claude.ai/code)"
+    echo "  --help              Show this help"
+    echo ""
+    echo "Examples:"
+    echo "  ./setup.sh                                          # Interactive setup"
+    echo "  ./setup.sh --project /path/to/project --symlink    # Dev setup"
+    echo "  ./setup.sh --claude-code                           # Configure for Claude Code"
+    echo "  ./setup.sh --no-interactive --skip-claude          # CI/automation"
+    exit 0
 fi
 
+# ============================================================================
+# Main Setup Process
+# ============================================================================
+
+if [ "$INTERACTIVE" = true ]; then
+    clear
+fi
+
+log_info "╔════════════════════════════════════════╗"
+log_info "║        UEMCP Complete Setup            ║"
+log_info "║     Environment + MCP Configuration    ║"
+log_info "╚════════════════════════════════════════╝"
+
+OS=$(detect_os)
 log_info "Detected OS: $OS"
-log_info "Setup directory: $SCRIPT_DIR"
 
 # ============================================================================
-# Node.js Installation
+# Install Node.js if not present
 # ============================================================================
+
+log_section "Checking Node.js..."
 
 install_nodejs() {
-    log_section "Installing Node.js"
+    log_warning "Node.js not found. Installing..."
     
-    if [[ "$OS" == "macOS" ]]; then
-        if command -v brew &> /dev/null; then
-            log_info "Installing Node.js via Homebrew..."
-            if brew install node; then
-                log_success "Node.js installed via Homebrew"
-                return 0
+    case "$OS" in
+        macos)
+            if command_exists brew; then
+                log_info "Installing Node.js via Homebrew..."
+                brew install node
             else
-                log_warning "Homebrew installation failed"
+                log_error "Homebrew not found. Please install Homebrew first:"
+                echo "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+                exit 1
             fi
-        fi
-    elif [[ "$OS" == "Linux" ]]; then
-        if command -v apt-get &> /dev/null; then
-            log_info "Installing Node.js via apt-get..."
-            log_warning "This may require sudo password"
-            if curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs; then
-                log_success "Node.js installed via apt-get"
-                return 0
-            else
-                log_warning "apt-get installation failed"
-            fi
-        elif command -v yum &> /dev/null; then
+            ;;
+        debian)
+            log_info "Installing Node.js via apt..."
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            ;;
+        rhel)
             log_info "Installing Node.js via yum..."
-            log_warning "This may require sudo password"
-            if curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash - && sudo yum install -y nodejs; then
-                log_success "Node.js installed via yum"
-                return 0
-            else
-                log_warning "yum installation failed"
-            fi
-        fi
-    fi
-    
-    # Try nvm as fallback
-    log_info "Attempting to install via nvm (Node Version Manager)..."
-    
-    if [ -s "$HOME/.nvm/nvm.sh" ]; then
-        log_info "nvm found, loading it..."
-        export NVM_DIR="$HOME/.nvm"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    else
-        log_info "Installing nvm..."
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-        export NVM_DIR="$HOME/.nvm"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    fi
-    
-    if command -v nvm &> /dev/null; then
-        log_info "Installing Node.js LTS via nvm..."
-        nvm install --lts
-        nvm use --lts
-        nvm alias default node
-        
-        if command -v node &> /dev/null; then
-            log_success "Node.js installed successfully via nvm"
-            return 0
-        fi
-    fi
-    
-    log_error "Could not install Node.js automatically"
-    echo "Please install manually from: https://nodejs.org/"
-    return 1
+            curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash -
+            sudo yum install -y nodejs
+            ;;
+        *)
+            log_warning "Automated Node.js installation not available for this OS"
+            log_info "Attempting to install via nvm..."
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm install --lts
+            nvm use --lts
+            ;;
+    esac
 }
 
-# ============================================================================
-# Python Installation
-# ============================================================================
-
-install_python() {
-    log_section "Installing Python 3"
-    
-    if [[ "$OS" == "macOS" ]]; then
-        if command -v brew &> /dev/null; then
-            log_info "Installing Python 3 via Homebrew..."
-            if brew install python@3.11; then
-                log_success "Python 3.11 installed via Homebrew"
-                return 0
-            else
-                log_warning "Homebrew installation failed, trying python@3"
-                if brew install python@3; then
-                    log_success "Python 3 installed via Homebrew"
-                    return 0
-                fi
-            fi
-        fi
-    elif [[ "$OS" == "Linux" ]]; then
-        if command -v apt-get &> /dev/null; then
-            log_info "Installing Python 3 via apt-get..."
-            log_warning "This may require sudo password"
-            if sudo apt-get update && sudo apt-get install -y python3 python3-pip python3-venv; then
-                log_success "Python 3 installed via apt-get"
-                return 0
-            else
-                log_warning "apt-get installation failed"
-            fi
-        elif command -v yum &> /dev/null; then
-            log_info "Installing Python 3 via yum..."
-            log_warning "This may require sudo password"
-            if sudo yum install -y python3 python3-pip; then
-                log_success "Python 3 installed via yum"
-                return 0
-            else
-                log_warning "yum installation failed"
-            fi
-        fi
-    fi
-    
-    # Try pyenv as fallback
-    log_info "Attempting to install via pyenv..."
-    
-    if ! command -v pyenv &> /dev/null; then
-        if command -v curl &> /dev/null; then
-            curl https://pyenv.run | bash
-            export PATH="$HOME/.pyenv/bin:$PATH"
-            eval "$(pyenv init -)"
-        fi
-    fi
-    
-    if command -v pyenv &> /dev/null; then
-        log_info "Installing Python 3.11 via pyenv..."
-        pyenv install 3.11
-        pyenv global 3.11
-        
-        if command -v python3 &> /dev/null; then
-            log_success "Python installed via pyenv"
-            return 0
-        fi
-    fi
-    
-    log_error "Could not install Python automatically"
-    echo "Please install Python 3.11+ manually"
-    return 1
-}
-
-# ============================================================================
-# Check Prerequisites
-# ============================================================================
-
-log_section "Checking Prerequisites"
-
-# Check Node.js
-NODE_INSTALLED=false
-NODE_VERSION_OK=false
-REQUIRED_NODE_VERSION=18
-
-if command -v node &> /dev/null; then
-    NODE_INSTALLED=true
-    NODE_VERSION=$(node --version | cut -d 'v' -f 2 | cut -d '.' -f 1)
-    
-    if [ "$NODE_VERSION" -ge "$REQUIRED_NODE_VERSION" ]; then
-        NODE_VERSION_OK=true
-        log_success "Node.js $(node --version) is installed"
-    else
-        log_warning "Node.js $(node --version) is installed but version $REQUIRED_NODE_VERSION+ is required"
-    fi
-fi
-
-if [ "$NODE_INSTALLED" = false ]; then
-    log_warning "Node.js is not installed"
-    read -p "Install Node.js automatically? (y/n): " -n 1 -r
-    echo
-    
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        if install_nodejs; then
-            if [ -s "$HOME/.nvm/nvm.sh" ]; then
-                export NVM_DIR="$HOME/.nvm"
-                [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            fi
-            
-            if command -v node &> /dev/null; then
-                NODE_INSTALLED=true
-                NODE_VERSION_OK=true
-            fi
-        fi
-    else
-        log_error "Node.js is required. Please install it manually."
+if command_exists node; then
+    NODE_VERSION=$(node --version)
+    log_success "Node.js $NODE_VERSION"
+else
+    install_nodejs
+    if ! command_exists node; then
+        log_error "Failed to install Node.js"
+        echo "Please install Node.js manually from https://nodejs.org/"
         exit 1
     fi
-elif [ "$NODE_VERSION_OK" = false ]; then
-    log_warning "Node.js version $REQUIRED_NODE_VERSION+ is required"
-    read -p "Update Node.js? (y/n): " -n 1 -r
-    echo
-    
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        install_nodejs
-    else
-        log_warning "Continuing with current version. Some features may not work."
-    fi
+    NODE_VERSION=$(node --version)
+    log_success "Node.js $NODE_VERSION installed"
 fi
 
-# Final Node.js check
-if ! command -v node &> /dev/null; then
-    log_error "Node.js installation failed"
+# Check npm
+if ! command_exists npm; then
+    log_error "npm not found even though Node.js is installed"
     exit 1
 fi
+NPM_VERSION=$(npm --version)
+log_success "npm $NPM_VERSION"
 
-if ! command -v npm &> /dev/null; then
-    log_error "npm is not available"
-    exit 1
-fi
+# ============================================================================
+# Install Python if not present
+# ============================================================================
 
-log_success "npm $(npm --version) is installed"
+log_section "Checking Python..."
 
-# Check Python
 PYTHON_CMD=""
-PYTHON_VERSION=""
 PYTHON_INSTALLED=false
+PYTHON_VERSION=""
+
+install_python() {
+    log_warning "Python 3 not found. Installing..."
+    
+    case "$OS" in
+        macos)
+            if command_exists brew; then
+                log_info "Installing Python via Homebrew..."
+                brew install python@3.11
+                PYTHON_CMD="python3.11"
+            else
+                log_error "Homebrew not found. Please install Python manually."
+                exit 1
+            fi
+            ;;
+        debian)
+            log_info "Installing Python via apt..."
+            sudo apt-get update
+            sudo apt-get install -y python3 python3-pip python3-venv
+            PYTHON_CMD="python3"
+            ;;
+        rhel)
+            log_info "Installing Python via yum..."
+            sudo yum install -y python3 python3-pip
+            PYTHON_CMD="python3"
+            ;;
+        *)
+            log_warning "Please install Python 3 manually from https://python.org/"
+            PYTHON_CMD=""
+            ;;
+    esac
+}
 
 # Check for Python 3
-for cmd in python3.11 python3.10 python3.9 python3 python; do
-    if command -v $cmd &> /dev/null; then
-        VERSION=$($cmd --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
-        MAJOR=$(echo $VERSION | cut -d. -f1)
-        MINOR=$(echo $VERSION | cut -d. -f2)
-        
-        if [ "$MAJOR" -eq 3 ] && [ "$MINOR" -ge 9 ]; then
-            PYTHON_CMD=$cmd
-            PYTHON_VERSION=$VERSION
-            PYTHON_INSTALLED=true
-            log_success "Python $VERSION found ($cmd)"
-            break
-        fi
-    fi
-done
-
-if [ "$PYTHON_INSTALLED" = false ]; then
-    log_warning "Python 3.9+ is not installed"
-    read -p "Install Python automatically? (y/n): " -n 1 -r
-    echo
-    
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        if install_python; then
-            # Re-check for Python after installation
-            for cmd in python3.11 python3.10 python3.9 python3 python; do
-                if command -v $cmd &> /dev/null; then
-                    VERSION=$($cmd --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
-                    MAJOR=$(echo $VERSION | cut -d. -f1)
-                    MINOR=$(echo $VERSION | cut -d. -f2)
-                    
-                    if [ "$MAJOR" -eq 3 ] && [ "$MINOR" -ge 9 ]; then
-                        PYTHON_CMD=$cmd
-                        PYTHON_VERSION=$VERSION
-                        PYTHON_INSTALLED=true
-                        log_success "Python $VERSION installed"
-                        break
-                    fi
-                fi
-            done
-        fi
-    else
-        log_warning "Python is optional but recommended for development tools"
+if command_exists python3; then
+    PYTHON_CMD="python3"
+    PYTHON_INSTALLED=true
+elif command_exists python; then
+    # Check if it's Python 3
+    if python --version 2>&1 | grep -q "Python 3"; then
+        PYTHON_CMD="python"
+        PYTHON_INSTALLED=true
     fi
 fi
+
+if [ "$PYTHON_INSTALLED" = false ]; then
+    install_python
+    if [ -n "$PYTHON_CMD" ] && command_exists "$PYTHON_CMD"; then
+        PYTHON_INSTALLED=true
+    fi
+fi
+
+if [ "$PYTHON_INSTALLED" = true ]; then
+    PYTHON_VERSION=$($PYTHON_CMD --version 2>&1 | awk '{print $2}')
+    log_success "Python $PYTHON_VERSION"
+else
+    log_warning "Python 3 not installed - development features will be limited"
+    log_info "Core UEMCP functionality will still work"
+fi
+
+# ============================================================================
+# Install dependencies
+# ============================================================================
+
+log_section "Installing Node.js dependencies..."
+
+cd "$SCRIPT_DIR/server"
+npm install
+log_success "Node.js dependencies installed"
+
+log_section "Building MCP server..."
+npm run build
+log_success "Server built successfully!"
+
+cd "$SCRIPT_DIR"
 
 # ============================================================================
 # Python Virtual Environment Setup
 # ============================================================================
 
-VENV_DIR="$SCRIPT_DIR/venv"
 USE_VENV=false
+VENV_DIR="$SCRIPT_DIR/venv"
 
 if [ "$PYTHON_INSTALLED" = true ]; then
-    log_section "Python Virtual Environment"
+    log_section "Setting up Python environment..."
     
-    # Check if we're already in a virtual environment
-    if [ -n "$VIRTUAL_ENV" ]; then
-        log_info "Already in a virtual environment: $VIRTUAL_ENV"
-        USE_VENV=true
-    # Check if venv directory exists
-    elif [ -d "$VENV_DIR" ]; then
-        log_info "Found existing virtual environment"
-        source "$VENV_DIR/bin/activate" 2>/dev/null || source "$VENV_DIR/Scripts/activate" 2>/dev/null || true
-        USE_VENV=true
-    else
-        # Check for pyenv-virtualenv
-        if command -v pyenv &> /dev/null && pyenv commands | grep -q virtualenv; then
-            log_info "Using pyenv-virtualenv for environment management"
-            
-            if ! pyenv virtualenvs | grep -q "uemcp"; then
-                log_info "Creating pyenv virtual environment 'uemcp'..."
-                pyenv virtualenv $PYTHON_VERSION uemcp
-            fi
-            
-            log_info "Activating pyenv virtual environment 'uemcp'..."
-            pyenv activate uemcp 2>/dev/null || eval "$(pyenv init -)" && pyenv activate uemcp
-            USE_VENV=true
-        # Use standard venv
-        elif $PYTHON_CMD -m venv --help &> /dev/null; then
-            log_info "Creating Python virtual environment..."
-            
-            if $PYTHON_CMD -m venv "$VENV_DIR"; then
-                log_success "Virtual environment created"
-                source "$VENV_DIR/bin/activate" 2>/dev/null || source "$VENV_DIR/Scripts/activate" 2>/dev/null
+    # Check if venv already exists
+    if [ -d "$VENV_DIR" ]; then
+        log_info "Existing virtual environment found at $VENV_DIR"
+        if [ "$INTERACTIVE" = true ]; then
+            read -p "Use existing virtual environment? (Y/n): " use_existing
+            if [ "${use_existing,,}" != "n" ]; then
+                source "$VENV_DIR/bin/activate"
                 USE_VENV=true
+                log_success "Activated existing virtual environment"
+            fi
+        else
+            source "$VENV_DIR/bin/activate"
+            USE_VENV=true
+            log_success "Activated existing virtual environment"
+        fi
+    fi
+    
+    # Create new venv if needed
+    if [ "$USE_VENV" = false ]; then
+        # Check for pyenv-virtualenv
+        if command_exists pyenv && pyenv virtualenv --help >/dev/null 2>&1; then
+            log_info "pyenv-virtualenv detected"
+            if [ "$INTERACTIVE" = true ]; then
+                read -p "Create virtual environment with pyenv? (y/N): " use_pyenv
+                if [ "${use_pyenv,,}" = "y" ]; then
+                    pyenv virtualenv 3.11 uemcp
+                    pyenv local uemcp
+                    USE_VENV=true
+                    log_success "Created pyenv virtual environment"
+                fi
+            fi
+        fi
+        
+        # Use standard venv
+        if [ "$USE_VENV" = false ]; then
+            log_info "Creating Python virtual environment..."
+            if $PYTHON_CMD -m venv "$VENV_DIR"; then
+                source "$VENV_DIR/bin/activate"
+                USE_VENV=true
+                log_success "Created and activated virtual environment"
             else
                 log_warning "Could not create virtual environment"
             fi
-        else
-            log_warning "venv module not available, using system Python"
         fi
     fi
     
+    # Install Python dependencies in venv
     if [ "$USE_VENV" = true ]; then
-        log_success "Virtual environment activated"
-        log_info "Python: $(which python)"
+        log_section "Installing Python development dependencies..."
+        
+        # Ask in interactive mode
+        INSTALL_PYTHON_DEPS=true
+        if [ "$INTERACTIVE" = true ]; then
+            echo ""
+            log_info "Python development dependencies are optional."
+            log_info "They provide testing and linting tools but are not required for core functionality."
+            read -p "Install Python development dependencies? (Y/n): " install_py
+            if [ "${install_py,,}" = "n" ]; then
+                INSTALL_PYTHON_DEPS=false
+            fi
+        fi
+        
+        if [ "$INSTALL_PYTHON_DEPS" = true ]; then
+            if pip install -r "$SCRIPT_DIR/requirements-dev.txt"; then
+                log_success "Python dependencies installed"
+            else
+                log_warning "Some Python dependencies failed to install"
+                log_info "This won't affect core UEMCP functionality"
+            fi
+        else
+            log_info "Skipping Python dependencies"
+        fi
     fi
 fi
 
 # ============================================================================
-# Install Dependencies
+# Handle UE Project Path and Plugin Installation
 # ============================================================================
 
-log_section "Installing Dependencies"
+log_section "Unreal Engine Project Configuration..."
 
-# Install Node.js dependencies
-log_info "Installing Node.js dependencies..."
-cd "$SCRIPT_DIR/server"
-
-if npm install; then
-    log_success "Node.js dependencies installed"
-else
-    log_error "Failed to install Node.js dependencies"
-    exit 1
-fi
-
-# Build the TypeScript server
-log_info "Building MCP server..."
-if npm run build; then
-    log_success "Server built successfully"
-else
-    log_error "Server build failed"
-    exit 1
-fi
-
-cd "$SCRIPT_DIR"
-
-# Install Python dependencies if Python is available
-if [ "$PYTHON_INSTALLED" = true ] && [ -f "$SCRIPT_DIR/requirements-dev.txt" ]; then
-    log_info "Installing Python development dependencies (optional)..."
+# Function to install plugin
+install_plugin() {
+    local project_path="$1"
+    local use_symlink="$2"
     
-    # Ensure pip is up to date
-    if [ "$USE_VENV" = true ]; then
-        python -m pip install --upgrade pip &> /dev/null || true
+    local plugins_dir="$project_path/Plugins"
+    local uemcp_plugin_dir="$plugins_dir/UEMCP"
+    local source_plugin_dir="$SCRIPT_DIR/plugin"
+    
+    # Check if source plugin exists
+    if [ ! -d "$source_plugin_dir" ]; then
+        log_error "Plugin source not found!"
+        return 1
+    fi
+    
+    # Create Plugins directory if it doesn't exist
+    if [ ! -d "$plugins_dir" ]; then
+        mkdir -p "$plugins_dir"
+        log_success "Created Plugins directory"
+    fi
+    
+    # Check if plugin already exists
+    if [ -e "$uemcp_plugin_dir" ]; then
+        if [ -L "$uemcp_plugin_dir" ]; then
+            local link_target=$(readlink "$uemcp_plugin_dir")
+            log_warning "UEMCP plugin already exists as symlink → $link_target"
+            if [ "$INTERACTIVE" = true ]; then
+                read -p "Update existing symlink? (y/N): " update_link
+                if [ "${update_link,,}" != "y" ]; then
+                    log_info "Keeping existing symlink"
+                    return 0
+                fi
+            else
+                log_info "Keeping existing symlink"
+                return 0
+            fi
+            rm "$uemcp_plugin_dir"
+        else
+            log_warning "UEMCP plugin already exists in project"
+            if [ "$INTERACTIVE" = true ]; then
+                read -p "Replace existing plugin? (y/N): " replace_plugin
+                if [ "${replace_plugin,,}" != "y" ]; then
+                    log_info "Keeping existing plugin"
+                    return 0
+                fi
+            else
+                log_info "Keeping existing plugin"
+                return 0
+            fi
+            rm -rf "$uemcp_plugin_dir"
+        fi
+    fi
+    
+    # Install plugin
+    if [ "$use_symlink" = "true" ]; then
+        local absolute_source=$(cd "$source_plugin_dir" && pwd)
+        ln -s "$absolute_source" "$uemcp_plugin_dir"
+        log_success "Created symlink: $uemcp_plugin_dir → $absolute_source"
     else
-        $PYTHON_CMD -m pip install --user --upgrade pip &> /dev/null || true
+        cp -r "$source_plugin_dir" "$uemcp_plugin_dir"
+        log_success "Copied UEMCP plugin to project"
     fi
     
-    # Install dependencies
-    if [ "$USE_VENV" = true ]; then
-        # In venv, no need for --user flag
-        if python -m pip install -r requirements-dev.txt; then
-            log_success "Python dependencies installed in virtual environment"
-        else
-            log_warning "Some Python dependencies failed to install"
-            log_info "This is OK - core functionality will still work"
-        fi
-    else
-        # System Python, use --user flag
-        if $PYTHON_CMD -m pip install --user -r requirements-dev.txt; then
-            log_success "Python dependencies installed (user)"
-        else
-            log_warning "Some Python dependencies failed to install"
-            log_info "This is OK - core functionality will still work"
+    # Update .uproject file
+    local uproject_file=$(find "$project_path" -maxdepth 1 -name "*.uproject" | head -1)
+    if [ -n "$uproject_file" ]; then
+        # Use Python to update JSON if available, otherwise skip
+        if [ "$PYTHON_INSTALLED" = true ]; then
+            $PYTHON_CMD -c "
+import json
+import sys
+
+uproject_file = '$uproject_file'
+with open(uproject_file, 'r') as f:
+    uproject = json.load(f)
+
+if 'Plugins' not in uproject:
+    uproject['Plugins'] = []
+
+if not any(p.get('Name') == 'UEMCP' for p in uproject['Plugins']):
+    uproject['Plugins'].append({'Name': 'UEMCP', 'Enabled': True})
+    
+    with open(uproject_file, 'w') as f:
+        json.dump(uproject, f, indent=2)
+    print('Updated project file to enable UEMCP plugin')
+else:
+    print('UEMCP already in project file')
+" && log_success "Updated project file" || log_warning "Could not update .uproject file"
         fi
     fi
+    
+    return 0
+}
+
+# Get project path
+if [ -z "$PROJECT_PATH" ] && [ "$INTERACTIVE" = true ]; then
+    echo ""
+    read -p "Enter the path to your Unreal Engine project (or press Enter to skip): " PROJECT_PATH
+fi
+
+VALID_PROJECT_PATH=""
+if [ -n "$PROJECT_PATH" ]; then
+    # Expand tilde
+    PROJECT_PATH="${PROJECT_PATH/#\~/$HOME}"
+    
+    if [ -d "$PROJECT_PATH" ]; then
+        VALID_PROJECT_PATH="$PROJECT_PATH"
+        log_success "Project path verified: $VALID_PROJECT_PATH"
+        
+        # Ask about plugin installation
+        SHOULD_INSTALL_PLUGIN=true
+        if [ "$INTERACTIVE" = true ]; then
+            read -p "Install UEMCP plugin to this project? (Y/n): " install_plugin_answer
+            if [ "${install_plugin_answer,,}" = "n" ]; then
+                SHOULD_INSTALL_PLUGIN=false
+            fi
+        fi
+        
+        if [ "$SHOULD_INSTALL_PLUGIN" = true ]; then
+            # Determine symlink vs copy
+            USE_SYMLINK="$SYMLINK"
+            if [ -z "$USE_SYMLINK" ] && [ "$INTERACTIVE" = true ]; then
+                echo ""
+                log_info "Choose installation method:"
+                echo "  1. Symlink (recommended for development - changes reflect immediately)"
+                echo "  2. Copy (recommended for production - isolated from source)"
+                read -p "Select [1-2] (default: 1): " method
+                if [ "$method" = "2" ]; then
+                    USE_SYMLINK="false"
+                else
+                    USE_SYMLINK="true"
+                fi
+            elif [ -z "$USE_SYMLINK" ]; then
+                USE_SYMLINK="true"  # Default to symlink
+            fi
+            
+            install_plugin "$VALID_PROJECT_PATH" "$USE_SYMLINK"
+        fi
+    else
+        log_warning "Project path not found: $PROJECT_PATH"
+    fi
+fi
+
+# ============================================================================
+# Configure Claude Desktop
+# ============================================================================
+
+if [ "$SKIP_CLAUDE" = false ]; then
+    log_section "Configuring Claude Desktop..."
+    
+    CLAUDE_CONFIG_DIR=$(get_claude_config_dir)
+    CLAUDE_CONFIG_FILE="$CLAUDE_CONFIG_DIR/claude_desktop_config.json"
+    
+    # Create config directory if it doesn't exist
+    if [ ! -d "$CLAUDE_CONFIG_DIR" ]; then
+        mkdir -p "$CLAUDE_CONFIG_DIR"
+    fi
+    
+    # Read existing config or create new one
+    if [ -f "$CLAUDE_CONFIG_FILE" ]; then
+        log_info "Updating existing Claude configuration..."
+    else
+        log_info "Creating new Claude configuration..."
+        echo '{}' > "$CLAUDE_CONFIG_FILE"
+    fi
+    
+    # Update configuration using Python (or fallback to manual message)
+    if [ "$PYTHON_INSTALLED" = true ]; then
+        SERVER_PATH="$SCRIPT_DIR/server/dist/index.js"
+        
+        $PYTHON_CMD -c "
+import json
+import sys
+
+config_file = '$CLAUDE_CONFIG_FILE'
+server_path = '$SERVER_PATH'
+project_path = '$VALID_PROJECT_PATH' if '$VALID_PROJECT_PATH' else None
+
+# Read existing config
+try:
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+except:
+    config = {}
+
+# Ensure mcpServers exists
+if 'mcpServers' not in config:
+    config['mcpServers'] = {}
+
+# Configure UEMCP
+config['mcpServers']['uemcp'] = {
+    'command': 'node',
+    'args': [server_path]
+}
+
+# Add project path if available
+if project_path:
+    config['mcpServers']['uemcp']['env'] = {
+        'UE_PROJECT_PATH': project_path
+    }
+
+# Write config
+with open(config_file, 'w') as f:
+    json.dump(config, f, indent=2)
+
+print('Claude Desktop configuration updated')
+" && log_success "Claude Desktop configured" || log_warning "Could not update Claude config automatically"
+    else
+        log_warning "Please manually add UEMCP to Claude Desktop config:"
+        echo "  Config file: $CLAUDE_CONFIG_FILE"
+        echo "  Server path: $SCRIPT_DIR/server/dist/index.js"
+    fi
+fi
+
+# ============================================================================
+# Configure Claude Code
+# ============================================================================
+
+# Ask about Claude Code in interactive mode
+if [ "$CLAUDE_CODE" = false ] && [ "$INTERACTIVE" = true ]; then
+    echo ""
+    read -p "Also configure Claude Code (claude.ai/code)? (y/N): " configure_claude_code
+    if [ "${configure_claude_code,,}" = "y" ]; then
+        CLAUDE_CODE=true
+    fi
+fi
+
+if [ "$CLAUDE_CODE" = true ]; then
+    log_section "Configuring Claude Code (claude.ai/code)..."
+    
+    # Check if claude mcp CLI is installed
+    if ! command_exists claude; then
+        log_warning "Claude MCP CLI not found. Installing..."
+        npm install -g @anthropic/claude-mcp
+        if command_exists claude; then
+            log_success "Claude MCP CLI installed"
+        else
+            log_error "Failed to install Claude MCP CLI"
+            log_info "You can install it manually with: npm install -g @anthropic/claude-mcp"
+        fi
+    fi
+    
+    # Configure using claude mcp add
+    if command_exists claude; then
+        SERVER_PATH="$SCRIPT_DIR/server/dist/index.js"
+        ADD_COMMAND="claude mcp add uemcp node \"$SERVER_PATH\""
+        
+        # Add project path if available
+        if [ -n "$VALID_PROJECT_PATH" ]; then
+            ADD_COMMAND="$ADD_COMMAND -e \"UE_PROJECT_PATH=$VALID_PROJECT_PATH\""
+        fi
+        
+        log_info "Adding UEMCP to Claude Code configuration..."
+        eval $ADD_COMMAND && log_success "Claude Code configured!" || log_error "Failed to configure Claude Code"
+        
+        # Verify installation
+        claude mcp list 2>/dev/null || true
+    fi
+fi
+
+# ============================================================================
+# Verify test script exists
+# ============================================================================
+
+if [ -f "$SCRIPT_DIR/test-connection.js" ]; then
+    log_success "Test script available: test-connection.js"
 else
-    log_info "Skipping Python dependencies (not required for core functionality)"
+    log_warning "test-connection.js not found in repository"
 fi
-
-# ============================================================================
-# Run MCP Configuration
-# ============================================================================
-
-log_section "Configuring MCP Server"
-
-# Prepare environment variables
-export UEMCP_SETUP_COMPLETE="true"
-if [ "$USE_VENV" = true ]; then
-    export UEMCP_VENV_PATH="$VIRTUAL_ENV"
-fi
-
-log_info "Starting MCP configuration..."
-echo ""
-
-# Pass all arguments to init.js, but skip dependency installation since we already did it
-node "$SCRIPT_DIR/init.js" --skip-deps "$@"
-
-EXIT_CODE=$?
 
 # ============================================================================
 # Final Summary
 # ============================================================================
 
-if [ $EXIT_CODE -eq 0 ]; then
-    echo ""
-    echo -e "${GREEN}════════════════════════════════════════════${NC}"
-    log_success "🎉 UEMCP Setup Complete!"
-    echo -e "${GREEN}════════════════════════════════════════════${NC}"
-    echo ""
-    
-    echo -e "${CYAN}Environment Summary:${NC}"
-    echo "  • Node.js: $(node --version)"
-    echo "  • npm: $(npm --version)"
-    
-    if [ "$PYTHON_INSTALLED" = true ]; then
-        if [ "$USE_VENV" = true ]; then
-            echo "  • Python: $PYTHON_VERSION (virtual environment)"
-        else
-            echo "  • Python: $PYTHON_VERSION"
-        fi
+echo ""
+echo -e "${GREEN}════════════════════════════════════════════${NC}"
+log_success "🎉 UEMCP Setup Complete!"
+echo -e "${GREEN}════════════════════════════════════════════${NC}"
+echo ""
+
+echo -e "${CYAN}Environment Summary:${NC}"
+echo "  • Node.js: $NODE_VERSION"
+echo "  • npm: $NPM_VERSION"
+
+if [ "$PYTHON_INSTALLED" = true ]; then
+    if [ "$USE_VENV" = true ]; then
+        echo "  • Python: $PYTHON_VERSION (virtual environment)"
+    else
+        echo "  • Python: $PYTHON_VERSION"
     fi
-    
-    echo "  • MCP Server: Built and ready"
-    echo "  • Dependencies: All installed"
-    
-    echo ""
-    echo -e "${CYAN}Next Steps:${NC}"
-    echo "  1. Restart Claude Desktop or Claude Code"
-    echo "  2. Open your Unreal Engine project"
-    echo "  3. Try in Claude: \"List available UEMCP tools\""
-    echo "  4. Test locally: node test-connection.js"
-    
-    if [ "$USE_VENV" = true ] && [ -d "$VENV_DIR" ]; then
-        echo ""
-        echo -e "${CYAN}Development Tools:${NC}"
-        echo "  • Activate venv: source venv/bin/activate"
-        echo "  • Run tests: pytest"
-        echo "  • Lint code: flake8 or ruff"
-        echo "  • Format code: black ."
-    fi
-    
-    echo ""
-    echo -e "${CYAN}Quick Commands:${NC}"
-    echo "  • View logs: DEBUG=uemcp:* node test-connection.js"
-    echo "  • Rebuild server: cd server && npm run build"
-    echo "  • Hot reload in UE: restart_listener()"
-    
-    echo ""
-    log_success "Happy coding with UEMCP! 🚀"
-else
-    echo ""
-    log_error "Setup encountered an issue (exit code: $EXIT_CODE)"
-    log_info "Check the output above for details"
-    echo ""
-    echo "Troubleshooting:"
-    echo "  • Check prerequisites: node --version && python3 --version"
-    echo "  • Try manual setup: node init.js"
-    echo "  • See docs: docs/development/troubleshooting.md"
 fi
 
-exit $EXIT_CODE
+echo "  • MCP Server: Built and ready"
+
+if [ "$SKIP_CLAUDE" = false ]; then
+    echo "  • Claude Desktop: Configured"
+fi
+
+if [ "$CLAUDE_CODE" = true ]; then
+    echo "  • Claude Code: Configured"
+fi
+
+if [ -n "$VALID_PROJECT_PATH" ]; then
+    echo "  • Project: $VALID_PROJECT_PATH"
+    if [ "$SHOULD_INSTALL_PLUGIN" = true ]; then
+        if [ "$USE_SYMLINK" = "true" ]; then
+            echo "  • Plugin: Symlinked to project"
+        else
+            echo "  • Plugin: Copied to project"
+        fi
+    fi
+fi
+
+echo ""
+echo -e "${CYAN}Next Steps:${NC}"
+echo "  1. Start Unreal Engine with your project"
+echo "  2. Restart Claude Desktop or Claude Code"
+echo "  3. Test the connection: node test-connection.js"
+echo "  4. Try in Claude: \"List available UEMCP tools\""
+
+if [ "$USE_VENV" = true ] && [ -d "$VENV_DIR" ]; then
+    echo ""
+    echo -e "${CYAN}Development Tools:${NC}"
+    echo "  • Activate venv: source venv/bin/activate"
+    echo "  • Run tests: pytest"
+    echo "  • Lint code: flake8 or ruff"
+    echo "  • Format code: black ."
+fi
+
+echo ""
+echo -e "${CYAN}Quick Commands:${NC}"
+echo "  • View logs: DEBUG=uemcp:* node test-connection.js"
+echo "  • Rebuild server: cd server && npm run build"
+echo "  • Hot reload in UE: restart_listener()"
+
+echo ""
+log_success "Happy coding with UEMCP! 🚀"

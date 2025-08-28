@@ -42,9 +42,6 @@ The setup script automatically:
 
 # Non-interactive with all options
 ./setup.sh --claude-code --project "/path/to/project.uproject" --no-interactive
-
-# If you already have Node.js, you can use init.js directly:
-node init.js [options]
 ```
 
 ## Prompt Examples

@@ -16,16 +16,16 @@ The UEMCP system consists of two main components:
 
 ### 1. Install the UEMCP Plugin
 
-#### Option A: Using init.js (Recommended)
+#### Option A: Using setup.sh (Recommended)
 ```bash
-# Run the init script (automatically installs plugin when project is specified)
-node init.js --project "/path/to/your/project.uproject"
+# Run the setup script (automatically installs plugin when project is specified)
+./setup.sh --project "/path/to/your/project.uproject"
 
 # For development, use symlink (recommended):
-node init.js --project "/path/to/your/project.uproject" --symlink
+./setup.sh --project "/path/to/your/project.uproject" --symlink
 
 # For production deployment, use copy:
-node init.js --project "/path/to/your/project.uproject" --copy
+./setup.sh --project "/path/to/your/project.uproject" --copy
 ```
 
 #### Option B: Manual Installation
