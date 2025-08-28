@@ -295,27 +295,48 @@ async function init() {
     const npmVersion = execSync('npm --version').toString().trim();
     log.success(`npm ${npmVersion}`);
     
-    // Check Python (optional)
+    // Check Python (optional but recommended)
     let pythonAvailable = false;
     let pythonCmd = 'python3';
+    let pipCmd = 'pip3';
+    
     if (commandExists('python3')) {
         pythonAvailable = true;
+        pythonCmd = 'python3';
+        pipCmd = commandExists('pip3') ? 'pip3' : 'python3 -m pip';
     } else if (commandExists('python')) {
         // Check if it's Python 3
         try {
-            const version = execSync('python --version').toString();
+            const version = execSync('python --version 2>&1').toString();
             if (version.includes('Python 3')) {
                 pythonAvailable = true;
                 pythonCmd = 'python';
+                pipCmd = commandExists('pip') ? 'pip' : 'python -m pip';
             }
         } catch {}
     }
     
     if (pythonAvailable) {
-        const pythonVersion = execSync(`${pythonCmd} --version`).toString().trim();
+        const pythonVersion = execSync(`${pythonCmd} --version 2>&1`).toString().trim();
         log.success(pythonVersion);
+        
+        // Check if pip is available
+        try {
+            execSync(`${pipCmd} --version`, { stdio: 'ignore' });
+            log.success('pip is available');
+        } catch {
+            pipCmd = `${pythonCmd} -m pip`;
+            try {
+                execSync(`${pipCmd} --version`, { stdio: 'ignore' });
+                log.success('pip module is available');
+            } catch {
+                log.warning('pip is not available. Python dependencies cannot be installed.');
+                pythonAvailable = false;
+            }
+        }
     } else {
-        log.warning('Python 3 not found. Some features may be limited.');
+        log.warning('Python 3 not found. Testing and linting features will be limited.');
+        log.info('Note: The core UEMCP functionality will still work in Unreal Engine.');
     }
     
     // Install dependencies
@@ -342,14 +363,49 @@ async function init() {
     
     // Install Python dependencies if available
     if (pythonAvailable && fs.existsSync(path.join(projectRoot, 'requirements-dev.txt'))) {
-        log.section('Installing Python dependencies...');
+        log.section('Installing Python dependencies (optional)...');
         process.chdir(projectRoot);
-        try {
-            execSync(`${pythonCmd} -m pip install -r requirements-dev.txt`, { stdio: 'ignore' });
-            log.success('Python dependencies installed');
-        } catch {
-            log.warning('Could not install Python dependencies');
+        
+        // Ask user if they want to install Python dev dependencies in interactive mode
+        let shouldInstallPython = !options.interactive; // Install by default in non-interactive mode
+        
+        if (options.interactive) {
+            console.log('');
+            log.info('Python development dependencies are optional.');
+            log.info('They provide testing and linting tools but are not required for core functionality.');
+            const answer = await question('Install Python development dependencies? (y/N): ');
+            shouldInstallPython = answer.toLowerCase() === 'y';
         }
+        
+        if (shouldInstallPython) {
+            try {
+                log.info('Installing Python packages (this may take a moment)...');
+                // Use --user flag to avoid permission issues
+                execSync(`${pipCmd} install --user -r requirements-dev.txt`, { 
+                    stdio: options.interactive ? 'inherit' : 'ignore'
+                });
+                log.success('Python dependencies installed');
+                log.info('Note: These are development tools for testing and linting.');
+            } catch (error) {
+                log.warning('Could not install Python dependencies');
+                log.info('This is OK - the core UEMCP functionality will still work.');
+                log.info('These dependencies are only needed for:');
+                console.log('  - Running tests with pytest');
+                console.log('  - Code formatting with black');
+                console.log('  - Linting with flake8/ruff');
+                
+                if (options.interactive) {
+                    console.log('');
+                    log.info('To install later, run:');
+                    console.log(`  ${pipCmd} install -r requirements-dev.txt`);
+                }
+            }
+        } else {
+            log.info('Skipping Python dependencies (can be installed later if needed)');
+        }
+    } else if (!pythonAvailable) {
+        log.info('Skipping Python dependencies (Python not available)');
+        log.info('The UEMCP plugin will still work in Unreal Engine.');
     }
     
     // Handle UE project path
