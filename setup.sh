@@ -90,6 +90,11 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Function to convert string to lowercase
+to_lowercase() {
+    echo "$1" | tr '[:upper:]' '[:lower:]'
+}
+
 # Function to detect OS
 detect_os() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -895,7 +900,7 @@ if [ "$PYTHON_INSTALLED" = true ]; then
         if [ "$INTERACTIVE" = true ]; then
             read -p "Use existing virtual environment? (Y/n): " use_existing
             # Convert to lowercase for comparison (compatible with older bash)
-            use_existing_lower=$(echo "$use_existing" | tr '[:upper:]' '[:lower:]')
+            use_existing_lower=$(to_lowercase "$use_existing")
             if [ "$use_existing_lower" != "n" ]; then
                 source "$VENV_DIR/bin/activate"
                 USE_VENV=true
@@ -916,7 +921,7 @@ if [ "$PYTHON_INSTALLED" = true ]; then
             if [ "$INTERACTIVE" = true ]; then
                 read -p "Create virtual environment with pyenv? (y/N): " use_pyenv
                 # Convert to lowercase for comparison
-                use_pyenv_lower=$(echo "$use_pyenv" | tr '[:upper:]' '[:lower:]')
+                use_pyenv_lower=$(to_lowercase "$use_pyenv")
                 if [ "$use_pyenv_lower" = "y" ]; then
                     pyenv virtualenv 3.11 uemcp
                     pyenv local uemcp
@@ -951,7 +956,7 @@ if [ "$PYTHON_INSTALLED" = true ]; then
             log_info "They provide testing and linting tools but are not required for core functionality."
             read -p "Install Python development dependencies? (Y/n): " install_py
             # Convert to lowercase for comparison
-            install_py_lower=$(echo "$install_py" | tr '[:upper:]' '[:lower:]')
+            install_py_lower=$(to_lowercase "$install_py")
             if [ "$install_py_lower" = "n" ]; then
                 INSTALL_PYTHON_DEPS=false
             fi
@@ -1005,7 +1010,7 @@ install_plugin() {
             if [ "$INTERACTIVE" = true ]; then
                 read -p "Update existing symlink? (y/N): " update_link
                 # Convert to lowercase for comparison
-                update_link_lower=$(echo "$update_link" | tr '[:upper:]' '[:lower:]')
+                update_link_lower=$(to_lowercase "$update_link")
                 if [ "$update_link_lower" != "y" ]; then
                     log_info "Keeping existing symlink"
                     return 0
@@ -1020,7 +1025,7 @@ install_plugin() {
             if [ "$INTERACTIVE" = true ]; then
                 read -p "Replace existing plugin? (y/N): " replace_plugin
                 # Convert to lowercase for comparison
-                replace_plugin_lower=$(echo "$replace_plugin" | tr '[:upper:]' '[:lower:]')
+                replace_plugin_lower=$(to_lowercase "$replace_plugin")
                 if [ "$replace_plugin_lower" != "y" ]; then
                     log_info "Keeping existing plugin"
                     return 0
@@ -1109,7 +1114,7 @@ if [ -n "$PROJECT_PATH" ]; then
         if [ "$INTERACTIVE" = true ]; then
             read -p "Install UEMCP plugin to this project? (Y/n): " install_plugin_answer
             # Convert to lowercase for comparison
-            install_plugin_answer_lower=$(echo "$install_plugin_answer" | tr '[:upper:]' '[:lower:]')
+            install_plugin_answer_lower=$(to_lowercase "$install_plugin_answer")
             if [ "$install_plugin_answer_lower" = "n" ]; then
                 SHOULD_INSTALL_PLUGIN=false
             fi
@@ -1156,7 +1161,7 @@ if is_claude_desktop_installed; then
     
     if [ "$INTERACTIVE" = true ]; then
         read -p "Configure UEMCP for Claude Desktop? (Y/n): " configure_claude
-        configure_claude_lower=$(echo "$configure_claude" | tr '[:upper:]' '[:lower:]')
+        configure_claude_lower=$(to_lowercase "$configure_claude")
         if [ "$configure_claude_lower" != "n" ]; then
             configure_claude_desktop "$VALID_PROJECT_PATH"
             TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Claude Desktop\n"
@@ -1174,7 +1179,7 @@ if is_claude_code_installed; then
     
     if [ "$INTERACTIVE" = true ]; then
         read -p "Configure UEMCP for Claude Code? (Y/n): " configure_code
-        configure_code_lower=$(echo "$configure_code" | tr '[:upper:]' '[:lower:]')
+        configure_code_lower=$(to_lowercase "$configure_code")
         if [ "$configure_code_lower" != "n" ]; then
             configure_claude_code "$VALID_PROJECT_PATH"
             TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Claude Code\n"
@@ -1189,7 +1194,7 @@ else
         echo ""
         log_info "Claude Code not detected."
         read -p "Would you like to set up Claude Code (claude.ai/code)? (y/N): " setup_code
-        setup_code_lower=$(echo "$setup_code" | tr '[:upper:]' '[:lower:]')
+        setup_code_lower=$(to_lowercase "$setup_code")
         if [ "$setup_code_lower" = "y" ]; then
             configure_claude_code "$VALID_PROJECT_PATH"
             TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Claude Code\n"
@@ -1204,7 +1209,7 @@ if is_amazon_q_installed; then
     
     if [ "$INTERACTIVE" = true ]; then
         read -p "Configure UEMCP for Amazon Q? (Y/n): " configure_q
-        configure_q_lower=$(echo "$configure_q" | tr '[:upper:]' '[:lower:]')
+        configure_q_lower=$(to_lowercase "$configure_q")
         if [ "$configure_q_lower" != "n" ]; then
             provide_amazon_q_instructions "$VALID_PROJECT_PATH"
             TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Amazon Q\n"
@@ -1227,7 +1232,7 @@ if is_gemini_installed; then
     
     if [ "$INTERACTIVE" = true ]; then
         read -p "Configure UEMCP for Google Gemini? (Y/n): " configure_gemini_answer
-        configure_gemini_lower=$(echo "$configure_gemini_answer" | tr '[:upper:]' '[:lower:]')
+        configure_gemini_lower=$(to_lowercase "$configure_gemini_answer")
         if [ "$configure_gemini_lower" != "n" ]; then
             provide_gemini_instructions "$VALID_PROJECT_PATH"
             TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Google Gemini\n"
@@ -1247,7 +1252,7 @@ if is_copilot_installed; then
         
         if [ "$INTERACTIVE" = true ]; then
             read -p "Configure UEMCP for OpenAI Codex? (Y/n): " configure_codex_answer
-            configure_codex_lower=$(echo "$configure_codex_answer" | tr '[:upper:]' '[:lower:]')
+            configure_codex_lower=$(to_lowercase "$configure_codex_answer")
             if [ "$configure_codex_lower" != "n" ]; then
                 provide_copilot_instructions "$VALID_PROJECT_PATH"
                 TOOLS_CONFIGURED="$TOOLS_CONFIGURED • OpenAI Codex\n"
@@ -1262,7 +1267,7 @@ if is_copilot_installed; then
         
         if [ "$INTERACTIVE" = true ]; then
             read -p "Show instructions for using UEMCP with GitHub Copilot? (Y/n): " show_copilot
-            show_copilot_lower=$(echo "$show_copilot" | tr '[:upper:]' '[:lower:]')
+            show_copilot_lower=$(to_lowercase "$show_copilot")
             if [ "$show_copilot_lower" != "n" ]; then
                 provide_copilot_instructions "$VALID_PROJECT_PATH"
             fi
