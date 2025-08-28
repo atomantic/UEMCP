@@ -1,23 +1,38 @@
 # UEMCP Setup Scripts Documentation
 
-## Primary Setup Method: `node init.js`
+## Primary Setup Method: `./setup.sh`
 
-The recommended way to set up UEMCP is using the cross-platform Node.js initialization script:
+The recommended way to set up UEMCP is using the universal setup script:
 
 ```bash
-node init.js
+./setup.sh
 ```
 
-This script is:
-- ✅ **Cross-platform** - Works on Windows, macOS, and Linux
-- ✅ **Fully automated** - Configures everything automatically
-- ✅ **Interactive** - Guides you through the setup with prompts
-- ✅ **Flexible** - Supports many command-line options for automation
+This script:
+- ✅ **Checks for Node.js** - Required dependency for MCP server
+- ✅ **Auto-installs Node.js** - Via Homebrew, apt, yum, or nvm if not present
+- ✅ **Runs init.js** - Handles all configuration automatically
+- ✅ **Cross-platform** - Works on macOS, Linux, and WSL/Git Bash
+
+**Windows users:** Use WSL (Windows Subsystem for Linux) or Git Bash to run `./setup.sh`
+
+## How It Works
+
+1. **Detects your OS** - macOS, Linux, or Windows (WSL)
+2. **Checks Node.js** - Verifies version 18+ is installed
+3. **Installs if needed** - Uses the best method for your system:
+   - macOS: Homebrew
+   - Ubuntu/Debian: apt-get with NodeSource
+   - RHEL/Fedora: yum with NodeSource
+   - Fallback: nvm (Node Version Manager)
+4. **Runs init.js** - The Node.js script that does the actual setup
 
 ## Command-Line Options
 
+All options are passed through to the underlying init.js script:
+
 ```bash
-node init.js [options]
+./setup.sh [options]
 ```
 
 | Option | Description |
@@ -34,33 +49,39 @@ node init.js [options]
 
 ### Basic Interactive Setup
 ```bash
-node init.js
+./setup.sh
 ```
-Guides you through all setup steps with prompts.
+Checks/installs Node.js, then guides you through setup with prompts.
 
 ### Development Setup with Symlink
 ```bash
-node init.js --project "/path/to/MyProject.uproject" --symlink
+./setup.sh --project "/path/to/MyProject.uproject" --symlink
 ```
 Best for developers - changes to plugin code are reflected immediately.
 
 ### Production Setup with Copy
 ```bash
-node init.js --project "/path/to/MyProject.uproject" --copy
+./setup.sh --project "/path/to/MyProject.uproject" --copy
 ```
 Best for production - plugin is copied to project, isolated from source.
 
 ### Automated CI/CD Setup
 ```bash
-node init.js --no-interactive --skip-claude --project "$UE_PROJECT_PATH"
+./setup.sh --no-interactive --skip-claude --project "$UE_PROJECT_PATH"
 ```
 No prompts, perfect for automated environments.
 
 ### Claude Code Setup
 ```bash
-node init.js --claude-code
+./setup.sh --claude-code
 ```
 Configures for use with claude.ai/code instead of Claude Desktop.
+
+### Direct Node.js Usage (if Node.js is already installed)
+```bash
+node init.js [options]
+```
+Skip the Node.js check/installation and run the init script directly.
 
 ## What init.js Does
 
@@ -87,15 +108,15 @@ Configures for use with claude.ai/code instead of Claude Desktop.
 6. **Creates Test Scripts**
    - Generates test-connection.js for verification
 
-## Legacy Script: `setup.sh`
+## Alternative: Direct init.js Usage
 
-The `setup.sh` script is maintained for backward compatibility but now simply calls `init.js`:
+If you already have Node.js 18+ installed, you can run the init script directly:
 
 ```bash
-./setup.sh  # This now runs: node init.js
+node init.js [options]
 ```
 
-**Note**: `setup.sh` only works on Unix-like systems (macOS/Linux). Windows users must use `node init.js`.
+This skips the Node.js installation check and goes straight to UEMCP setup.
 
 ## Python Dependencies
 
@@ -157,7 +178,8 @@ If you're developing UEMCP itself:
 
 ## Summary
 
-- **Always use `node init.js`** - it's the most complete and maintained setup method
-- **`setup.sh` is legacy** - kept only for backward compatibility
-- **Python deps are optional** - core functionality doesn't need them
-- **Cross-platform support** - init.js works everywhere Node.js runs
+- **Use `./setup.sh`** - Handles everything including Node.js installation
+- **Windows users** - Use WSL or Git Bash to run setup.sh
+- **Python deps are optional** - Core functionality doesn't need them
+- **Fully automated** - Installs Node.js, builds server, configures Claude
+- **Cross-platform** - Works on macOS, Linux, and Windows (via WSL)
