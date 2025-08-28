@@ -7,36 +7,41 @@ Welcome to UEMCP! This guide will get you up and running in under 5 minutes.
 ```bash
 git clone https://github.com/atomantic/UEMCP.git
 cd UEMCP
-node init.js
+./setup.sh
 ```
 
-That's it! The init script handles everything automatically.
+That's it! The setup script handles everything automatically, including installing Node.js and Python if needed.
 
 ### Advanced Setup Options
 
 ```bash
 # Install to your Unreal project (automatically installs plugin)
-node init.js --project "/path/to/your/ue/project"
+./setup.sh --project "/path/to/your/ue/project"
 
 # Non-interactive mode (great for CI/CD)
-node init.js --no-interactive --project "/path/to/project"
+./setup.sh --no-interactive --project "/path/to/project"
 
 # Skip Claude configuration (server only)
-node init.js --skip-claude
+./setup.sh --skip-claude
+
+# Configure for Claude Code instead of Desktop
+./setup.sh --claude-code
 
 # See all options
-node init.js --help
+./setup.sh --help
 ```
 
 ## 🎯 What Just Happened?
 
-The init script:
-1. ✅ Installed all Node.js dependencies
-2. ✅ Built the MCP server
-3. ✅ Configured Claude Desktop to use UEMCP
-4. ✅ Asked for your Unreal Engine project path (optional)
-5. ✅ Installed the UEMCP plugin to your project (if requested)
-6. ✅ Created test scripts for verification
+The setup script:
+1. ✅ Installed Node.js if not present
+2. ✅ Installed Python if not present (optional)
+3. ✅ Created a virtual environment for Python
+4. ✅ Installed all dependencies
+5. ✅ Built the MCP server
+6. ✅ Configured Claude Desktop to use UEMCP
+7. ✅ Asked for your Unreal Engine project path (optional)
+8. ✅ Installed the UEMCP plugin to your project (if requested)
 
 ## 🧪 Testing Your Setup
 
@@ -88,8 +93,8 @@ set UE_PROJECT_PATH=C:\path\to\your\project.uproject
 For full functionality, install the UEMCP plugin to your UE project:
 
 ```bash
-# If you didn't do this during init, run:
-node init.js --project "/path/to/project.uproject"
+# If you didn't do this during setup, run:
+./setup.sh --project "/path/to/project.uproject"
 ```
 
 The plugin enables:
@@ -109,8 +114,8 @@ The plugin enables:
 - Make sure the path points to your `.uproject` file's directory
 
 ### "Permission denied"
-- On macOS/Linux: `chmod +x init.sh`
-- On Windows: Run PowerShell as Administrator
+- On macOS/Linux: `chmod +x setup.sh`
+- On Windows: Run using Git Bash or WSL
 
 ## 📚 Next Steps
 

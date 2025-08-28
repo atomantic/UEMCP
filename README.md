@@ -13,32 +13,35 @@ UEMCP bridges AI assistants with Unreal Engine, enabling intelligent control of 
 # Clone and setup
 git clone https://github.com/atomantic/UEMCP.git
 cd UEMCP
-node init.js
+./setup.sh
 
 # Restart Claude Desktop or Claude Code and test:
 # "List available UEMCP tools"
 # "Organize the actors in the current map into a sensible folder structure and naming convention"
 ```
 
-The init script automatically:
+The setup script automatically:
+- ✅ Checks and installs Node.js if needed (via Homebrew, apt, yum, or nvm)
 - ✅ Installs dependencies and builds the server
 - ✅ Configures Claude Desktop (or Claude Code with `--claude-code` flag)
 - ✅ Sets up your Unreal Engine project path
 - ✅ Optionally installs the UEMCP plugin to your project
 
+**Windows users:** Use WSL or Git Bash, then run `./setup.sh`
+
 **Advanced options:**
 ```bash
 # Configure for Claude Code (claude.ai/code)
-node init.js --claude-code
+./setup.sh --claude-code
 
-# Specify UE project (automatically installs plugin to specified unreal engine project)
-node init.js --project "/path/to/project.uproject"
+# Specify UE project (automatically installs plugin)
+./setup.sh --project "/path/to/project.uproject"
 
 # Install with symlink for plugin development
-node init.js --project "/path/to/project.uproject" --symlink
+./setup.sh --project "/path/to/project.uproject" --symlink
 
 # Non-interactive with all options
-node init.js --claude-code --project "/path/to/project.uproject" --no-interactive
+./setup.sh --claude-code --project "/path/to/project.uproject" --no-interactive
 ```
 
 ## Prompt Examples

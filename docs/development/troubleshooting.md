@@ -357,5 +357,5 @@ rm -rf UEMCP
 # Start fresh
 git clone https://github.com/atomantic/UEMCP.git
 cd UEMCP
-node init.js
+./setup.sh
 ```
