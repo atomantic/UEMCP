@@ -14,7 +14,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Parse Command Line Arguments
 # ============================================================================
 
-PROJECT_PATH=""
+PROJECT_PATH=""  # Will default to ./Demo if exists and not specified
 INTERACTIVE=true
 SKIP_CLAUDE=false
 CLAUDE_CODE=false
@@ -357,7 +357,9 @@ if [ "$PYTHON_INSTALLED" = true ]; then
         log_info "Existing virtual environment found at $VENV_DIR"
         if [ "$INTERACTIVE" = true ]; then
             read -p "Use existing virtual environment? (Y/n): " use_existing
-            if [ "${use_existing,,}" != "n" ]; then
+            # Convert to lowercase for comparison (compatible with older bash)
+            use_existing_lower=$(echo "$use_existing" | tr '[:upper:]' '[:lower:]')
+            if [ "$use_existing_lower" != "n" ]; then
                 source "$VENV_DIR/bin/activate"
                 USE_VENV=true
                 log_success "Activated existing virtual environment"
@@ -376,7 +378,9 @@ if [ "$PYTHON_INSTALLED" = true ]; then
             log_info "pyenv-virtualenv detected"
             if [ "$INTERACTIVE" = true ]; then
                 read -p "Create virtual environment with pyenv? (y/N): " use_pyenv
-                if [ "${use_pyenv,,}" = "y" ]; then
+                # Convert to lowercase for comparison
+                use_pyenv_lower=$(echo "$use_pyenv" | tr '[:upper:]' '[:lower:]')
+                if [ "$use_pyenv_lower" = "y" ]; then
                     pyenv virtualenv 3.11 uemcp
                     pyenv local uemcp
                     USE_VENV=true
@@ -409,7 +413,9 @@ if [ "$PYTHON_INSTALLED" = true ]; then
             log_info "Python development dependencies are optional."
             log_info "They provide testing and linting tools but are not required for core functionality."
             read -p "Install Python development dependencies? (Y/n): " install_py
-            if [ "${install_py,,}" = "n" ]; then
+            # Convert to lowercase for comparison
+            install_py_lower=$(echo "$install_py" | tr '[:upper:]' '[:lower:]')
+            if [ "$install_py_lower" = "n" ]; then
                 INSTALL_PYTHON_DEPS=false
             fi
         fi
@@ -461,7 +467,9 @@ install_plugin() {
             log_warning "UEMCP plugin already exists as symlink → $link_target"
             if [ "$INTERACTIVE" = true ]; then
                 read -p "Update existing symlink? (y/N): " update_link
-                if [ "${update_link,,}" != "y" ]; then
+                # Convert to lowercase for comparison
+                update_link_lower=$(echo "$update_link" | tr '[:upper:]' '[:lower:]')
+                if [ "$update_link_lower" != "y" ]; then
                     log_info "Keeping existing symlink"
                     return 0
                 fi
@@ -474,7 +482,9 @@ install_plugin() {
             log_warning "UEMCP plugin already exists in project"
             if [ "$INTERACTIVE" = true ]; then
                 read -p "Replace existing plugin? (y/N): " replace_plugin
-                if [ "${replace_plugin,,}" != "y" ]; then
+                # Convert to lowercase for comparison
+                replace_plugin_lower=$(echo "$replace_plugin" | tr '[:upper:]' '[:lower:]')
+                if [ "$replace_plugin_lower" != "y" ]; then
                     log_info "Keeping existing plugin"
                     return 0
                 fi
@@ -530,7 +540,22 @@ else:
 # Get project path
 if [ -z "$PROJECT_PATH" ] && [ "$INTERACTIVE" = true ]; then
     echo ""
-    read -p "Enter the path to your Unreal Engine project (or press Enter to skip): " PROJECT_PATH
+    # Default to ./Demo if it exists
+    DEFAULT_PROJECT=""
+    if [ -d "$SCRIPT_DIR/Demo" ]; then
+        DEFAULT_PROJECT="$SCRIPT_DIR/Demo"
+        log_info "Found Demo project at $DEFAULT_PROJECT"
+    fi
+    
+    if [ -n "$DEFAULT_PROJECT" ]; then
+        read -p "Enter the path to your Unreal Engine project (default: $DEFAULT_PROJECT): " PROJECT_PATH
+        # Use default if user just pressed Enter
+        if [ -z "$PROJECT_PATH" ]; then
+            PROJECT_PATH="$DEFAULT_PROJECT"
+        fi
+    else
+        read -p "Enter the path to your Unreal Engine project (or press Enter to skip): " PROJECT_PATH
+    fi
 fi
 
 VALID_PROJECT_PATH=""
@@ -546,7 +571,9 @@ if [ -n "$PROJECT_PATH" ]; then
         SHOULD_INSTALL_PLUGIN=true
         if [ "$INTERACTIVE" = true ]; then
             read -p "Install UEMCP plugin to this project? (Y/n): " install_plugin_answer
-            if [ "${install_plugin_answer,,}" = "n" ]; then
+            # Convert to lowercase for comparison
+            install_plugin_answer_lower=$(echo "$install_plugin_answer" | tr '[:upper:]' '[:lower:]')
+            if [ "$install_plugin_answer_lower" = "n" ]; then
                 SHOULD_INSTALL_PLUGIN=false
             fi
         fi
@@ -655,7 +682,9 @@ fi
 if [ "$CLAUDE_CODE" = false ] && [ "$INTERACTIVE" = true ]; then
     echo ""
     read -p "Also configure Claude Code (claude.ai/code)? (y/N): " configure_claude_code
-    if [ "${configure_claude_code,,}" = "y" ]; then
+    # Convert to lowercase for comparison
+    configure_claude_code_lower=$(echo "$configure_claude_code" | tr '[:upper:]' '[:lower:]')
+    if [ "$configure_claude_code_lower" = "y" ]; then
         CLAUDE_CODE=true
     fi
 fi

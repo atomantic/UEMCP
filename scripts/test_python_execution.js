@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+// Node.js 18+ has built-in fetch, no need for node-fetch package
 
 const LISTENER_PORT = process.env.UEMCP_LISTENER_PORT || '8765';
 const httpEndpoint = `http://localhost:${LISTENER_PORT}`;

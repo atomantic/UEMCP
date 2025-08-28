@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+// Node.js 18+ has built-in fetch, no need for node-fetch package
 
 async function testConnection() {
   try {
