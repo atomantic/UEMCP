@@ -21,12 +21,6 @@ That's it! The setup script handles everything automatically, including installi
 # Non-interactive mode (great for CI/CD)
 ./setup.sh --no-interactive --project "/path/to/project"
 
-# Skip Claude configuration (server only)
-./setup.sh --skip-claude
-
-# Configure for Claude Code instead of Desktop
-./setup.sh --claude-code
-
 # See all options
 ./setup.sh --help
 ```
@@ -34,14 +28,15 @@ That's it! The setup script handles everything automatically, including installi
 ## 🎯 What Just Happened?
 
 The setup script:
-1. ✅ Installed Node.js if not present
-2. ✅ Installed Python if not present (optional)
-3. ✅ Created a virtual environment for Python
-4. ✅ Installed all dependencies
-5. ✅ Built the MCP server
-6. ✅ Configured Claude Desktop to use UEMCP
-7. ✅ Asked for your Unreal Engine project path (optional)
-8. ✅ Installed the UEMCP plugin to your project (if requested)
+1. ✅ Detected your installed AI development tools
+2. ✅ Configured MCP support for Claude, Amazon Q, Gemini, and Codex
+3. ✅ Installed Node.js if not present
+4. ✅ Installed Python if not present (optional)
+5. ✅ Created a virtual environment for Python
+6. ✅ Installed all dependencies
+7. ✅ Built the MCP server
+8. ✅ Asked for your Unreal Engine project path (optional)
+9. ✅ Installed the UEMCP plugin to your project (if requested)
 
 ## 🧪 Testing Your Setup
 

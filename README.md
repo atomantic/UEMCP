@@ -23,25 +23,29 @@ cd UEMCP
 The setup script automatically:
 - ✅ Checks and installs Node.js if needed (via Homebrew, apt, yum, or nvm)
 - ✅ Installs dependencies and builds the server
-- ✅ Configures Claude Desktop (or Claude Code with `--claude-code` flag)
+- ✅ **Detects and configures AI development tools** (Claude Desktop, Claude Code, Amazon Q, Gemini Code Assist, OpenAI Codex)
 - ✅ Sets up your Unreal Engine project path
 - ✅ Optionally installs the UEMCP plugin to your project
+
+The script will detect which AI tools you have installed and offer to configure them:
+- **Claude Desktop & Claude Code**: Native MCP support
+- **Amazon Q**: MCP support via `~/.aws/amazonq/agents/default.json`
+- **Google Gemini (CLI & Code Assist)**: MCP support via `~/.gemini/settings.json`
+- **OpenAI Codex**: Trusted projects via `~/.codex/config.toml`
+- **GitHub Copilot**: Usage instructions provided
 
 **Windows users:** Use WSL or Git Bash, then run `./setup.sh`
 
 **Advanced options:**
 ```bash
-# Configure for Claude Code (claude.ai/code)
-./setup.sh --claude-code
-
 # Specify UE project (automatically installs plugin)
 ./setup.sh --project "/path/to/project.uproject"
 
 # Install with symlink for plugin development
 ./setup.sh --project "/path/to/project.uproject" --symlink
 
-# Non-interactive with all options
-./setup.sh --claude-code --project "/path/to/project.uproject" --no-interactive
+# Non-interactive mode (for CI/CD)
+./setup.sh --project "/path/to/project.uproject" --no-interactive
 ```
 
 ## Prompt Examples

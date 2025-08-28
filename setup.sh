@@ -90,6 +90,11 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Function to convert string to lowercase
+to_lowercase() {
+    echo "$1" | tr '[:upper:]' '[:lower:]'
+}
+
 # Function to detect OS
 detect_os() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -279,6 +284,14 @@ except:
 if 'mcpServers' not in config:
     config['mcpServers'] = {}
 
+# Check if already configured
+already_configured = False
+if 'uemcp' in config['mcpServers']:
+    existing_config = config['mcpServers']['uemcp']
+    if (existing_config.get('command') == 'node' and 
+        existing_config.get('args') == [server_path]):
+        already_configured = True
+
 # Configure UEMCP
 config['mcpServers']['uemcp'] = {
     'command': 'node',
@@ -295,7 +308,10 @@ if project_path:
 with open(config_file, 'w') as f:
     json.dump(config, f, indent=2)
 
-print('Claude Desktop configuration updated')
+if already_configured:
+    print('UEMCP already configured in Claude Desktop - configuration updated')
+else:
+    print('Claude Desktop configuration updated')
 " && log_success "Claude Desktop configured" || log_warning "Could not update Claude Desktop config automatically"
     else
         log_warning "Please manually add UEMCP to Claude Desktop config:"
@@ -310,15 +326,15 @@ configure_claude_code() {
     
     log_info "Configuring Claude Code..."
     
-    # Check if claude mcp CLI is installed
+    # Check if claude CLI is installed
     if ! command_exists claude; then
-        log_warning "Claude MCP CLI not found. Installing..."
-        npm install -g @anthropic/claude-mcp
+        log_warning "Claude Code CLI not found. Installing..."
+        npm install -g @anthropic-ai/claude-code
         if command_exists claude; then
-            log_success "Claude MCP CLI installed"
+            log_success "Claude Code CLI installed"
         else
-            log_error "Failed to install Claude MCP CLI"
-            log_info "You can install it manually with: npm install -g @anthropic/claude-mcp"
+            log_error "Failed to install Claude Code CLI"
+            log_info "Please visit https://claude.ai/code to install Claude Code"
             return 1
         fi
     fi
@@ -334,78 +350,221 @@ configure_claude_code() {
         fi
         
         log_info "Adding UEMCP to Claude Code configuration..."
-        eval $ADD_COMMAND && log_success "Claude Code configured!" || log_error "Failed to configure Claude Code"
+        
+        # Try to add, capture output (allow failure for checking)
+        set +e  # Temporarily disable exit on error
+        ADD_OUTPUT=$(eval $ADD_COMMAND 2>&1)
+        ADD_RESULT=$?
+        set -e  # Re-enable exit on error
+        
+        if [ $ADD_RESULT -eq 0 ]; then
+            log_success "Claude Code configured!"
+        elif echo "$ADD_OUTPUT" | grep -q "already exists"; then
+            log_success "UEMCP already configured in Claude Code"
+        else
+            log_error "Failed to configure Claude Code: $ADD_OUTPUT"
+        fi
         
         # Verify installation
-        claude mcp list 2>/dev/null || true
+        log_info "Checking MCP server health..."
+        if claude mcp list 2>/dev/null | grep -q "uemcp"; then
+            log_success "UEMCP server verified in Claude Code configuration"
+        else
+            log_warning "Could not verify UEMCP in Claude Code configuration"
+            log_info "Run 'claude mcp list' to check server status"
+        fi
     fi
 }
 
 # Provide instructions for Amazon Q
 provide_amazon_q_instructions() {
-    log_info "Amazon Q detected!"
-    echo ""
-    log_warning "Amazon Q doesn't directly support MCP servers yet."
-    echo "However, you can use UEMCP with Amazon Q by:"
-    echo ""
-    echo "  1. Running the MCP server in a terminal:"
-    echo "     node $SCRIPT_DIR/server/dist/index.js"
-    echo ""
-    echo "  2. Using Amazon Q to generate code that calls the MCP API"
-    echo ""
-    echo "  3. Consider using the test-connection.js script as a reference"
-    echo ""
+    configure_amazon_q "$1"
 }
 
-# Provide instructions for Gemini
-provide_gemini_instructions() {
-    # Check if it's CLI or Code Assist
-    if command_exists gemini || command_exists gemini-cli; then
-        log_info "Google Gemini CLI detected!"
-        echo ""
-        log_warning "Gemini CLI doesn't directly support MCP servers yet."
-        echo "However, you can:"
-        echo ""
-        echo "  1. Run the MCP server as a background service:"
-        echo "     node $SCRIPT_DIR/server/dist/index.js &"
-        echo ""
-        echo "  2. Use the Gemini CLI to interact with your UE project"
-        echo "     while the MCP server handles the UE communication"
-        echo ""
-        echo "  3. Reference test-connection.js for API examples"
-        echo ""
+# Configure Amazon Q
+configure_amazon_q() {
+    local project_path="$1"
+    
+    log_info "Configuring Amazon Q..."
+    
+    local AMAZON_Q_CONFIG_DIR="$HOME/.aws/amazonq/agents"
+    local AMAZON_Q_CONFIG_FILE="$AMAZON_Q_CONFIG_DIR/default.json"
+    
+    # Create config directory if it doesn't exist
+    if [ ! -d "$AMAZON_Q_CONFIG_DIR" ]; then
+        mkdir -p "$AMAZON_Q_CONFIG_DIR"
+    fi
+    
+    # Update configuration using Python (or provide manual instructions)
+    if [ "$PYTHON_INSTALLED" = true ]; then
+        SERVER_PATH="$SCRIPT_DIR/server/dist/index.js"
+        
+        $PYTHON_CMD -c "
+import json
+import sys
+import os
+
+config_file = '$AMAZON_Q_CONFIG_FILE'
+server_path = '$SERVER_PATH'
+project_path = '$project_path' if '$project_path' else None
+
+# Read existing config or create new one
+try:
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+except:
+    config = {}
+
+# Initialize mcpServers if not exists
+if 'mcpServers' not in config:
+    config['mcpServers'] = {}
+
+# Add UEMCP server configuration
+uemcp_config = {
+    'command': 'node',
+    'args': [server_path]
+}
+
+# Add project path as environment variable if provided
+if project_path:
+    uemcp_config['env'] = {
+        'UE_PROJECT_PATH': project_path
+    }
+
+# Check if UEMCP is already configured
+if 'uemcp' in config['mcpServers']:
+    config['mcpServers']['uemcp'] = uemcp_config
+    print('UEMCP already configured in Amazon Q - configuration updated')
+else:
+    config['mcpServers']['uemcp'] = uemcp_config
+    print('Added UEMCP MCP server to Amazon Q configuration')
+
+# Write back the configuration
+with open(config_file, 'w') as f:
+    json.dump(config, f, indent=2)
+    
+print('Amazon Q configuration updated successfully')
+" && log_success "Configured Amazon Q with UEMCP MCP server" || log_warning "Could not update Amazon Q config automatically"
     else
-        log_info "Google Gemini Code Assist detected!"
+        log_warning "Python not available - please manually add to ~/.aws/amazonq/agents/default.json:"
         echo ""
-        log_warning "Gemini Code Assist doesn't directly support MCP servers yet."
-        echo "However, you can:"
-        echo ""
-        echo "  1. Run the MCP server as a local service:"
-        echo "     node $SCRIPT_DIR/server/dist/index.js"
-        echo ""
-        echo "  2. Use Gemini to help write code that interacts with the MCP API"
-        echo ""
-        echo "  3. Reference test-connection.js for API examples"
+        echo '  {
+    "mcpServers": {
+      "uemcp": {
+        "command": "node",
+        "args": ["'$SCRIPT_DIR'/server/dist/index.js"]
+      }
+    }
+  }'
         echo ""
     fi
+    
+    log_info "Amazon Q MCP Configuration:"
+    echo "  • UEMCP MCP server configured in ~/.aws/amazonq/agents/default.json"
+    echo "  • Restart your IDE for changes to take effect"
+    echo "  • The MCP server will start automatically when you use Amazon Q"
+    echo ""
 }
 
-# Provide instructions for Copilot/Codex
+# Configure Gemini (both CLI and Code Assist use the same config)
+provide_gemini_instructions() {
+    configure_gemini "$1"
+}
+
+# Configure Google Gemini (CLI and Code Assist)
+configure_gemini() {
+    local project_path="$1"
+    
+    log_info "Configuring Google Gemini..."
+    
+    local GEMINI_CONFIG_DIR="$HOME/.gemini"
+    local GEMINI_CONFIG_FILE="$GEMINI_CONFIG_DIR/settings.json"
+    
+    # Create config directory if it doesn't exist
+    if [ ! -d "$GEMINI_CONFIG_DIR" ]; then
+        mkdir -p "$GEMINI_CONFIG_DIR"
+    fi
+    
+    # Update configuration using Python (or provide manual instructions)
+    if [ "$PYTHON_INSTALLED" = true ]; then
+        SERVER_PATH="$SCRIPT_DIR/server/dist/index.js"
+        
+        $PYTHON_CMD -c "
+import json
+import sys
+import os
+
+config_file = '$GEMINI_CONFIG_FILE'
+server_path = '$SERVER_PATH'
+project_path = '$project_path' if '$project_path' else None
+
+# Read existing config or create new one
+try:
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+except:
+    config = {}
+
+# Initialize mcpServers if not exists
+if 'mcpServers' not in config:
+    config['mcpServers'] = {}
+
+# Add UEMCP server configuration
+uemcp_config = {
+    'command': 'node',
+    'args': [server_path]
+}
+
+# Add project path as environment variable if provided
+if project_path:
+    uemcp_config['env'] = {
+        'UE_PROJECT_PATH': project_path
+    }
+
+# Check if UEMCP is already configured
+if 'uemcp' in config['mcpServers']:
+    config['mcpServers']['uemcp'] = uemcp_config
+    print('UEMCP already configured in Gemini - configuration updated')
+else:
+    config['mcpServers']['uemcp'] = uemcp_config
+    print('Added UEMCP MCP server to Gemini configuration')
+
+# Write back the configuration
+with open(config_file, 'w') as f:
+    json.dump(config, f, indent=2)
+    
+print('Gemini configuration updated successfully')
+" && log_success "Configured Google Gemini with UEMCP MCP server" || log_warning "Could not update Gemini config automatically"
+    else
+        log_warning "Python not available - please manually add to ~/.gemini/settings.json:"
+        echo ""
+        echo '  {
+    "mcpServers": {
+      "uemcp": {
+        "command": "node",
+        "args": ["'$SCRIPT_DIR'/server/dist/index.js"]
+      }
+    }
+  }'
+        echo ""
+    fi
+    
+    log_info "Google Gemini MCP Configuration:"
+    echo "  • UEMCP MCP server configured in ~/.gemini/settings.json"
+    echo "  • Works with both Gemini CLI and Gemini Code Assist"
+    echo "  • Restart your IDE for changes to take effect"
+    echo "  • The MCP server will start automatically when you use Gemini"
+    echo ""
+    log_warning "Security Note: MCP servers run with your user permissions."
+    echo "Make sure you trust the UEMCP source code before using."
+    echo ""
+}
+
+# Configure or provide instructions for Copilot/Codex
 provide_copilot_instructions() {
     # Check if it's Codex CLI or Copilot
     if command_exists codex || command_exists openai || command_exists openai-codex; then
-        log_info "OpenAI Codex CLI detected!"
-        echo ""
-        log_warning "Codex CLI doesn't directly support MCP servers."
-        echo "However, you can:"
-        echo ""
-        echo "  1. Run the MCP server in the background:"
-        echo "     node $SCRIPT_DIR/server/dist/index.js &"
-        echo ""
-        echo "  2. Use Codex CLI to generate code that interacts with the MCP API"
-        echo ""
-        echo "  3. Reference test-connection.js for API usage patterns"
-        echo ""
+        configure_codex "$1"
     else
         log_info "GitHub Copilot detected!"
         echo ""
@@ -419,6 +578,137 @@ provide_copilot_instructions() {
         echo ""
         echo "  3. See test-connection.js for usage examples"
         echo ""
+    fi
+}
+
+# Configure OpenAI Codex
+configure_codex() {
+    local project_path="$1"
+    
+    log_info "Configuring OpenAI Codex..."
+    
+    local CODEX_CONFIG_DIR="$HOME/.codex"
+    local CODEX_CONFIG_FILE="$CODEX_CONFIG_DIR/config.toml"
+    
+    # Create config directory if it doesn't exist
+    if [ ! -d "$CODEX_CONFIG_DIR" ]; then
+        mkdir -p "$CODEX_CONFIG_DIR"
+    fi
+    
+    # Check if config file exists
+    if [ -f "$CODEX_CONFIG_FILE" ]; then
+        log_info "Found existing Codex configuration"
+        
+        # Add UEMCP project to trusted projects
+        if [ -n "$project_path" ]; then
+            log_info "Adding $project_path to Codex trusted projects..."
+            
+            # Use Python to update TOML if available
+            if [ "$PYTHON_INSTALLED" = true ]; then
+                $PYTHON_CMD -c "
+import sys
+import os
+
+# For reading TOML: use built-in tomllib (Python 3.11+) or tomli
+toml_reader = None
+try:
+    import tomllib
+    toml_reader = tomllib
+except ImportError:
+    try:
+        import tomli
+        toml_reader = tomli
+    except ImportError:
+        pass
+
+config_file = '$CODEX_CONFIG_FILE'
+project_path = '$project_path'
+script_dir = '$SCRIPT_DIR'
+
+if toml_reader is None:
+    print('Warning: Cannot read TOML config without tomllib (Python 3.11+) or tomli package')
+    print('To proceed, either:')
+    print('  1. Upgrade to Python 3.11 or later')
+    print('  2. Install tomli: pip install tomli')
+    print('')
+    print('Alternatively, manually add these lines to ~/.codex/config.toml:')
+    if project_path:
+        print(f'  \"{project_path}\" = {{ trust_level = \"trusted\" }}')
+    print(f'  \"{script_dir}\" = {{ trust_level = \"trusted\" }}')
+    sys.exit(1)
+
+# Read existing config
+try:
+    with open(config_file, 'rb') as f:  # Both tomllib and tomli require binary mode
+        config = toml_reader.load(f)
+except FileNotFoundError:
+    config = {}
+except Exception as e:
+    print(f'Error reading config: {e}')
+    config = {}
+
+# Initialize projects if not exists
+if 'projects' not in config:
+    config['projects'] = {}
+
+# Check what needs to be added
+paths_to_add = []
+if project_path:
+    paths_to_add.append(project_path)
+paths_to_add.append(script_dir)
+
+needs_update = False
+for path in paths_to_add:
+    if path not in config['projects']:
+        needs_update = True
+        print(f'Need to add {path} to trusted projects')
+    else:
+        print(f'{path} already in trusted projects')
+
+if needs_update:
+    print('')
+    print('Manual configuration required:')
+    print('Please add the following to ~/.codex/config.toml:')
+    print('')
+    if 'projects' not in config or not config['projects']:
+        print('[projects]')
+    for path in paths_to_add:
+        if path not in config.get('projects', {}):
+            print(f'\"{path}\" = {{ trust_level = \"trusted\" }}')
+    print('')
+    print('Note: TOML writing requires additional packages that we do not install automatically for security.')
+else:
+    print('Codex configuration already complete')
+" || log_warning "Could not update Codex config automatically"
+            else
+                log_warning "Python not available - please manually add these to ~/.codex/config.toml:"
+                echo "  $project_path = { trust_level = \"trusted\" }"
+                echo "  $SCRIPT_DIR = { trust_level = \"trusted\" }"
+            fi
+        fi
+        
+        log_success "Codex configuration complete"
+        echo ""
+        log_info "To use UEMCP with Codex:"
+        echo "  1. The UEMCP directory has been added as a trusted project"
+        echo "  2. Run the MCP server: node $SCRIPT_DIR/server/dist/index.js"
+        echo "  3. Codex can now interact with your UE project through UEMCP"
+        echo ""
+    else
+        log_info "Creating new Codex configuration..."
+        
+        # Create basic config
+        cat > "$CODEX_CONFIG_FILE" << EOF
+# OpenAI Codex Configuration
+[projects]
+EOF
+        
+        if [ -n "$project_path" ]; then
+            echo "\"$project_path\" = { trust_level = \"trusted\" }" >> "$CODEX_CONFIG_FILE"
+        fi
+        echo "\"$SCRIPT_DIR\" = { trust_level = \"trusted\" }" >> "$CODEX_CONFIG_FILE"
+        
+        log_success "Created Codex configuration with UEMCP as trusted project"
     fi
 }
 
@@ -644,7 +934,7 @@ if [ "$PYTHON_INSTALLED" = true ]; then
         if [ "$INTERACTIVE" = true ]; then
             read -p "Use existing virtual environment? (Y/n): " use_existing
             # Convert to lowercase for comparison (compatible with older bash)
-            use_existing_lower=$(echo "$use_existing" | tr '[:upper:]' '[:lower:]')
+            use_existing_lower=$(to_lowercase "$use_existing")
             if [ "$use_existing_lower" != "n" ]; then
                 source "$VENV_DIR/bin/activate"
                 USE_VENV=true
@@ -665,7 +955,7 @@ if [ "$PYTHON_INSTALLED" = true ]; then
             if [ "$INTERACTIVE" = true ]; then
                 read -p "Create virtual environment with pyenv? (y/N): " use_pyenv
                 # Convert to lowercase for comparison
-                use_pyenv_lower=$(echo "$use_pyenv" | tr '[:upper:]' '[:lower:]')
+                use_pyenv_lower=$(to_lowercase "$use_pyenv")
                 if [ "$use_pyenv_lower" = "y" ]; then
                     pyenv virtualenv 3.11 uemcp
                     pyenv local uemcp
@@ -700,7 +990,7 @@ if [ "$PYTHON_INSTALLED" = true ]; then
             log_info "They provide testing and linting tools but are not required for core functionality."
             read -p "Install Python development dependencies? (Y/n): " install_py
             # Convert to lowercase for comparison
-            install_py_lower=$(echo "$install_py" | tr '[:upper:]' '[:lower:]')
+            install_py_lower=$(to_lowercase "$install_py")
             if [ "$install_py_lower" = "n" ]; then
                 INSTALL_PYTHON_DEPS=false
             fi
@@ -754,7 +1044,7 @@ install_plugin() {
             if [ "$INTERACTIVE" = true ]; then
                 read -p "Update existing symlink? (y/N): " update_link
                 # Convert to lowercase for comparison
-                update_link_lower=$(echo "$update_link" | tr '[:upper:]' '[:lower:]')
+                update_link_lower=$(to_lowercase "$update_link")
                 if [ "$update_link_lower" != "y" ]; then
                     log_info "Keeping existing symlink"
                     return 0
@@ -769,7 +1059,7 @@ install_plugin() {
             if [ "$INTERACTIVE" = true ]; then
                 read -p "Replace existing plugin? (y/N): " replace_plugin
                 # Convert to lowercase for comparison
-                replace_plugin_lower=$(echo "$replace_plugin" | tr '[:upper:]' '[:lower:]')
+                replace_plugin_lower=$(to_lowercase "$replace_plugin")
                 if [ "$replace_plugin_lower" != "y" ]; then
                     log_info "Keeping existing plugin"
                     return 0
@@ -858,7 +1148,7 @@ if [ -n "$PROJECT_PATH" ]; then
         if [ "$INTERACTIVE" = true ]; then
             read -p "Install UEMCP plugin to this project? (Y/n): " install_plugin_answer
             # Convert to lowercase for comparison
-            install_plugin_answer_lower=$(echo "$install_plugin_answer" | tr '[:upper:]' '[:lower:]')
+            install_plugin_answer_lower=$(to_lowercase "$install_plugin_answer")
             if [ "$install_plugin_answer_lower" = "n" ]; then
                 SHOULD_INSTALL_PLUGIN=false
             fi
@@ -905,7 +1195,7 @@ if is_claude_desktop_installed; then
     
     if [ "$INTERACTIVE" = true ]; then
         read -p "Configure UEMCP for Claude Desktop? (Y/n): " configure_claude
-        configure_claude_lower=$(echo "$configure_claude" | tr '[:upper:]' '[:lower:]')
+        configure_claude_lower=$(to_lowercase "$configure_claude")
         if [ "$configure_claude_lower" != "n" ]; then
             configure_claude_desktop "$VALID_PROJECT_PATH"
             TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Claude Desktop\n"
@@ -923,7 +1213,7 @@ if is_claude_code_installed; then
     
     if [ "$INTERACTIVE" = true ]; then
         read -p "Configure UEMCP for Claude Code? (Y/n): " configure_code
-        configure_code_lower=$(echo "$configure_code" | tr '[:upper:]' '[:lower:]')
+        configure_code_lower=$(to_lowercase "$configure_code")
         if [ "$configure_code_lower" != "n" ]; then
             configure_claude_code "$VALID_PROJECT_PATH"
             TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Claude Code\n"
@@ -938,7 +1228,7 @@ else
         echo ""
         log_info "Claude Code not detected."
         read -p "Would you like to set up Claude Code (claude.ai/code)? (y/N): " setup_code
-        setup_code_lower=$(echo "$setup_code" | tr '[:upper:]' '[:lower:]')
+        setup_code_lower=$(to_lowercase "$setup_code")
         if [ "$setup_code_lower" = "y" ]; then
             configure_claude_code "$VALID_PROJECT_PATH"
             TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Claude Code\n"
@@ -952,17 +1242,21 @@ if is_amazon_q_installed; then
     TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
     
     if [ "$INTERACTIVE" = true ]; then
-        read -p "Show instructions for using UEMCP with Amazon Q? (Y/n): " show_q
-        show_q_lower=$(echo "$show_q" | tr '[:upper:]' '[:lower:]')
-        if [ "$show_q_lower" != "n" ]; then
-            provide_amazon_q_instructions
+        read -p "Configure UEMCP for Amazon Q? (Y/n): " configure_q
+        configure_q_lower=$(to_lowercase "$configure_q")
+        if [ "$configure_q_lower" != "n" ]; then
+            provide_amazon_q_instructions "$VALID_PROJECT_PATH"
+            TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Amazon Q\n"
         fi
+    else
+        provide_amazon_q_instructions "$VALID_PROJECT_PATH"
+        TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Amazon Q\n"
     fi
 fi
 
 # Check for Gemini
 if is_gemini_installed; then
-    # Determine what type of Gemini installation
+    # Determine what type of Gemini installation for logging
     if command_exists gemini || command_exists gemini-cli; then
         log_success "Google Gemini CLI detected"
     else
@@ -971,11 +1265,15 @@ if is_gemini_installed; then
     TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
     
     if [ "$INTERACTIVE" = true ]; then
-        read -p "Show instructions for using UEMCP with Gemini? (Y/n): " show_gemini
-        show_gemini_lower=$(echo "$show_gemini" | tr '[:upper:]' '[:lower:]')
-        if [ "$show_gemini_lower" != "n" ]; then
-            provide_gemini_instructions
+        read -p "Configure UEMCP for Google Gemini? (Y/n): " configure_gemini_answer
+        configure_gemini_lower=$(to_lowercase "$configure_gemini_answer")
+        if [ "$configure_gemini_lower" != "n" ]; then
+            provide_gemini_instructions "$VALID_PROJECT_PATH"
+            TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Google Gemini\n"
         fi
+    else
+        provide_gemini_instructions "$VALID_PROJECT_PATH"
+        TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Google Gemini\n"
     fi
 fi
 
@@ -984,16 +1282,29 @@ if is_copilot_installed; then
     # Determine what type of installation
     if command_exists codex || command_exists openai || command_exists openai-codex; then
         log_success "OpenAI Codex CLI detected"
+        TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
+        
+        if [ "$INTERACTIVE" = true ]; then
+            read -p "Configure UEMCP for OpenAI Codex? (Y/n): " configure_codex_answer
+            configure_codex_lower=$(to_lowercase "$configure_codex_answer")
+            if [ "$configure_codex_lower" != "n" ]; then
+                provide_copilot_instructions "$VALID_PROJECT_PATH"
+                TOOLS_CONFIGURED="$TOOLS_CONFIGURED • OpenAI Codex\n"
+            fi
+        else
+            provide_copilot_instructions "$VALID_PROJECT_PATH"
+            TOOLS_CONFIGURED="$TOOLS_CONFIGURED • OpenAI Codex\n"
+        fi
     else
         log_success "GitHub Copilot detected"
-    fi
-    TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
-    
-    if [ "$INTERACTIVE" = true ]; then
-        read -p "Show instructions for using UEMCP with Copilot/Codex? (Y/n): " show_copilot
-        show_copilot_lower=$(echo "$show_copilot" | tr '[:upper:]' '[:lower:]')
-        if [ "$show_copilot_lower" != "n" ]; then
-            provide_copilot_instructions
+        TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
+        
+        if [ "$INTERACTIVE" = true ]; then
+            read -p "Show instructions for using UEMCP with GitHub Copilot? (Y/n): " show_copilot
+            show_copilot_lower=$(to_lowercase "$show_copilot")
+            if [ "$show_copilot_lower" != "n" ]; then
+                provide_copilot_instructions "$VALID_PROJECT_PATH"
+            fi
         fi
     fi
 fi
@@ -1004,7 +1315,7 @@ if [ $TOOLS_DETECTED -eq 0 ]; then
     log_info "UEMCP works best with Claude Desktop or Claude Code."
     log_info "You can install them from:"
     echo "  • Claude Desktop: https://claude.ai/download"
-    echo "  • Claude Code: npm install -g @anthropic/claude-mcp"
+    echo "  • Claude Code: https://claude.ai/code"
     echo ""
 fi
 

@@ -89,18 +89,18 @@ export class MaterialCreateTool extends MaterialTool<MaterialCreateArgs | Materi
             description: 'Parameter overrides for material instance',
             additionalProperties: true,
           },
-        },
-        anyOf: [
-          { required: ['materialName'] },
-          { required: ['parentMaterialPath', 'instanceName'] },
-        ],
+        }
       },
     };
   }
 
   protected async execute(args: MaterialCreateArgs | MaterialInstanceCreateArgs): Promise<ToolResponse> {
-    // Determine if creating simple material or material instance
+    // Check if we're creating a simple material
     if ('materialName' in args) {
+      // Validate required field
+      if (!args.materialName) {
+        return this.formatError('materialName is required for simple material creation');
+      }
       // Create simple material
       const result = await this.executePythonCommand('material.create_simple_material', {
         material_name: args.materialName,
@@ -126,7 +126,11 @@ export class MaterialCreateTool extends MaterialTool<MaterialCreateArgs | Materi
           emissive: args.emissive
         }
       });
-    } else {
+    } else if ('parentMaterialPath' in args && 'instanceName' in args) {
+      // Validate required fields for material instance
+      if (!args.parentMaterialPath || !args.instanceName) {
+        return this.formatError('Both parentMaterialPath and instanceName are required for material instance creation');
+      }
       // Create material instance
       const result = await this.executePythonCommand('material.create_material_instance', {
         parent_material_path: args.parentMaterialPath,
@@ -145,6 +149,11 @@ export class MaterialCreateTool extends MaterialTool<MaterialCreateArgs | Materi
         parentMaterial: args.parentMaterialPath,
         appliedParameters: result.appliedParameters as string[] | undefined
       });
+    } else {
+      return this.formatError(
+        'Invalid parameters: Either provide materialName for a simple material, ' +
+        'or provide both parentMaterialPath and instanceName for a material instance'
+      );
     }
   }
 }
