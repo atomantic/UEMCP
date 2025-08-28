@@ -377,6 +377,16 @@ Most remaining limitations can be worked around using the `python_proxy` tool. S
 - [Python API Workarounds](docs/python-api-workarounds.md) - Common fixes
 - [House Building Experiment](docs/house-building-experiment.md) - Real-world solutions
 
+## 🗺️ Roadmap
+
+### Upcoming Releases
+- **v0.7.0** (Jan 2025) - Socket-based building, batch operations, FAB import
+- **v0.8.0** (Feb 2025) - Blueprint manipulation, undo/redo system
+- **v0.9.0** (Mar 2025) - Performance optimizations, production readiness
+- **v1.0.0** (Apr 2025) - Production release with full feature set
+
+See [PLAN.md](PLAN.md) for detailed roadmap and release criteria.
+
 ## 🤝 Contributing
 
 1. Fork the repository
