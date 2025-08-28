@@ -417,7 +417,7 @@ uemcp_config = {
 # Add project path as environment variable if provided
 if project_path:
     uemcp_config['env'] = {
-        'UEMCP_PROJECT_PATH': project_path
+        'UE_PROJECT_PATH': project_path
     }
 
 # Check if UEMCP is already configured
@@ -507,7 +507,7 @@ uemcp_config = {
 # Add project path as environment variable if provided
 if project_path:
     uemcp_config['env'] = {
-        'UEMCP_PROJECT_PATH': project_path
+        'UE_PROJECT_PATH': project_path
     }
 
 # Check if UEMCP is already configured
