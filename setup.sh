@@ -321,15 +321,15 @@ configure_claude_code() {
     
     log_info "Configuring Claude Code..."
     
-    # Check if claude mcp CLI is installed
+    # Check if claude CLI is installed
     if ! command_exists claude; then
-        log_warning "Claude MCP CLI not found. Installing..."
-        npm install -g @anthropic/claude-mcp
+        log_warning "Claude Code CLI not found. Installing..."
+        npm install -g @anthropic-ai/claude-code
         if command_exists claude; then
-            log_success "Claude MCP CLI installed"
+            log_success "Claude Code CLI installed"
         else
-            log_error "Failed to install Claude MCP CLI"
-            log_info "You can install it manually with: npm install -g @anthropic/claude-mcp"
+            log_error "Failed to install Claude Code CLI"
+            log_info "Please visit https://claude.ai/code to install Claude Code"
             return 1
         fi
     fi
@@ -1276,7 +1276,7 @@ if [ $TOOLS_DETECTED -eq 0 ]; then
     log_info "UEMCP works best with Claude Desktop or Claude Code."
     log_info "You can install them from:"
     echo "  • Claude Desktop: https://claude.ai/download"
-    echo "  • Claude Code: npm install -g @anthropic/claude-mcp"
+    echo "  • Claude Code: https://claude.ai/code"
     echo ""
 fi
 
