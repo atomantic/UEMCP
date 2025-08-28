@@ -95,20 +95,12 @@ export class MaterialCreateTool extends MaterialTool<MaterialCreateArgs | Materi
   }
 
   protected async execute(args: MaterialCreateArgs | MaterialInstanceCreateArgs): Promise<ToolResponse> {
-    // Validate that we have the required parameters for one of the two modes
-    const hasSimpleMaterialParams = 'materialName' in args && args.materialName;
-    const hasInstanceParams = 'parentMaterialPath' in args && 'instanceName' in args && 
-                               args.parentMaterialPath && args.instanceName;
-    
-    if (!hasSimpleMaterialParams && !hasInstanceParams) {
-      return this.formatError(
-        'Invalid parameters: Either provide materialName for a simple material, ' +
-        'or provide both parentMaterialPath and instanceName for a material instance'
-      );
-    }
-    
-    // Determine if creating simple material or material instance
-    if (hasSimpleMaterialParams) {
+    // Check if we're creating a simple material
+    if ('materialName' in args) {
+      // Validate required field
+      if (!args.materialName) {
+        return this.formatError('materialName is required for simple material creation');
+      }
       // Create simple material
       const result = await this.executePythonCommand('material.create_simple_material', {
         material_name: args.materialName,
@@ -134,11 +126,15 @@ export class MaterialCreateTool extends MaterialTool<MaterialCreateArgs | Materi
           emissive: args.emissive
         }
       });
-    } else if (hasInstanceParams) {
+    } else if ('parentMaterialPath' in args && 'instanceName' in args) {
+      // Validate required fields for material instance
+      if (!args.parentMaterialPath || !args.instanceName) {
+        return this.formatError('Both parentMaterialPath and instanceName are required for material instance creation');
+      }
       // Create material instance
       const result = await this.executePythonCommand('material.create_material_instance', {
-        parent_material_path: (args as MaterialInstanceCreateArgs).parentMaterialPath,
-        instance_name: (args as MaterialInstanceCreateArgs).instanceName,
+        parent_material_path: args.parentMaterialPath,
+        instance_name: args.instanceName,
         target_folder: args.targetFolder,
         parameters: args.parameters
       });
@@ -148,14 +144,16 @@ export class MaterialCreateTool extends MaterialTool<MaterialCreateArgs | Materi
       }
       
       return this.formatMaterialCreationResult({
-        name: (args as MaterialInstanceCreateArgs).instanceName,
+        name: args.instanceName,
         materialInstancePath: result.materialInstancePath as string,
-        parentMaterial: (args as MaterialInstanceCreateArgs).parentMaterialPath,
+        parentMaterial: args.parentMaterialPath,
         appliedParameters: result.appliedParameters as string[] | undefined
       });
     } else {
-      // This should never happen due to validation above, but TypeScript needs it
-      return this.formatError('Invalid material creation parameters');
+      return this.formatError(
+        'Invalid parameters: Either provide materialName for a simple material, ' +
+        'or provide both parentMaterialPath and instanceName for a material instance'
+      );
     }
   }
 }
