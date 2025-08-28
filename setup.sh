@@ -366,7 +366,13 @@ configure_claude_code() {
         fi
         
         # Verify installation
-        claude mcp list 2>/dev/null || true
+        log_info "Checking MCP server health..."
+        if claude mcp list 2>/dev/null | grep -q "uemcp"; then
+            log_success "UEMCP server verified in Claude Code configuration"
+        else
+            log_warning "Could not verify UEMCP in Claude Code configuration"
+            log_info "Run 'claude mcp list' to check server status"
+        fi
     fi
 }
 
