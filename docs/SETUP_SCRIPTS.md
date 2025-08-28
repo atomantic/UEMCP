@@ -49,9 +49,11 @@ This script handles everything:
 | `--symlink` | Create symlink instead of copying plugin (recommended for development) |
 | `--copy` | Copy plugin files instead of symlinking |
 | `--no-interactive` | Run without prompts (automation/CI) |
-| `--skip-claude` | Skip Claude Desktop configuration |
-| `--claude-code` | Configure Claude Code (claude.ai/code) MCP |
 | `--help` | Show help information |
+
+**Deprecated options (no longer needed):**
+- `--skip-claude` - The script now automatically detects installed tools
+- `--claude-code` - The script now detects Claude Code automatically
 
 ## Examples
 
@@ -59,7 +61,10 @@ This script handles everything:
 ```bash
 ./setup.sh
 ```
-Checks/installs Node.js, then guides you through setup with prompts.
+Automatically detects installed AI tools and guides you through setup:
+- Detects Claude Desktop, Claude Code, Amazon Q, Gemini Code Assist, OpenAI Codex
+- Prompts to configure each detected tool
+- Installs dependencies and builds the server
 
 ### Development Setup with Symlink
 ```bash
@@ -75,15 +80,9 @@ Best for production - plugin is copied to project, isolated from source.
 
 ### Automated CI/CD Setup
 ```bash
-./setup.sh --no-interactive --skip-claude --project "$UE_PROJECT_PATH"
+./setup.sh --no-interactive --project "$UE_PROJECT_PATH"
 ```
-No prompts, perfect for automated environments.
-
-### Claude Code Setup
-```bash
-./setup.sh --claude-code
-```
-Configures for use with claude.ai/code instead of Claude Desktop.
+No prompts, perfect for automated environments. Will configure any detected AI tools automatically.
 
 
 ## What setup.sh Does
@@ -134,12 +133,14 @@ The core UEMCP functionality works without these dependencies, as the `unreal` P
 - **Required**: Install from https://nodejs.org/
 - Minimum version: 18.0.0
 
-### Claude Desktop Not Configuring
-- Check config location:
-  - macOS: `~/Library/Application Support/Claude/`
-  - Windows: `%APPDATA%/Claude/`
-  - Linux: `~/.config/claude/`
-- Run with `--skip-claude` to skip this step
+### AI Tool Configuration Locations
+The script automatically detects and configures these tools:
+- **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Amazon Q**: `~/.aws/amazonq/agents/default.json`
+- **Gemini Code Assist**: `~/.gemini/settings.json`
+- **OpenAI Codex**: `~/.codex/config.toml`
+
+If a tool isn't detected but you have it installed, check that it's in your PATH or installed in the standard location.
 
 ## Environment Variables
 
