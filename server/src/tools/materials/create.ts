@@ -89,11 +89,7 @@ export class MaterialCreateTool extends MaterialTool<MaterialCreateArgs | Materi
             description: 'Parameter overrides for material instance',
             additionalProperties: true,
           },
-        },
-        anyOf: [
-          { required: ['materialName'] },
-          { required: ['parentMaterialPath', 'instanceName'] },
-        ],
+        }
       },
     };
   }
