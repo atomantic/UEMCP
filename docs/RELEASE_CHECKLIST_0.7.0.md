@@ -6,8 +6,8 @@
 
 #### Code Complete
 - [x] PR #35 (actor_snap_to_socket) merged to main ✅
-- [ ] All tests passing in CI
-- [ ] No critical bugs in issue tracker
+- [x] All tests passing in CI ✅
+- [x] No critical bugs in issue tracker ✅
 
 #### Testing
 - [ ] Run full test suite: `npm test`
@@ -26,26 +26,26 @@
   - [ ] Verify tool count (30 tools)
   - [ ] Update feature highlights
   - [ ] Review limitations section
-- [ ] Update CHANGELOG.md
-  - [ ] Move unreleased items to 0.7.0 section
-  - [ ] Add release date
-- [ ] Create release notes: `docs/release-notes/v0.7.0.md`
+- [x] Update CHANGELOG.md ✅
+  - [x] Move unreleased items to 0.7.0 section ✅
+  - [x] Add release date ✅
+- [x] Create release notes: `docs/release-notes/v0.7.0.md` ✅
 - [ ] Update all examples to use new features
 - [ ] Verify all documentation links work
 
 ### Release Process
 
 #### Version Update
-- [ ] Update version in `server/package.json` to 0.7.0
-- [ ] Update version in `plugin/UEMCP.uplugin` to 0.7.0
-- [ ] Update version in main `package.json` to 0.7.0
+- [x] Update version in `server/package.json` to 0.7.0 ✅
+- [x] Update version in `plugin/UEMCP.uplugin` to 0.7.0 ✅
+- [x] Update version in main `package.json` to 0.7.0 (N/A - no main package.json)
 - [ ] Run `npm install` to update lock files
 
 #### Build & Package
 - [ ] Build TypeScript: `cd server && npm run build`
 - [ ] Run linting: `npm run lint`
-- [ ] Create release branch: `git checkout -b release/0.7.0`
-- [ ] Commit version changes: `git commit -m "chore: bump version to 0.7.0"`
+- [x] Create release branch: `git checkout -b release/0.7.0` ✅
+- [ ] Commit version changes: `git commit -m "chore: bump version to 0.7.0"` (in progress)
 
 #### GitHub Release
 - [ ] Push release branch and create PR

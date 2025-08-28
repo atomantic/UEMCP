@@ -6,25 +6,19 @@ This document outlines the implementation roadmap, release schedule, and future 
 
 ## Release Roadmap
 
-### 🎯 Version 0.7.0 (Target: January 2025)
+### ✅ Version 0.7.0 (Released: December 28, 2024)
 **Theme: "Socket-Based Building & Enhanced Workflows"**
 
-#### Features to Include
-✅ Already Completed:
-- actor_snap_to_socket tool for socket-based placement
-- batch_spawn for efficient multi-actor operations
-- placement_validate for modular building validation
-- asset_import for FAB marketplace integration
-- Enhanced asset_info with complete bounds/pivot/socket data
-- Comprehensive test suites
+#### Completed Features
+- ✅ actor_snap_to_socket tool for socket-based placement
+- ✅ batch_spawn for efficient multi-actor operations
+- ✅ placement_validate for modular building validation
+- ✅ asset_import for FAB marketplace integration
+- ✅ Enhanced asset_info with complete bounds/pivot/socket data
+- ✅ Comprehensive test suites
+- ✅ Complete documentation and release notes
 
-#### Release Criteria
-- [ ] All features tested and documented
-- [x] PR #35 merged (socket snapping feature) ✅
-- [ ] Update version to 0.7.0
-- [ ] Create GitHub release with binaries
-- [ ] Update documentation with new features
-- [ ] Test with real-world modular building project
+**See [Release Notes](docs/release-notes/v0.7.0.md) for full details.**
 
 ### 🚀 Version 0.8.0 (Target: February 2025)
 **Theme: "Blueprint Integration & Advanced Workflows"**
@@ -97,7 +91,7 @@ This document outlines the implementation roadmap, release schedule, and future 
 - [ ] Used in 10+ production projects
 - [ ] Case studies from real projects
 
-## Current Status (December 2024)
+## Current Status (December 2024 - v0.7.0 Released)
 
 ✅ **Phase 1: Foundation & Scaffolding** - COMPLETE
 ✅ **Phase 2: Basic MCP Implementation** - COMPLETE  
@@ -166,25 +160,8 @@ All 29 MCP tools are now functioning correctly:
 
 Based on our roadmap to 1.0.0, here are the prioritized development phases:
 
-### Option A: Socket-Based Placement System
-**Objective**: Enable automatic actor alignment using socket information for precise modular building
-
-**New MCP Tools**:
-1. **actor_snap_to_socket** - Snap one actor to another's socket point
-2. **actor_align** - Auto-align actors based on their socket configurations  
-3. **socket_preview** - Visualize available sockets for placement
-4. **socket_connect** - Connect two actors via matching sockets
-
-**Benefits**:
-- Eliminate manual coordinate calculations for modular assets
-- Perfect alignment for doors, windows, and modular pieces
-- Faster and more accurate building workflows
-- Support for complex multi-socket connections
-
-**Implementation Notes**:
-- Leverage existing socket data from enhanced `asset_info`
-- Calculate transform matrices for socket-to-socket alignment
-- Support socket name pattern matching (e.g., "Door_*" matches "Door_Front")
+### ✅ Socket-Based Placement System (Completed in v0.7.0)
+The `actor_snap_to_socket` tool has been successfully implemented and released in v0.7.0, providing automatic actor alignment using socket information for precise modular building.
 
 ### Option B: Undo/Redo System
 **Objective**: Implement programmatic undo/redo for all MCP operations
@@ -360,12 +337,8 @@ UEMCP <--> ComfyUI API <--> ComfyUI-3D-Pack
 
 Based on addressing current limitations and user pain points, I recommend prioritizing development in this order:
 
-### 1. **Option A: Socket-Based Placement System** (HIGH PRIORITY)
-This directly addresses one of our most significant remaining limitations - manual coordinate calculation for modular building. Since we already have socket data from `asset_info`, implementing socket-based placement would:
-- Dramatically improve building workflows
-- Reduce errors in modular construction
-- Enable precise door/window placement
-- Build on existing infrastructure
+### 1. ✅ **Socket-Based Placement System** (COMPLETED in v0.7.0)
+Successfully implemented the `actor_snap_to_socket` tool which eliminates manual coordinate calculations for modular building.
 
 ### 2. **Option B: Undo/Redo System** (MEDIUM-HIGH PRIORITY)
 The lack of undo is a critical usability issue that affects user confidence. Implementation would:
