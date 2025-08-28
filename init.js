@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * UEMCP Universal Initialization Script
- * Works on Windows, macOS, and Linux
+ * UEMCP MCP Configuration Script
+ * Configures Claude Desktop and Claude Code for UEMCP
+ * 
+ * For complete environment setup (Node.js, Python, dependencies), use ./setup.sh
  * 
  * Usage:
  *   node init.js [options]
@@ -14,6 +16,7 @@
  *   --no-interactive    Run without prompts
  *   --skip-claude       Skip Claude Desktop configuration
  *   --claude-code       Configure Claude Code (claude.ai/code) MCP
+ *   --skip-deps         Skip dependency installation (used by setup.sh)
  *   --help              Show this help
  */
 
@@ -67,25 +70,31 @@ for (let i = 0; i < args.length; i++) {
 
 if (options.help) {
     console.log(`
-UEMCP Init Script
+UEMCP MCP Configuration Script
+
+This script configures Claude Desktop and Claude Code to use UEMCP.
+For complete environment setup, use ./setup.sh instead.
 
 Usage:
   node init.js [options]
 
 Options:
   --project <path>    Path to Unreal Engine project (will install plugin)
-  --symlink           Create symlink instead of copying plugin (recommended for development)
+  --symlink           Create symlink instead of copying plugin (development)
   --copy              Copy plugin files instead of symlinking
   --no-interactive    Run without prompts
   --skip-claude       Skip Claude Desktop configuration
   --claude-code       Configure Claude Code (claude.ai/code) MCP
+  --skip-deps         Skip dependency installation (used by setup.sh)
   --help              Show this help
 
 Examples:
   node init.js
   node init.js --project "/path/to/project" --symlink
-  node init.js --no-interactive --skip-claude
   node init.js --claude-code
+
+For complete setup including environment:
+  ./setup.sh
 `);
     process.exit(0);
 }
@@ -198,54 +207,51 @@ async function installPlugin(projectPath, useSymlink = false) {
                 return false;
             }
         } else {
-            log.warning('UEMCP plugin already exists in project.');
+            log.warning('UEMCP plugin already exists in project');
             if (options.interactive) {
                 const answer = await question('Replace existing plugin? (y/N): ');
                 if (answer.toLowerCase() !== 'y') {
-                    log.info('Skipping plugin installation.');
+                    log.info('Keeping existing plugin.');
                     return false;
                 }
             } else {
-                log.info('Skipping plugin installation (already exists).');
+                log.info('Keeping existing plugin.');
                 return false;
             }
         }
         
-        // Remove existing plugin or symlink
-        fs.rmSync(uemcpPluginDir, { recursive: true, force: true });
+        // Remove existing plugin
+        if (fs.lstatSync(uemcpPluginDir).isSymbolicLink()) {
+            fs.unlinkSync(uemcpPluginDir);
+        } else {
+            fs.rmSync(uemcpPluginDir, { recursive: true, force: true });
+        }
     }
     
-    // Install plugin (copy or symlink)
+    // Install plugin
     try {
         if (useSymlink) {
-            log.info(`Creating symlink: ${uemcpPluginDir} → ${sourcePluginDir}`);
-            // Use 'junction' on Windows for compatibility, default symlink type on other platforms
-            const symlinkType = os.platform() === 'win32' ? 'junction' : undefined;
-            fs.symlinkSync(sourcePluginDir, uemcpPluginDir, symlinkType);
-            log.success('Plugin symlinked successfully!');
-            log.info('💡 Tip: Changes to plugin code will be reflected immediately after restart_listener()');
+            const absoluteSource = path.resolve(sourcePluginDir);
+            fs.symlinkSync(absoluteSource, uemcpPluginDir, 'junction');
+            log.success(`Created symlink: ${uemcpPluginDir} → ${absoluteSource}`);
         } else {
-            log.info('Copying plugin files...');
             copyDir(sourcePluginDir, uemcpPluginDir);
-            log.success('Plugin copied successfully!');
+            log.success('Copied UEMCP plugin to project');
         }
         
-        // Update .uproject file to enable the plugin
+        // Update .uproject file
         const uprojectFiles = fs.readdirSync(projectPath).filter(f => f.endsWith('.uproject'));
         if (uprojectFiles.length > 0) {
             const uprojectPath = path.join(projectPath, uprojectFiles[0]);
-            log.info(`Updating ${uprojectFiles[0]}...`);
-            
             try {
                 const uproject = JSON.parse(fs.readFileSync(uprojectPath, 'utf8'));
                 
-                // Add plugin to the list if not already there
                 if (!uproject.Plugins) {
                     uproject.Plugins = [];
                 }
                 
-                const pluginExists = uproject.Plugins.some(p => p.Name === 'UEMCP');
-                if (!pluginExists) {
+                const existingPlugin = uproject.Plugins.find(p => p.Name === 'UEMCP');
+                if (!existingPlugin) {
                     uproject.Plugins.push({
                         Name: 'UEMCP',
                         Enabled: true
@@ -273,80 +279,25 @@ async function init() {
         console.clear();
     }
     log.info('╔════════════════════════════════════════╗');
-    log.info('║        UEMCP Initialization            ║');
-    log.info('║   Unreal Engine MCP Server Setup       ║');
+    log.info('║      UEMCP MCP Configuration           ║');
     log.info('╚════════════════════════════════════════╝');
     
     const projectRoot = __dirname;
     
-    // Check prerequisites
-    log.section('Checking prerequisites...');
-    
-    // Check Node.js
-    if (!commandExists('node')) {
-        log.error('Node.js is not installed!');
-        console.log('Please install Node.js from https://nodejs.org/');
-        process.exit(1);
-    }
-    const nodeVersion = execSync('node --version').toString().trim();
-    log.success(`Node.js ${nodeVersion}`);
-    
-    // Check npm
-    if (!commandExists('npm')) {
-        log.error('npm is not installed!');
-        process.exit(1);
-    }
-    const npmVersion = execSync('npm --version').toString().trim();
-    log.success(`npm ${npmVersion}`);
-    
-    // Check Python (optional but recommended)
-    let pythonAvailable = false;
-    let pythonCmd = 'python3';
-    let pipCmd = 'pip3';
-    
-    if (commandExists('python3')) {
-        pythonAvailable = true;
-        pythonCmd = 'python3';
-        pipCmd = commandExists('pip3') ? 'pip3' : 'python3 -m pip';
-    } else if (commandExists('python')) {
-        // Check if it's Python 3
-        try {
-            const version = execSync('python --version 2>&1').toString();
-            if (version.includes('Python 3')) {
-                pythonAvailable = true;
-                pythonCmd = 'python';
-                pipCmd = commandExists('pip') ? 'pip' : 'python -m pip';
-            }
-        } catch {}
-    }
-    
-    if (pythonAvailable) {
-        const pythonVersion = execSync(`${pythonCmd} --version 2>&1`).toString().trim();
-        log.success(pythonVersion);
-        
-        // Check if pip is available
-        try {
-            execSync(`${pipCmd} --version`, { stdio: 'ignore' });
-            log.success('pip is available');
-        } catch {
-            pipCmd = `${pythonCmd} -m pip`;
-            try {
-                execSync(`${pipCmd} --version`, { stdio: 'ignore' });
-                log.success('pip module is available');
-            } catch {
-                log.warning('pip is not available. Python dependencies cannot be installed.');
-                pythonAvailable = false;
-            }
-        }
-    } else {
-        log.warning('Python 3 not found. Testing and linting features will be limited.');
-        log.info('Note: The core UEMCP functionality will still work in Unreal Engine.');
-    }
-    
-    // Check if called from setup.sh (dependencies already handled)
+    // Check if called from setup.sh (all environment setup already handled)
     const isCalledFromSetup = process.env.UEMCP_SETUP_COMPLETE === 'true';
     
+    // Only handle dependencies if NOT called from setup.sh and not skipping
     if (!options.skipDeps && !isCalledFromSetup) {
+        log.section('Checking environment...');
+        
+        // Basic check that Node.js is available
+        if (!commandExists('node')) {
+            log.error('Node.js is not installed!');
+            log.info('Please run ./setup.sh instead, which will install Node.js for you.');
+            process.exit(1);
+        }
+        
         // Install dependencies
         log.section('Installing dependencies...');
         process.chdir(path.join(projectRoot, 'server'));
@@ -356,6 +307,7 @@ async function init() {
             log.success('Dependencies installed');
         } catch (error) {
             log.error('Failed to install dependencies');
+            log.info('Please run ./setup.sh instead for complete environment setup.');
             process.exit(1);
         }
         
@@ -368,61 +320,9 @@ async function init() {
             log.error('Build failed!');
             process.exit(1);
         }
-    } else {
-        if (isCalledFromSetup) {
-            log.info('Dependencies already handled by setup.sh');
-        } else {
-            log.info('Skipping dependency installation (--skip-deps)');
-        }
-    }
-    
-    // Install Python dependencies if available (skip if called from setup.sh)
-    if (!options.skipDeps && !isCalledFromSetup) {
-        if (pythonAvailable && fs.existsSync(path.join(projectRoot, 'requirements-dev.txt'))) {
-            log.section('Installing Python dependencies (optional)...');
-            process.chdir(projectRoot);
-            
-            // Ask user if they want to install Python dev dependencies in interactive mode
-            let shouldInstallPython = !options.interactive; // Install by default in non-interactive mode
-            
-            if (options.interactive) {
-                console.log('');
-                log.info('Python development dependencies are optional.');
-                log.info('They provide testing and linting tools but are not required for core functionality.');
-                const answer = await question('Install Python development dependencies? (y/N): ');
-                shouldInstallPython = answer.toLowerCase() === 'y';
-            }
-            
-            if (shouldInstallPython) {
-                try {
-                    log.info('Installing Python packages (this may take a moment)...');
-                    // Use --user flag to avoid permission issues
-                    execSync(`${pipCmd} install --user -r requirements-dev.txt`, { 
-                        stdio: options.interactive ? 'inherit' : 'ignore'
-                    });
-                    log.success('Python dependencies installed');
-                    log.info('Note: These are development tools for testing and linting.');
-                } catch (error) {
-                    log.warning('Could not install Python dependencies');
-                    log.info('This is OK - the core UEMCP functionality will still work.');
-                    log.info('These dependencies are only needed for:');
-                    console.log('  - Running tests with pytest');
-                    console.log('  - Code formatting with black');
-                    console.log('  - Linting with flake8/ruff');
-                    
-                    if (options.interactive) {
-                        console.log('');
-                        log.info('To install later, run:');
-                        console.log(`  ${pipCmd} install -r requirements-dev.txt`);
-                    }
-                }
-            } else {
-                log.info('Skipping Python dependencies (can be installed later if needed)');
-            }
-        } else if (!pythonAvailable) {
-            log.info('Skipping Python dependencies (Python not available)');
-            log.info('The UEMCP plugin will still work in Unreal Engine.');
-        }
+        
+        log.warning('Note: ./setup.sh is the recommended way to set up UEMCP.');
+        log.info('It handles Node.js, Python, virtual environments, and all dependencies.');
     }
     
     // Handle UE project path
@@ -447,67 +347,51 @@ async function init() {
             if (options.interactive) {
                 const answer = await question('Install UEMCP plugin to this project? (Y/n): ');
                 shouldInstallPlugin = answer.toLowerCase() !== 'n';
-                
+            }
+            
+            if (shouldInstallPlugin) {
                 // Ask about symlink vs copy if not specified
-                if (shouldInstallPlugin && options.symlink === null) {
-                    console.log('\nHow would you like to install the plugin?');
-                    console.log('  1. Symlink (recommended for development - hot reload support)');
-                    console.log('  2. Copy (recommended for production)');
-                    const methodAnswer = await question('Choose method (1/2) [1]: ');
-                    
-                    // Handle method selection with clear logic
-                    if (methodAnswer === '1' || methodAnswer === '') {
-                        options.symlink = true; // Default to symlink
-                    } else if (methodAnswer === '2') {
-                        options.symlink = false; // Use copy
-                    } else {
-                        log.warning('Invalid choice. Defaulting to symlink.');
-                        options.symlink = true;
-                    }
+                let useSymlink = options.symlink;
+                if (useSymlink === null && options.interactive) {
+                    console.log('');
+                    log.info('Choose installation method:');
+                    console.log('  1. Symlink (recommended for development - changes reflect immediately)');
+                    console.log('  2. Copy (recommended for production - isolated from source)');
+                    const method = await question('Select [1-2] (default: 1): ');
+                    useSymlink = method !== '2';
+                } else if (useSymlink === null) {
+                    useSymlink = true; // Default to symlink in non-interactive
                 }
+                
+                await installPlugin(validProjectPath, useSymlink);
             }
         } else {
-            log.error(`Directory not found: ${expandedPath}`);
-            log.warning('You can set this later with environment variable UE_PROJECT_PATH');
+            log.warning(`Project path not found: ${expandedPath}`);
         }
-    }
-    
-    // Install plugin if project path provided
-    if (shouldInstallPlugin && validProjectPath) {
-        // Default to symlink in non-interactive mode if not specified
-        const useSymlink = options.symlink !== null ? options.symlink : true;
-        await installPlugin(validProjectPath, useSymlink);
     }
     
     // Configure Claude Desktop
     if (!options.skipClaude) {
-        log.section('Configuring Claude Desktop integration...');
+        log.section('Configuring Claude Desktop...');
         
-        const claudeConfigDir = getClaudeConfigDir();
-        const configFile = path.join(claudeConfigDir, 'claude_desktop_config.json');
+        const configDir = getClaudeConfigDir();
+        const configFile = path.join(configDir, 'claude_desktop_config.json');
         
         // Create config directory if it doesn't exist
-        fs.mkdirSync(claudeConfigDir, { recursive: true });
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+        }
         
         let config = {};
-        let backupMade = false;
-        
-        // Check if config exists
         if (fs.existsSync(configFile)) {
-            log.info('Found existing Claude config. Creating backup...');
-            const backupName = `claude_desktop_config.json.backup.${Date.now()}`;
-            fs.copyFileSync(configFile, path.join(claudeConfigDir, backupName));
-            backupMade = true;
-            
             try {
                 config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-            } catch {
-                log.warning('Could not parse existing config. Creating new one.');
-                config = {};
+            } catch (error) {
+                log.warning('Could not parse existing config, creating new one');
             }
         }
         
-        // Add UEMCP server to config
+        // Add or update UEMCP server configuration
         if (!config.mcpServers) {
             config.mcpServers = {};
         }
@@ -515,18 +399,17 @@ async function init() {
         const serverPath = path.join(projectRoot, 'server', 'dist', 'index.js').replace(/\\/g, '/');
         config.mcpServers.uemcp = {
             command: 'node',
-            args: [serverPath],
-            env: {
-                DEBUG: 'uemcp:*'
-            }
+            args: [serverPath]
         };
         
-        // Add project path if available
+        // Add project path environment variable if available
         if (validProjectPath) {
-            config.mcpServers.uemcp.env.UE_PROJECT_PATH = validProjectPath;
+            config.mcpServers.uemcp.env = {
+                UE_PROJECT_PATH: validProjectPath
+            };
         }
         
-        // Save config
+        // Write config
         fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
         log.success('Claude configuration saved');
     }
@@ -593,12 +476,12 @@ async function init() {
     if (!isCalledFromSetup) {
         console.log('');
         log.success('════════════════════════════════════════');
-        log.success('✨ UEMCP Initialization Complete! ✨');
+        log.success('✨ UEMCP Configuration Complete! ✨');
         log.success('════════════════════════════════════════');
         console.log('');
         
         log.info('Configuration Summary:');
-        console.log(`  • Server: Built and ready`);
+        console.log(`  • Server: ${options.skipDeps ? 'Ready' : 'Built and ready'}`);
         if (!options.skipClaude) {
             console.log(`  • Claude Desktop: Configured`);
         }
@@ -614,42 +497,16 @@ async function init() {
         }
         
         console.log('');
-        log.info('Next Steps:');
-        let stepNum = 1;
-        if (!options.skipClaude) {
-            console.log(`  ${stepNum++}. Restart Claude Desktop`);
-            console.log(`  ${stepNum++}. Say "List available UEMCP tools" in Claude Desktop`);
-        }
-        if (options.claudeCode) {
-            console.log(`  ${stepNum++}. Visit claude.ai/code and say "List available UEMCP tools"`);
-        }
-        console.log(`  ${stepNum++}. Test locally: node test-connection.js`);
-        if (validProjectPath && shouldInstallPlugin) {
-            console.log(`  ${stepNum++}. Open your project in Unreal Editor`);
-            console.log(`  ${stepNum++}. The UEMCP plugin should load automatically`);
-        }
+        log.info('Next steps:');
+        console.log('1. Start Unreal Engine with your project');
+        console.log('2. Restart Claude Desktop or Claude Code');
+        console.log('3. Test the connection: node test-connection.js');
+        console.log('4. Try in Claude: "List available UEMCP tools"');
         
-        console.log('');
-        log.info('Quick Commands:');
-        if (!validProjectPath) {
-            console.log('  • Set project: export UE_PROJECT_PATH="/path/to/project"');
-        }
-        console.log('  • Run tests: npm test');
-        console.log('  • View logs: DEBUG=uemcp:* node test-connection.js');
-        
-        console.log('');
-        log.success('Happy coding with UEMCP! 🚀');
-    } else {
-        // Minimal output when called from setup.sh
-        if (!options.skipClaude) {
-            log.success('Claude Desktop configured');
-        }
-        if (options.claudeCode) {
-            log.success('Claude Code configured');
-        }
-        if (validProjectPath && shouldInstallPlugin) {
-            const useSymlink = options.symlink !== null ? options.symlink : true;
-            log.success(`Plugin ${useSymlink ? 'symlinked' : 'copied'} to ${path.basename(validProjectPath)}`);
+        if (!options.skipDeps) {
+            console.log('');
+            log.info('For complete setup with Python environment:');
+            console.log('  ./setup.sh');
         }
     }
     
@@ -657,7 +514,7 @@ async function init() {
 }
 
 // Run initialization
-init().catch((error) => {
+init().catch(error => {
     log.error(`Initialization failed: ${error.message}`);
     process.exit(1);
 });
