@@ -357,7 +357,7 @@ provide_amazon_q_instructions() {
     echo ""
 }
 
-# Provide instructions for Gemini
+# Configure or provide instructions for Gemini
 provide_gemini_instructions() {
     # Check if it's CLI or Code Assist
     if command_exists gemini || command_exists gemini-cli; then
@@ -375,19 +375,98 @@ provide_gemini_instructions() {
         echo "  3. Reference test-connection.js for API examples"
         echo ""
     else
-        log_info "Google Gemini Code Assist detected!"
+        # Gemini Code Assist supports MCP servers!
+        configure_gemini_code_assist "$1"
+    fi
+}
+
+# Configure Google Gemini Code Assist
+configure_gemini_code_assist() {
+    local project_path="$1"
+    
+    log_info "Configuring Google Gemini Code Assist..."
+    
+    local GEMINI_CONFIG_DIR="$HOME/.gemini"
+    local GEMINI_CONFIG_FILE="$GEMINI_CONFIG_DIR/settings.json"
+    
+    # Create config directory if it doesn't exist
+    if [ ! -d "$GEMINI_CONFIG_DIR" ]; then
+        mkdir -p "$GEMINI_CONFIG_DIR"
+    fi
+    
+    # Update configuration using Python (or provide manual instructions)
+    if [ "$PYTHON_INSTALLED" = true ]; then
+        SERVER_PATH="$SCRIPT_DIR/server/dist/index.js"
+        
+        $PYTHON_CMD -c "
+import json
+import sys
+import os
+
+config_file = '$GEMINI_CONFIG_FILE'
+server_path = '$SERVER_PATH'
+project_path = '$project_path' if '$project_path' else None
+
+# Read existing config or create new one
+try:
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+except:
+    config = {}
+
+# Initialize mcpServers if not exists
+if 'mcpServers' not in config:
+    config['mcpServers'] = {}
+
+# Add UEMCP server configuration
+uemcp_config = {
+    'command': 'node',
+    'args': [server_path]
+}
+
+# Add project path as environment variable if provided
+if project_path:
+    uemcp_config['env'] = {
+        'UEMCP_PROJECT_PATH': project_path
+    }
+
+# Check if UEMCP is already configured
+if 'uemcp' not in config['mcpServers']:
+    config['mcpServers']['uemcp'] = uemcp_config
+    print('Added UEMCP MCP server to Gemini Code Assist configuration')
+else:
+    # Update existing configuration
+    config['mcpServers']['uemcp'] = uemcp_config
+    print('Updated UEMCP MCP server in Gemini Code Assist configuration')
+
+# Write back the configuration
+with open(config_file, 'w') as f:
+    json.dump(config, f, indent=2)
+    
+print('Gemini Code Assist configuration updated successfully')
+" && log_success "Configured Gemini Code Assist with UEMCP MCP server" || log_warning "Could not update Gemini config automatically"
+    else
+        log_warning "Python not available - please manually add to ~/.gemini/settings.json:"
         echo ""
-        log_warning "Gemini Code Assist doesn't directly support MCP servers yet."
-        echo "However, you can:"
-        echo ""
-        echo "  1. Run the MCP server as a local service:"
-        echo "     node $SCRIPT_DIR/server/dist/index.js"
-        echo ""
-        echo "  2. Use Gemini to help write code that interacts with the MCP API"
-        echo ""
-        echo "  3. Reference test-connection.js for API examples"
+        echo '  {
+    "mcpServers": {
+      "uemcp": {
+        "command": "node",
+        "args": ["'$SCRIPT_DIR'/server/dist/index.js"]
+      }
+    }
+  }'
         echo ""
     fi
+    
+    log_info "Gemini Code Assist MCP Configuration:"
+    echo "  • UEMCP MCP server configured in ~/.gemini/settings.json"
+    echo "  • Restart VS Code or IntelliJ for changes to take effect"
+    echo "  • The MCP server will start automatically when you use Gemini Code Assist"
+    echo ""
+    log_warning "Security Note: MCP servers run with your user permissions."
+    echo "Make sure you trust the UEMCP source code before using."
+    echo ""
 }
 
 # Configure or provide instructions for Copilot/Codex
@@ -1057,16 +1136,29 @@ if is_gemini_installed; then
     # Determine what type of Gemini installation
     if command_exists gemini || command_exists gemini-cli; then
         log_success "Google Gemini CLI detected"
+        TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
+        
+        if [ "$INTERACTIVE" = true ]; then
+            read -p "Show instructions for using UEMCP with Gemini CLI? (Y/n): " show_gemini
+            show_gemini_lower=$(echo "$show_gemini" | tr '[:upper:]' '[:lower:]')
+            if [ "$show_gemini_lower" != "n" ]; then
+                provide_gemini_instructions "$VALID_PROJECT_PATH"
+            fi
+        fi
     else
         log_success "Google Gemini Code Assist detected"
-    fi
-    TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
-    
-    if [ "$INTERACTIVE" = true ]; then
-        read -p "Show instructions for using UEMCP with Gemini? (Y/n): " show_gemini
-        show_gemini_lower=$(echo "$show_gemini" | tr '[:upper:]' '[:lower:]')
-        if [ "$show_gemini_lower" != "n" ]; then
-            provide_gemini_instructions
+        TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
+        
+        if [ "$INTERACTIVE" = true ]; then
+            read -p "Configure UEMCP for Google Gemini Code Assist? (Y/n): " configure_gemini
+            configure_gemini_lower=$(echo "$configure_gemini" | tr '[:upper:]' '[:lower:]')
+            if [ "$configure_gemini_lower" != "n" ]; then
+                provide_gemini_instructions "$VALID_PROJECT_PATH"
+                TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Google Gemini Code Assist\n"
+            fi
+        else
+            provide_gemini_instructions "$VALID_PROJECT_PATH"
+            TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Google Gemini Code Assist\n"
         fi
     fi
 fi
