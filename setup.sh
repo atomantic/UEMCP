@@ -188,8 +188,13 @@ is_amazon_q_installed() {
     return 1
 }
 
-# Check if Google Gemini Code Assist is available
+# Check if Google Gemini is available (CLI or Code Assist)
 is_gemini_installed() {
+    # Check for Gemini CLI
+    if command_exists gemini || command_exists gemini-cli; then
+        return 0
+    fi
+    
     # Check for VS Code extension
     if command_exists code; then
         if code --list-extensions 2>/dev/null | grep -q "google.gemini-code-assist"; then
@@ -198,15 +203,20 @@ is_gemini_installed() {
     fi
     
     # Check for config directory
-    if [ -d "$HOME/.config/gemini-code-assist" ]; then
+    if [ -d "$HOME/.config/gemini-code-assist" ] || [ -d "$HOME/.gemini" ]; then
         return 0
     fi
     
     return 1
 }
 
-# Check if GitHub Copilot is installed
+# Check if OpenAI Codex or GitHub Copilot is installed
 is_copilot_installed() {
+    # Check for OpenAI Codex CLI
+    if command_exists codex || command_exists openai || command_exists openai-codex; then
+        return 0
+    fi
+    
     # Check for VS Code extension
     if command_exists code; then
         if code --list-extensions 2>/dev/null | grep -q "GitHub.copilot"; then
@@ -349,34 +359,67 @@ provide_amazon_q_instructions() {
 
 # Provide instructions for Gemini
 provide_gemini_instructions() {
-    log_info "Google Gemini Code Assist detected!"
-    echo ""
-    log_warning "Gemini Code Assist doesn't directly support MCP servers yet."
-    echo "However, you can:"
-    echo ""
-    echo "  1. Run the MCP server as a local service:"
-    echo "     node $SCRIPT_DIR/server/dist/index.js"
-    echo ""
-    echo "  2. Use Gemini to help write code that interacts with the MCP API"
-    echo ""
-    echo "  3. Reference test-connection.js for API examples"
-    echo ""
+    # Check if it's CLI or Code Assist
+    if command_exists gemini || command_exists gemini-cli; then
+        log_info "Google Gemini CLI detected!"
+        echo ""
+        log_warning "Gemini CLI doesn't directly support MCP servers yet."
+        echo "However, you can:"
+        echo ""
+        echo "  1. Run the MCP server as a background service:"
+        echo "     node $SCRIPT_DIR/server/dist/index.js &"
+        echo ""
+        echo "  2. Use the Gemini CLI to interact with your UE project"
+        echo "     while the MCP server handles the UE communication"
+        echo ""
+        echo "  3. Reference test-connection.js for API examples"
+        echo ""
+    else
+        log_info "Google Gemini Code Assist detected!"
+        echo ""
+        log_warning "Gemini Code Assist doesn't directly support MCP servers yet."
+        echo "However, you can:"
+        echo ""
+        echo "  1. Run the MCP server as a local service:"
+        echo "     node $SCRIPT_DIR/server/dist/index.js"
+        echo ""
+        echo "  2. Use Gemini to help write code that interacts with the MCP API"
+        echo ""
+        echo "  3. Reference test-connection.js for API examples"
+        echo ""
+    fi
 }
 
-# Provide instructions for Copilot
+# Provide instructions for Copilot/Codex
 provide_copilot_instructions() {
-    log_info "GitHub Copilot detected!"
-    echo ""
-    log_warning "GitHub Copilot doesn't directly support MCP servers."
-    echo "However, you can:"
-    echo ""
-    echo "  1. Run the MCP server alongside Copilot:"
-    echo "     node $SCRIPT_DIR/server/dist/index.js"
-    echo ""
-    echo "  2. Use Copilot to generate code that calls the MCP endpoints"
-    echo ""
-    echo "  3. See test-connection.js for usage examples"
-    echo ""
+    # Check if it's Codex CLI or Copilot
+    if command_exists codex || command_exists openai || command_exists openai-codex; then
+        log_info "OpenAI Codex CLI detected!"
+        echo ""
+        log_warning "Codex CLI doesn't directly support MCP servers."
+        echo "However, you can:"
+        echo ""
+        echo "  1. Run the MCP server in the background:"
+        echo "     node $SCRIPT_DIR/server/dist/index.js &"
+        echo ""
+        echo "  2. Use Codex CLI to generate code that interacts with the MCP API"
+        echo ""
+        echo "  3. Reference test-connection.js for API usage patterns"
+        echo ""
+    else
+        log_info "GitHub Copilot detected!"
+        echo ""
+        log_warning "GitHub Copilot doesn't directly support MCP servers."
+        echo "However, you can:"
+        echo ""
+        echo "  1. Run the MCP server alongside Copilot:"
+        echo "     node $SCRIPT_DIR/server/dist/index.js"
+        echo ""
+        echo "  2. Use Copilot to generate code that calls the MCP endpoints"
+        echo ""
+        echo "  3. See test-connection.js for usage examples"
+        echo ""
+    fi
 }
 
 # ============================================================================
@@ -919,7 +962,12 @@ fi
 
 # Check for Gemini
 if is_gemini_installed; then
-    log_success "Google Gemini Code Assist detected"
+    # Determine what type of Gemini installation
+    if command_exists gemini || command_exists gemini-cli; then
+        log_success "Google Gemini CLI detected"
+    else
+        log_success "Google Gemini Code Assist detected"
+    fi
     TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
     
     if [ "$INTERACTIVE" = true ]; then
@@ -931,13 +979,18 @@ if is_gemini_installed; then
     fi
 fi
 
-# Check for Copilot
+# Check for Copilot/Codex
 if is_copilot_installed; then
-    log_success "GitHub Copilot detected"
+    # Determine what type of installation
+    if command_exists codex || command_exists openai || command_exists openai-codex; then
+        log_success "OpenAI Codex CLI detected"
+    else
+        log_success "GitHub Copilot detected"
+    fi
     TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
     
     if [ "$INTERACTIVE" = true ]; then
-        read -p "Show instructions for using UEMCP with Copilot? (Y/n): " show_copilot
+        read -p "Show instructions for using UEMCP with Copilot/Codex? (Y/n): " show_copilot
         show_copilot_lower=$(echo "$show_copilot" | tr '[:upper:]' '[:lower:]')
         if [ "$show_copilot_lower" != "n" ]; then
             provide_copilot_instructions
