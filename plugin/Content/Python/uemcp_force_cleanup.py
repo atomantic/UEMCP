@@ -5,50 +5,52 @@ Force cleanup for stuck UEMCP listener
 
 import unreal
 import sys
-import os
+# import os
 import time
 import subprocess
+
 
 def force_cleanup():
     """Aggressively clean up any stuck listener processes"""
     unreal.log("UEMCP: === Force Cleanup ===")
-    
+
     # Step 1: Signal any running listener to stop
-    if 'uemcp_listener' in sys.modules:
-        mod = sys.modules['uemcp_listener']
-        if hasattr(mod, 'server_running'):
+    if "uemcp_listener" in sys.modules:
+        mod = sys.modules["uemcp_listener"]
+        if hasattr(mod, "server_running"):
             mod.server_running = False
-        if hasattr(mod, 'httpd') and mod.httpd:
+        if hasattr(mod, "httpd") and mod.httpd:
             try:
                 mod.httpd.server_close()
             except Exception:
                 pass
         unreal.log("UEMCP: ✓ Signaled listener to stop")
-    
+
     # Step 2: Force kill any process on port 8765
     try:
         if sys.platform == "darwin":  # macOS
             # Get PIDs
-            result = subprocess.run(['lsof', '-ti:8765'], capture_output=True, text=True)
+            result = subprocess.run(["lsof", "-ti:8765"], capture_output=True, text=True)
             if result.stdout:
-                pids = result.stdout.strip().split('\n')
+                pids = result.stdout.strip().split("\n")
                 for pid in pids:
                     if pid:
-                        subprocess.run(['kill', '-9', pid])
+                        subprocess.run(["kill", "-9", pid])
                         unreal.log(f"UEMCP: ✓ Killed process {pid}")
                 time.sleep(1)
             else:
                 unreal.log("UEMCP: ✓ No processes found on port 8765")
     except Exception as e:
         unreal.log_error(f"Error killing processes: {e}")
-    
+
     # Step 3: Remove module from sys.modules
-    if 'uemcp_listener' in sys.modules:
-        del sys.modules['uemcp_listener']
+    if "uemcp_listener" in sys.modules:
+        del sys.modules["uemcp_listener"]
         unreal.log("UEMCP: ✓ Removed module from cache")
-    
+
     unreal.log("UEMCP: === Cleanup Complete ===")
     unreal.log("UEMCP: You can now run: import uemcp_listener; uemcp_listener.start_listener()")
+
 
 if __name__ == "__main__":
     force_cleanup()
