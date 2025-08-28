@@ -236,8 +236,11 @@ def execute_on_main_thread(command):
         import traceback
 
         log_error(f"Traceback: {traceback.format_exc()}")
-        return {"success": False, "error": str(
-            e), "traceback": traceback.format_exc()}
+        return {
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
 
 
 def process_commands():

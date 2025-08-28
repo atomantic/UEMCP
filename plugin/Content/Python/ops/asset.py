@@ -766,7 +766,6 @@ class AssetOperations:
         Returns:
             dict: Import result for this asset
         """
-#         import os
         from pathlib import Path
 
         try:
