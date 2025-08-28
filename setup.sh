@@ -16,8 +16,6 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 PROJECT_PATH=""  # Will default to ./Demo if exists and not specified
 INTERACTIVE=true
-SKIP_CLAUDE=false
-CLAUDE_CODE=false
 SYMLINK=""  # Empty means ask, "true" means symlink, "false" means copy
 SHOW_HELP=false
 
@@ -37,14 +35,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-interactive)
             INTERACTIVE=false
-            shift
-            ;;
-        --skip-claude)
-            SKIP_CLAUDE=true
-            shift
-            ;;
-        --claude-code)
-            CLAUDE_CODE=true
             shift
             ;;
         --help|-h)
@@ -119,8 +109,8 @@ detect_os() {
     fi
 }
 
-# Get Claude config directory based on OS
-get_claude_config_dir() {
+# Get Claude Desktop config directory based on OS
+get_claude_desktop_config_dir() {
     case "$(uname -s)" in
         Darwin)
             echo "$HOME/Library/Application Support/Claude"
@@ -141,6 +131,254 @@ get_claude_config_dir() {
     esac
 }
 
+# Get Claude Code config directory
+get_claude_code_config_dir() {
+    echo "$HOME/.config/claude-code"
+}
+
+# Check if Claude Desktop is installed
+is_claude_desktop_installed() {
+    local claude_dir=$(get_claude_desktop_config_dir)
+    
+    # Check if directory exists or if Claude Desktop app is installed
+    if [ -d "$claude_dir" ]; then
+        return 0
+    fi
+    
+    # macOS specific check
+    if [ "$(detect_os)" = "macos" ] && [ -d "/Applications/Claude.app" ]; then
+        return 0
+    fi
+    
+    return 1
+}
+
+# Check if Claude Code is installed/configured
+is_claude_code_installed() {
+    # Check if claude CLI is installed
+    if command_exists claude; then
+        return 0
+    fi
+    
+    # Check if claude-code config directory exists
+    local claude_code_dir=$(get_claude_code_config_dir)
+    if [ -d "$claude_code_dir" ]; then
+        return 0
+    fi
+    
+    return 1
+}
+
+# Check if Amazon Q is installed
+is_amazon_q_installed() {
+    # Check for VS Code extension
+    if command_exists code; then
+        if code --list-extensions 2>/dev/null | grep -q "amazonwebservices.amazon-q-vscode"; then
+            return 0
+        fi
+    fi
+    
+    # Check for JetBrains plugin (common paths)
+    for ide_dir in "$HOME/.config/JetBrains"* "$HOME/Library/Application Support/JetBrains"*; do
+        if [ -d "$ide_dir" ] && find "$ide_dir" -name "*amazon-q*" -o -name "*codewhisperer*" 2>/dev/null | grep -q .; then
+            return 0
+        fi
+    done
+    
+    return 1
+}
+
+# Check if Google Gemini Code Assist is available
+is_gemini_installed() {
+    # Check for VS Code extension
+    if command_exists code; then
+        if code --list-extensions 2>/dev/null | grep -q "google.gemini-code-assist"; then
+            return 0
+        fi
+    fi
+    
+    # Check for config directory
+    if [ -d "$HOME/.config/gemini-code-assist" ]; then
+        return 0
+    fi
+    
+    return 1
+}
+
+# Check if GitHub Copilot is installed
+is_copilot_installed() {
+    # Check for VS Code extension
+    if command_exists code; then
+        if code --list-extensions 2>/dev/null | grep -q "GitHub.copilot"; then
+            return 0
+        fi
+    fi
+    
+    # Check for JetBrains plugin
+    for ide_dir in "$HOME/.config/JetBrains"* "$HOME/Library/Application Support/JetBrains"*; do
+        if [ -d "$ide_dir" ] && find "$ide_dir" -name "*copilot*" 2>/dev/null | grep -q .; then
+            return 0
+        fi
+    done
+    
+    return 1
+}
+
+# Configure Claude Desktop
+configure_claude_desktop() {
+    local project_path="$1"
+    
+    log_info "Configuring Claude Desktop..."
+    
+    local CLAUDE_CONFIG_DIR=$(get_claude_desktop_config_dir)
+    local CLAUDE_CONFIG_FILE="$CLAUDE_CONFIG_DIR/claude_desktop_config.json"
+    
+    # Create config directory if it doesn't exist
+    if [ ! -d "$CLAUDE_CONFIG_DIR" ]; then
+        mkdir -p "$CLAUDE_CONFIG_DIR"
+    fi
+    
+    # Read existing config or create new one
+    if [ -f "$CLAUDE_CONFIG_FILE" ]; then
+        log_info "Updating existing Claude Desktop configuration..."
+    else
+        log_info "Creating new Claude Desktop configuration..."
+        echo '{}' > "$CLAUDE_CONFIG_FILE"
+    fi
+    
+    # Update configuration using Python (or fallback to manual message)
+    if [ "$PYTHON_INSTALLED" = true ]; then
+        SERVER_PATH="$SCRIPT_DIR/server/dist/index.js"
+        
+        $PYTHON_CMD -c "
+import json
+import sys
+
+config_file = '$CLAUDE_CONFIG_FILE'
+server_path = '$SERVER_PATH'
+project_path = '$project_path' if '$project_path' else None
+
+# Read existing config
+try:
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+except:
+    config = {}
+
+# Ensure mcpServers exists
+if 'mcpServers' not in config:
+    config['mcpServers'] = {}
+
+# Configure UEMCP
+config['mcpServers']['uemcp'] = {
+    'command': 'node',
+    'args': [server_path]
+}
+
+# Add project path if available
+if project_path:
+    config['mcpServers']['uemcp']['env'] = {
+        'UE_PROJECT_PATH': project_path
+    }
+
+# Write config
+with open(config_file, 'w') as f:
+    json.dump(config, f, indent=2)
+
+print('Claude Desktop configuration updated')
+" && log_success "Claude Desktop configured" || log_warning "Could not update Claude Desktop config automatically"
+    else
+        log_warning "Please manually add UEMCP to Claude Desktop config:"
+        echo "  Config file: $CLAUDE_CONFIG_FILE"
+        echo "  Server path: $SCRIPT_DIR/server/dist/index.js"
+    fi
+}
+
+# Configure Claude Code
+configure_claude_code() {
+    local project_path="$1"
+    
+    log_info "Configuring Claude Code..."
+    
+    # Check if claude mcp CLI is installed
+    if ! command_exists claude; then
+        log_warning "Claude MCP CLI not found. Installing..."
+        npm install -g @anthropic/claude-mcp
+        if command_exists claude; then
+            log_success "Claude MCP CLI installed"
+        else
+            log_error "Failed to install Claude MCP CLI"
+            log_info "You can install it manually with: npm install -g @anthropic/claude-mcp"
+            return 1
+        fi
+    fi
+    
+    # Configure using claude mcp add
+    if command_exists claude; then
+        SERVER_PATH="$SCRIPT_DIR/server/dist/index.js"
+        ADD_COMMAND="claude mcp add uemcp node \"$SERVER_PATH\""
+        
+        # Add project path if available
+        if [ -n "$project_path" ]; then
+            ADD_COMMAND="$ADD_COMMAND -e \"UE_PROJECT_PATH=$project_path\""
+        fi
+        
+        log_info "Adding UEMCP to Claude Code configuration..."
+        eval $ADD_COMMAND && log_success "Claude Code configured!" || log_error "Failed to configure Claude Code"
+        
+        # Verify installation
+        claude mcp list 2>/dev/null || true
+    fi
+}
+
+# Provide instructions for Amazon Q
+provide_amazon_q_instructions() {
+    log_info "Amazon Q detected!"
+    echo ""
+    log_warning "Amazon Q doesn't directly support MCP servers yet."
+    echo "However, you can use UEMCP with Amazon Q by:"
+    echo ""
+    echo "  1. Running the MCP server in a terminal:"
+    echo "     node $SCRIPT_DIR/server/dist/index.js"
+    echo ""
+    echo "  2. Using Amazon Q to generate code that calls the MCP API"
+    echo ""
+    echo "  3. Consider using the test-connection.js script as a reference"
+    echo ""
+}
+
+# Provide instructions for Gemini
+provide_gemini_instructions() {
+    log_info "Google Gemini Code Assist detected!"
+    echo ""
+    log_warning "Gemini Code Assist doesn't directly support MCP servers yet."
+    echo "However, you can:"
+    echo ""
+    echo "  1. Run the MCP server as a local service:"
+    echo "     node $SCRIPT_DIR/server/dist/index.js"
+    echo ""
+    echo "  2. Use Gemini to help write code that interacts with the MCP API"
+    echo ""
+    echo "  3. Reference test-connection.js for API examples"
+    echo ""
+}
+
+# Provide instructions for Copilot
+provide_copilot_instructions() {
+    log_info "GitHub Copilot detected!"
+    echo ""
+    log_warning "GitHub Copilot doesn't directly support MCP servers."
+    echo "However, you can:"
+    echo ""
+    echo "  1. Run the MCP server alongside Copilot:"
+    echo "     node $SCRIPT_DIR/server/dist/index.js"
+    echo ""
+    echo "  2. Use Copilot to generate code that calls the MCP endpoints"
+    echo ""
+    echo "  3. See test-connection.js for usage examples"
+    echo ""
+}
+
 # ============================================================================
 # Help Message
 # ============================================================================
@@ -154,7 +392,7 @@ if [ "$SHOW_HELP" = true ]; then
     echo "  • Sets up virtual environment"
     echo "  • Installs all dependencies"
     echo "  • Builds the MCP server"
-    echo "  • Configures Claude Desktop/Code"
+    echo "  • Detects and configures AI tools (Claude, Q, Gemini, etc.)"
     echo "  • Installs the UE plugin"
     echo ""
     echo "Usage:"
@@ -165,15 +403,20 @@ if [ "$SHOW_HELP" = true ]; then
     echo "  --symlink           Create symlink instead of copying plugin (dev mode)"
     echo "  --copy              Copy plugin files instead of symlinking"
     echo "  --no-interactive    Run without prompts (automation/CI)"
-    echo "  --skip-claude       Skip Claude Desktop configuration"
-    echo "  --claude-code       Configure Claude Code (claude.ai/code)"
     echo "  --help              Show this help"
     echo ""
     echo "Examples:"
     echo "  ./setup.sh                                          # Interactive setup"
     echo "  ./setup.sh --project /path/to/project --symlink    # Dev setup"
-    echo "  ./setup.sh --claude-code                           # Configure for Claude Code"
-    echo "  ./setup.sh --no-interactive --skip-claude          # CI/automation"
+    echo "  ./setup.sh --no-interactive                        # CI/automation"
+    echo ""
+    echo "The script will automatically detect installed AI tools:"
+    echo "  • Claude Desktop"
+    echo "  • Claude Code (claude.ai/code)"
+    echo "  • Amazon Q (AWS)"
+    echo "  • Google Gemini Code Assist"
+    echo "  • GitHub Copilot"
+    echo ""
     exit 0
 fi
 
@@ -604,122 +847,112 @@ if [ -n "$PROJECT_PATH" ]; then
 fi
 
 # ============================================================================
-# Configure Claude Desktop
+# Detect and Configure AI Tools
 # ============================================================================
 
-if [ "$SKIP_CLAUDE" = false ]; then
-    log_section "Configuring Claude Desktop..."
+log_section "Detecting AI Development Tools..."
+
+TOOLS_DETECTED=0
+TOOLS_CONFIGURED=""
+
+# Check for Claude Desktop
+if is_claude_desktop_installed; then
+    log_success "Claude Desktop detected"
+    TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
     
-    CLAUDE_CONFIG_DIR=$(get_claude_config_dir)
-    CLAUDE_CONFIG_FILE="$CLAUDE_CONFIG_DIR/claude_desktop_config.json"
-    
-    # Create config directory if it doesn't exist
-    if [ ! -d "$CLAUDE_CONFIG_DIR" ]; then
-        mkdir -p "$CLAUDE_CONFIG_DIR"
-    fi
-    
-    # Read existing config or create new one
-    if [ -f "$CLAUDE_CONFIG_FILE" ]; then
-        log_info "Updating existing Claude configuration..."
+    if [ "$INTERACTIVE" = true ]; then
+        read -p "Configure UEMCP for Claude Desktop? (Y/n): " configure_claude
+        configure_claude_lower=$(echo "$configure_claude" | tr '[:upper:]' '[:lower:]')
+        if [ "$configure_claude_lower" != "n" ]; then
+            configure_claude_desktop "$VALID_PROJECT_PATH"
+            TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Claude Desktop\n"
+        fi
     else
-        log_info "Creating new Claude configuration..."
-        echo '{}' > "$CLAUDE_CONFIG_FILE"
-    fi
-    
-    # Update configuration using Python (or fallback to manual message)
-    if [ "$PYTHON_INSTALLED" = true ]; then
-        SERVER_PATH="$SCRIPT_DIR/server/dist/index.js"
-        
-        $PYTHON_CMD -c "
-import json
-import sys
-
-config_file = '$CLAUDE_CONFIG_FILE'
-server_path = '$SERVER_PATH'
-project_path = '$VALID_PROJECT_PATH' if '$VALID_PROJECT_PATH' else None
-
-# Read existing config
-try:
-    with open(config_file, 'r') as f:
-        config = json.load(f)
-except:
-    config = {}
-
-# Ensure mcpServers exists
-if 'mcpServers' not in config:
-    config['mcpServers'] = {}
-
-# Configure UEMCP
-config['mcpServers']['uemcp'] = {
-    'command': 'node',
-    'args': [server_path]
-}
-
-# Add project path if available
-if project_path:
-    config['mcpServers']['uemcp']['env'] = {
-        'UE_PROJECT_PATH': project_path
-    }
-
-# Write config
-with open(config_file, 'w') as f:
-    json.dump(config, f, indent=2)
-
-print('Claude Desktop configuration updated')
-" && log_success "Claude Desktop configured" || log_warning "Could not update Claude config automatically"
-    else
-        log_warning "Please manually add UEMCP to Claude Desktop config:"
-        echo "  Config file: $CLAUDE_CONFIG_FILE"
-        echo "  Server path: $SCRIPT_DIR/server/dist/index.js"
+        configure_claude_desktop "$VALID_PROJECT_PATH"
+        TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Claude Desktop\n"
     fi
 fi
 
-# ============================================================================
-# Configure Claude Code
-# ============================================================================
+# Check for Claude Code
+if is_claude_code_installed; then
+    log_success "Claude Code detected"
+    TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
+    
+    if [ "$INTERACTIVE" = true ]; then
+        read -p "Configure UEMCP for Claude Code? (Y/n): " configure_code
+        configure_code_lower=$(echo "$configure_code" | tr '[:upper:]' '[:lower:]')
+        if [ "$configure_code_lower" != "n" ]; then
+            configure_claude_code "$VALID_PROJECT_PATH"
+            TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Claude Code\n"
+        fi
+    else
+        configure_claude_code "$VALID_PROJECT_PATH"
+        TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Claude Code\n"
+    fi
+else
+    # Offer to install Claude Code if not detected
+    if [ "$INTERACTIVE" = true ]; then
+        echo ""
+        log_info "Claude Code not detected."
+        read -p "Would you like to set up Claude Code (claude.ai/code)? (y/N): " setup_code
+        setup_code_lower=$(echo "$setup_code" | tr '[:upper:]' '[:lower:]')
+        if [ "$setup_code_lower" = "y" ]; then
+            configure_claude_code "$VALID_PROJECT_PATH"
+            TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Claude Code\n"
+        fi
+    fi
+fi
 
-# Ask about Claude Code in interactive mode
-if [ "$CLAUDE_CODE" = false ] && [ "$INTERACTIVE" = true ]; then
+# Check for Amazon Q
+if is_amazon_q_installed; then
+    log_success "Amazon Q detected"
+    TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
+    
+    if [ "$INTERACTIVE" = true ]; then
+        read -p "Show instructions for using UEMCP with Amazon Q? (Y/n): " show_q
+        show_q_lower=$(echo "$show_q" | tr '[:upper:]' '[:lower:]')
+        if [ "$show_q_lower" != "n" ]; then
+            provide_amazon_q_instructions
+        fi
+    fi
+fi
+
+# Check for Gemini
+if is_gemini_installed; then
+    log_success "Google Gemini Code Assist detected"
+    TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
+    
+    if [ "$INTERACTIVE" = true ]; then
+        read -p "Show instructions for using UEMCP with Gemini? (Y/n): " show_gemini
+        show_gemini_lower=$(echo "$show_gemini" | tr '[:upper:]' '[:lower:]')
+        if [ "$show_gemini_lower" != "n" ]; then
+            provide_gemini_instructions
+        fi
+    fi
+fi
+
+# Check for Copilot
+if is_copilot_installed; then
+    log_success "GitHub Copilot detected"
+    TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
+    
+    if [ "$INTERACTIVE" = true ]; then
+        read -p "Show instructions for using UEMCP with Copilot? (Y/n): " show_copilot
+        show_copilot_lower=$(echo "$show_copilot" | tr '[:upper:]' '[:lower:]')
+        if [ "$show_copilot_lower" != "n" ]; then
+            provide_copilot_instructions
+        fi
+    fi
+fi
+
+if [ $TOOLS_DETECTED -eq 0 ]; then
+    log_warning "No AI development tools detected"
     echo ""
-    read -p "Also configure Claude Code (claude.ai/code)? (y/N): " configure_claude_code
-    # Convert to lowercase for comparison
-    configure_claude_code_lower=$(echo "$configure_claude_code" | tr '[:upper:]' '[:lower:]')
-    if [ "$configure_claude_code_lower" = "y" ]; then
-        CLAUDE_CODE=true
-    fi
-fi
-
-if [ "$CLAUDE_CODE" = true ]; then
-    log_section "Configuring Claude Code (claude.ai/code)..."
-    
-    # Check if claude mcp CLI is installed
-    if ! command_exists claude; then
-        log_warning "Claude MCP CLI not found. Installing..."
-        npm install -g @anthropic/claude-mcp
-        if command_exists claude; then
-            log_success "Claude MCP CLI installed"
-        else
-            log_error "Failed to install Claude MCP CLI"
-            log_info "You can install it manually with: npm install -g @anthropic/claude-mcp"
-        fi
-    fi
-    
-    # Configure using claude mcp add
-    if command_exists claude; then
-        SERVER_PATH="$SCRIPT_DIR/server/dist/index.js"
-        ADD_COMMAND="claude mcp add uemcp node \"$SERVER_PATH\""
-        
-        # Add project path if available
-        if [ -n "$VALID_PROJECT_PATH" ]; then
-            ADD_COMMAND="$ADD_COMMAND -e \"UE_PROJECT_PATH=$VALID_PROJECT_PATH\""
-        fi
-        
-        log_info "Adding UEMCP to Claude Code configuration..."
-        eval $ADD_COMMAND && log_success "Claude Code configured!" || log_error "Failed to configure Claude Code"
-        
-        # Verify installation
-        claude mcp list 2>/dev/null || true
-    fi
+    log_info "UEMCP works best with Claude Desktop or Claude Code."
+    log_info "You can install them from:"
+    echo "  • Claude Desktop: https://claude.ai/download"
+    echo "  • Claude Code: npm install -g @anthropic/claude-mcp"
+    echo ""
 fi
 
 # ============================================================================
@@ -756,12 +989,10 @@ fi
 
 echo "  • MCP Server: Built and ready"
 
-if [ "$SKIP_CLAUDE" = false ]; then
-    echo "  • Claude Desktop: Configured"
-fi
-
-if [ "$CLAUDE_CODE" = true ]; then
-    echo "  • Claude Code: Configured"
+if [ -n "$TOOLS_CONFIGURED" ]; then
+    echo ""
+    echo -e "${CYAN}Configured AI Tools:${NC}"
+    echo -e "$TOOLS_CONFIGURED"
 fi
 
 if [ -n "$VALID_PROJECT_PATH" ]; then
@@ -778,9 +1009,9 @@ fi
 echo ""
 echo -e "${CYAN}Next Steps:${NC}"
 echo "  1. Start Unreal Engine with your project"
-echo "  2. Restart Claude Desktop or Claude Code"
+echo "  2. Restart any configured AI tools (Claude Desktop/Code)"
 echo "  3. Test the connection: node test-connection.js"
-echo "  4. Try in Claude: \"List available UEMCP tools\""
+echo "  4. Try in your AI tool: \"List available UEMCP tools\""
 
 if [ "$USE_VENV" = true ] && [ -d "$VENV_DIR" ]; then
     echo ""
