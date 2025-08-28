@@ -30,6 +30,7 @@ const options = {
     interactive: true,
     skipClaude: false,
     claudeCode: false,
+    skipDeps: false,  // Skip dependency installation (when called from setup.sh)
     symlink: null, // null = ask, true = symlink, false = copy
     help: false
 };
@@ -44,6 +45,9 @@ for (let i = 0; i < args.length; i++) {
             break;
         case '--skip-claude':
             options.skipClaude = true;
+            break;
+        case '--skip-deps':
+            options.skipDeps = true;
             break;
         case '--claude-code':
             options.claudeCode = true;
@@ -339,73 +343,86 @@ async function init() {
         log.info('Note: The core UEMCP functionality will still work in Unreal Engine.');
     }
     
-    // Install dependencies
-    log.section('Installing dependencies...');
-    process.chdir(path.join(projectRoot, 'server'));
+    // Check if called from setup.sh (dependencies already handled)
+    const isCalledFromSetup = process.env.UEMCP_SETUP_COMPLETE === 'true';
     
-    try {
-        execSync('npm install', { stdio: 'inherit' });
-        log.success('Dependencies installed');
-    } catch (error) {
-        log.error('Failed to install dependencies');
-        process.exit(1);
-    }
-    
-    // Build server
-    log.section('Building MCP server...');
-    try {
-        execSync('npm run build', { stdio: 'inherit' });
-        log.success('Server built successfully!');
-    } catch (error) {
-        log.error('Build failed!');
-        process.exit(1);
-    }
-    
-    // Install Python dependencies if available
-    if (pythonAvailable && fs.existsSync(path.join(projectRoot, 'requirements-dev.txt'))) {
-        log.section('Installing Python dependencies (optional)...');
-        process.chdir(projectRoot);
+    if (!options.skipDeps && !isCalledFromSetup) {
+        // Install dependencies
+        log.section('Installing dependencies...');
+        process.chdir(path.join(projectRoot, 'server'));
         
-        // Ask user if they want to install Python dev dependencies in interactive mode
-        let shouldInstallPython = !options.interactive; // Install by default in non-interactive mode
-        
-        if (options.interactive) {
-            console.log('');
-            log.info('Python development dependencies are optional.');
-            log.info('They provide testing and linting tools but are not required for core functionality.');
-            const answer = await question('Install Python development dependencies? (y/N): ');
-            shouldInstallPython = answer.toLowerCase() === 'y';
+        try {
+            execSync('npm install', { stdio: 'inherit' });
+            log.success('Dependencies installed');
+        } catch (error) {
+            log.error('Failed to install dependencies');
+            process.exit(1);
         }
         
-        if (shouldInstallPython) {
-            try {
-                log.info('Installing Python packages (this may take a moment)...');
-                // Use --user flag to avoid permission issues
-                execSync(`${pipCmd} install --user -r requirements-dev.txt`, { 
-                    stdio: options.interactive ? 'inherit' : 'ignore'
-                });
-                log.success('Python dependencies installed');
-                log.info('Note: These are development tools for testing and linting.');
-            } catch (error) {
-                log.warning('Could not install Python dependencies');
-                log.info('This is OK - the core UEMCP functionality will still work.');
-                log.info('These dependencies are only needed for:');
-                console.log('  - Running tests with pytest');
-                console.log('  - Code formatting with black');
-                console.log('  - Linting with flake8/ruff');
-                
-                if (options.interactive) {
-                    console.log('');
-                    log.info('To install later, run:');
-                    console.log(`  ${pipCmd} install -r requirements-dev.txt`);
-                }
-            }
+        // Build server
+        log.section('Building MCP server...');
+        try {
+            execSync('npm run build', { stdio: 'inherit' });
+            log.success('Server built successfully!');
+        } catch (error) {
+            log.error('Build failed!');
+            process.exit(1);
+        }
+    } else {
+        if (isCalledFromSetup) {
+            log.info('Dependencies already handled by setup.sh');
         } else {
-            log.info('Skipping Python dependencies (can be installed later if needed)');
+            log.info('Skipping dependency installation (--skip-deps)');
         }
-    } else if (!pythonAvailable) {
-        log.info('Skipping Python dependencies (Python not available)');
-        log.info('The UEMCP plugin will still work in Unreal Engine.');
+    }
+    
+    // Install Python dependencies if available (skip if called from setup.sh)
+    if (!options.skipDeps && !isCalledFromSetup) {
+        if (pythonAvailable && fs.existsSync(path.join(projectRoot, 'requirements-dev.txt'))) {
+            log.section('Installing Python dependencies (optional)...');
+            process.chdir(projectRoot);
+            
+            // Ask user if they want to install Python dev dependencies in interactive mode
+            let shouldInstallPython = !options.interactive; // Install by default in non-interactive mode
+            
+            if (options.interactive) {
+                console.log('');
+                log.info('Python development dependencies are optional.');
+                log.info('They provide testing and linting tools but are not required for core functionality.');
+                const answer = await question('Install Python development dependencies? (y/N): ');
+                shouldInstallPython = answer.toLowerCase() === 'y';
+            }
+            
+            if (shouldInstallPython) {
+                try {
+                    log.info('Installing Python packages (this may take a moment)...');
+                    // Use --user flag to avoid permission issues
+                    execSync(`${pipCmd} install --user -r requirements-dev.txt`, { 
+                        stdio: options.interactive ? 'inherit' : 'ignore'
+                    });
+                    log.success('Python dependencies installed');
+                    log.info('Note: These are development tools for testing and linting.');
+                } catch (error) {
+                    log.warning('Could not install Python dependencies');
+                    log.info('This is OK - the core UEMCP functionality will still work.');
+                    log.info('These dependencies are only needed for:');
+                    console.log('  - Running tests with pytest');
+                    console.log('  - Code formatting with black');
+                    console.log('  - Linting with flake8/ruff');
+                    
+                    if (options.interactive) {
+                        console.log('');
+                        log.info('To install later, run:');
+                        console.log(`  ${pipCmd} install -r requirements-dev.txt`);
+                    }
+                }
+            } else {
+                log.info('Skipping Python dependencies (can be installed later if needed)');
+            }
+        } else if (!pythonAvailable) {
+            log.info('Skipping Python dependencies (Python not available)');
+            log.info('The UEMCP plugin will still work in Unreal Engine.');
+        }
     }
     
     // Handle UE project path
