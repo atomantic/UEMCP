@@ -343,17 +343,92 @@ configure_claude_code() {
 
 # Provide instructions for Amazon Q
 provide_amazon_q_instructions() {
-    log_info "Amazon Q detected!"
-    echo ""
-    log_warning "Amazon Q doesn't directly support MCP servers yet."
-    echo "However, you can use UEMCP with Amazon Q by:"
-    echo ""
-    echo "  1. Running the MCP server in a terminal:"
-    echo "     node $SCRIPT_DIR/server/dist/index.js"
-    echo ""
-    echo "  2. Using Amazon Q to generate code that calls the MCP API"
-    echo ""
-    echo "  3. Consider using the test-connection.js script as a reference"
+    configure_amazon_q "$1"
+}
+
+# Configure Amazon Q
+configure_amazon_q() {
+    local project_path="$1"
+    
+    log_info "Configuring Amazon Q..."
+    
+    local AMAZON_Q_CONFIG_DIR="$HOME/.aws/amazonq/agents"
+    local AMAZON_Q_CONFIG_FILE="$AMAZON_Q_CONFIG_DIR/default.json"
+    
+    # Create config directory if it doesn't exist
+    if [ ! -d "$AMAZON_Q_CONFIG_DIR" ]; then
+        mkdir -p "$AMAZON_Q_CONFIG_DIR"
+    fi
+    
+    # Update configuration using Python (or provide manual instructions)
+    if [ "$PYTHON_INSTALLED" = true ]; then
+        SERVER_PATH="$SCRIPT_DIR/server/dist/index.js"
+        
+        $PYTHON_CMD -c "
+import json
+import sys
+import os
+
+config_file = '$AMAZON_Q_CONFIG_FILE'
+server_path = '$SERVER_PATH'
+project_path = '$project_path' if '$project_path' else None
+
+# Read existing config or create new one
+try:
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+except:
+    config = {}
+
+# Initialize mcpServers if not exists
+if 'mcpServers' not in config:
+    config['mcpServers'] = {}
+
+# Add UEMCP server configuration
+uemcp_config = {
+    'command': 'node',
+    'args': [server_path]
+}
+
+# Add project path as environment variable if provided
+if project_path:
+    uemcp_config['env'] = {
+        'UEMCP_PROJECT_PATH': project_path
+    }
+
+# Check if UEMCP is already configured
+if 'uemcp' not in config['mcpServers']:
+    config['mcpServers']['uemcp'] = uemcp_config
+    print('Added UEMCP MCP server to Amazon Q configuration')
+else:
+    # Update existing configuration
+    config['mcpServers']['uemcp'] = uemcp_config
+    print('Updated UEMCP MCP server in Amazon Q configuration')
+
+# Write back the configuration
+with open(config_file, 'w') as f:
+    json.dump(config, f, indent=2)
+    
+print('Amazon Q configuration updated successfully')
+" && log_success "Configured Amazon Q with UEMCP MCP server" || log_warning "Could not update Amazon Q config automatically"
+    else
+        log_warning "Python not available - please manually add to ~/.aws/amazonq/agents/default.json:"
+        echo ""
+        echo '  {
+    "mcpServers": {
+      "uemcp": {
+        "command": "node",
+        "args": ["'$SCRIPT_DIR'/server/dist/index.js"]
+      }
+    }
+  }'
+        echo ""
+    fi
+    
+    log_info "Amazon Q MCP Configuration:"
+    echo "  • UEMCP MCP server configured in ~/.aws/amazonq/agents/default.json"
+    echo "  • Restart your IDE for changes to take effect"
+    echo "  • The MCP server will start automatically when you use Amazon Q"
     echo ""
 }
 
@@ -1123,11 +1198,15 @@ if is_amazon_q_installed; then
     TOOLS_DETECTED=$((TOOLS_DETECTED + 1))
     
     if [ "$INTERACTIVE" = true ]; then
-        read -p "Show instructions for using UEMCP with Amazon Q? (Y/n): " show_q
-        show_q_lower=$(echo "$show_q" | tr '[:upper:]' '[:lower:]')
-        if [ "$show_q_lower" != "n" ]; then
-            provide_amazon_q_instructions
+        read -p "Configure UEMCP for Amazon Q? (Y/n): " configure_q
+        configure_q_lower=$(echo "$configure_q" | tr '[:upper:]' '[:lower:]')
+        if [ "$configure_q_lower" != "n" ]; then
+            provide_amazon_q_instructions "$VALID_PROJECT_PATH"
+            TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Amazon Q\n"
         fi
+    else
+        provide_amazon_q_instructions "$VALID_PROJECT_PATH"
+        TOOLS_CONFIGURED="$TOOLS_CONFIGURED • Amazon Q\n"
     fi
 fi
 
