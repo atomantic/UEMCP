@@ -581,28 +581,12 @@ async function init() {
         }
     }
     
-    // Create test scripts
-    log.section('Creating test scripts...');
-    
-    // Create test-connection script
-    const testScriptContent = `#!/usr/bin/env node
-const { spawn } = require('child_process');
-const path = require('path');
-
-console.log('Testing UEMCP connection...');
-const testProcess = spawn('node', [path.join(__dirname, 'test-uemcp-simple.js')], {
-    stdio: 'inherit',
-    env: { ...process.env, DEBUG: 'uemcp:*' }
-});
-
-testProcess.on('close', (code) => {
-    process.exit(code);
-});
-`;
-    
-    fs.writeFileSync(path.join(projectRoot, 'test-connection.js'), testScriptContent);
-    if (os.platform() !== 'win32') {
-        fs.chmodSync(path.join(projectRoot, 'test-connection.js'), '755');
+    // Verify test script exists
+    const testScriptPath = path.join(projectRoot, 'test-connection.js');
+    if (!fs.existsSync(testScriptPath)) {
+        log.warning('test-connection.js not found in repository');
+    } else {
+        log.success('Test script available: test-connection.js');
     }
     
     // Summary (suppress if called from setup.sh to avoid duplicate messages)
