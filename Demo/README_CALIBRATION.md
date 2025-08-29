@@ -26,20 +26,25 @@ The Demo project now uses a **simple calibration grid** made of colored geometri
 
 ## Color Manipulation
 
-### Using Helper Scripts
+### Using Python in UE Console
 
-The repository includes helper scripts in the `scripts/` folder for manipulating the calibration grid:
+You can manipulate the grid colors directly in the UE Python console:
 
 ```python
-# Run from UE Python console:
-exec(open('/path/to/UEMCP/scripts/manipulate-calibration-colors.py').read())
+import unreal
 
-# Then use these functions:
-create_rainbow_pattern()
-create_checkerboard_pattern()
-randomize_colors()
-create_gradient()
-change_all_grid_colors((1, 0, 0))  # All red
+# Get all calibration grid actors
+actors = unreal.EditorLevelLibrary.get_all_level_actors()
+grid_actors = [a for a in actors if 'CalibCube' in a.get_actor_label()]
+
+# Change colors using dynamic materials
+for actor in grid_actors:
+    mesh_comp = actor.get_component_by_class(unreal.StaticMeshComponent)
+    if mesh_comp:
+        material = mesh_comp.get_material(0)
+        dynamic_mat = mesh_comp.create_dynamic_material_instance(0)
+        # Set to red (R=1, G=0, B=0)
+        dynamic_mat.set_vector_parameter_value("BaseColor", unreal.LinearColor(1, 0, 0, 1))
 ```
 
 ### Using MCP Tools
@@ -91,17 +96,14 @@ CalibrationGrid/
       └── Marker_SE
 ```
 
-## Creating New Grids
+## Modifying the Grid
 
-To create different grid configurations, use the scripts in the `scripts/` folder:
+The grid is built into the Demo project's Calibration.umap level. To modify it:
 
-```javascript
-// Create a 10x10 grid with materials
-node scripts/create-simple-calibration-grid.js
-
-// Create ultra-simple grid with basic shapes
-node scripts/create-ultra-simple-grid.js
-```
+1. Open the level in Unreal Engine
+2. Select grid actors in the World Outliner (under CalibrationGrid folder)
+3. Adjust properties like position, scale, or materials
+4. Save the level to preserve changes
 
 ## Customization
 
