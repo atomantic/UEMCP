@@ -11,9 +11,9 @@ The Demo project now uses a **simple calibration grid** made of colored geometri
 ## Grid Structure
 
 ### Main Grid
-- **7x7 grid** of colored cubes
-- **200 units** spacing between elements
-- **Center sphere** at position (3,3) for orientation
+- **8x10 grid** of colored cubes (8 rows × 10 columns)
+- **150 units** spacing between elements
+- **Center markers** at corners for orientation
 - **8 distinct colors**: Red, Green, Blue, Yellow, Cyan, Magenta, Orange, White
 
 ### Markers

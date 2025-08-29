@@ -31,7 +31,7 @@ def create_simple_calibration_grid():
     # Grid configuration
     GRID_ROWS = 8
     GRID_COLS = 10
-    CELL_SIZE = 150  # Distance between elements
+    CELL_SIZE = 150  # Distance between elements (150 units = 1.5 meters in UE)
     ELEMENT_SIZE = 0.8  # Scale of each element
     
     # Define simple colors (RGB values 0-1)

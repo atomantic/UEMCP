@@ -48,8 +48,9 @@ async function setupSimpleCalibration() {
     // Create simple colored cube grid
     console.log('Creating new calibration grid...');
     
-    const GRID_SIZE = 8;
-    const SPACING = 200;
+    const GRID_ROWS = 8;
+    const GRID_COLS = 10;
+    const SPACING = 150;  // Match Demo project's 150 unit spacing
     const actors = [];
     
     // Simple colors
@@ -65,13 +66,13 @@ async function setupSimpleCalibration() {
     ];
 
     // Build actor list for batch spawn
-    for (let row = 0; row < GRID_SIZE; row++) {
-      for (let col = 0; col < GRID_SIZE; col++) {
-        const x = (col - GRID_SIZE/2 + 0.5) * SPACING;
-        const y = (row - GRID_SIZE/2 + 0.5) * SPACING;
+    for (let row = 0; row < GRID_ROWS; row++) {
+      for (let col = 0; col < GRID_COLS; col++) {
+        const x = (col - GRID_COLS/2 + 0.5) * SPACING;
+        const y = (row - GRID_ROWS/2 + 0.5) * SPACING;
         const z = 50;
         
-        const colorIndex = (row * GRID_SIZE + col) % colors.length;
+        const colorIndex = (row * GRID_COLS + col) % colors.length;
         const color = colors[colorIndex];
         
         actors.push({
@@ -134,12 +135,13 @@ async function setupSimpleCalibration() {
 
     // Add corner markers
     console.log('Adding corner markers...');
-    const markerSize = GRID_SIZE/2 * SPACING + 150;
+    const markerSizeX = GRID_COLS/2 * SPACING + 150;
+    const markerSizeY = GRID_ROWS/2 * SPACING + 150;
     const markers = [
-      { name: 'NW', x: -markerSize, y: -markerSize },
-      { name: 'NE', x: markerSize, y: -markerSize },
-      { name: 'SW', x: -markerSize, y: markerSize },
-      { name: 'SE', x: markerSize, y: markerSize }
+      { name: 'NW', x: -markerSizeX, y: -markerSizeY },
+      { name: 'NE', x: markerSizeX, y: -markerSizeY },
+      { name: 'SW', x: -markerSizeX, y: markerSizeY },
+      { name: 'SE', x: markerSizeX, y: markerSizeY }
     ];
 
     for (const marker of markers) {

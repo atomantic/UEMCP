@@ -11,7 +11,7 @@ async function createSimpleCalibrationGrid() {
   console.log('Creating simple calibration grid...');
   
   // Grid configuration
-  const GRID_SIZE = 10;  // 10x10 grid
+  const GRID_SIZE = 10;  // 10x10 grid (different from Demo's 8x10)
   const CELL_SIZE = 100; // 100 units per cell
   const CUBE_SIZE = 50;  // Cubes are 50 units (half cell size)
   
