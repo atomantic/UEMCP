@@ -727,3 +727,4 @@ Before committing, always run `./test-ci-locally.sh` and ensure:
 4. **Deprecation warnings**: Fixed by using `UnrealEditorSubsystem()` instead of deprecated APIs
 
 5. **Git CRLF warnings**: If you see "CRLF will be replaced by LF" warnings, the file has Windows line endings that need to be fixed
+- after taking a viewport screenshot, wait a second to allow the file to be written
