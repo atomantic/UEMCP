@@ -42,6 +42,13 @@ export {
   materialApplyTool,
 } from './materials/index.js';
 
+// Blueprint tools
+export {
+  blueprintCreateTool,
+  blueprintAddComponentTool,
+  blueprintSetVariableTool,
+} from './blueprints/index.js';
+
 // Level tools
 export {
   levelActorsTool,
@@ -64,5 +71,6 @@ export * from './actors/index.js';
 export * from './viewport/index.js';
 export * from './assets/index.js';
 export * from './materials/index.js';
+export * from './blueprints/index.js';
 export * from './level/index.js';
 export * from './system/index.js';

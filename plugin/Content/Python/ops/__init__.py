@@ -10,6 +10,9 @@ from .viewport import ViewportOperations
 from .system import SystemOperations
 from .material import MaterialOperations
 
+# Import blueprint operations as a module since it doesn't have a class yet
+from . import blueprint
+
 __all__ = [
     "ActorOperations",
     "AssetOperations",
@@ -17,4 +20,5 @@ __all__ = [
     "ViewportOperations",
     "SystemOperations",
     "MaterialOperations",
+    "blueprint",
 ]

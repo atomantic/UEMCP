@@ -20,7 +20,7 @@ This document outlines the implementation roadmap, release schedule, and future 
 
 **See [Release Notes](docs/release-notes/v0.7.0.md) for full details.**
 
-### 🚀 Version 0.8.0 (Target: February 2025)
+### 🚀 Version 0.8.0
 **Theme: "Blueprint Integration & Advanced Workflows"**
 
 #### Planned Features
@@ -30,7 +30,7 @@ This document outlines the implementation roadmap, release schedule, and future 
 - [ ] Enhanced error recovery and retry mechanisms
 - [ ] Batch operations for all actor tools
 
-### 🌟 Version 0.9.0 (Target: March 2025)
+### 🌟 Version 0.9.0
 **Theme: "Production Readiness"**
 
 #### Planned Features
@@ -41,7 +41,7 @@ This document outlines the implementation roadmap, release schedule, and future 
 - [ ] Production deployment guide
 - [ ] Multi-project management support
 
-### 🎉 Version 1.0.0 (Target: April 2025)
+### 🎉 Version 1.0.0
 **Theme: "Production Release"**
 
 #### Release Criteria for 1.0.0
@@ -90,16 +90,6 @@ This document outlines the implementation roadmap, release schedule, and future 
 - [ ] 5+ external contributors
 - [ ] Used in 10+ production projects
 - [ ] Case studies from real projects
-
-## Current Status (December 2024 - v0.7.0 Released)
-
-✅ **Phase 1: Foundation & Scaffolding** - COMPLETE
-✅ **Phase 2: Basic MCP Implementation** - COMPLETE  
-✅ **Phase 3: Python-UE Bridge** - COMPLETE
-✅ **Phase 4: House Building Experiment** - COMPLETE (see [docs/examples/house-building.md](docs/examples/house-building.md))
-✅ **Phase 5: Core Enhancement Tools** - COMPLETE
-✅ **Phase 6: Material Management Tools** - COMPLETE
-🚧 **Phase 7: Next Development Phase** - IN PLANNING
 
 ### Implemented Architecture
 
