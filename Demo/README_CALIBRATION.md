@@ -26,19 +26,20 @@ The Demo project now uses a **simple calibration grid** made of colored geometri
 
 ## Color Manipulation
 
-### Available Functions in UE Python Console
+### Using Helper Scripts
+
+The repository includes helper scripts in the `scripts/` folder for manipulating the calibration grid:
 
 ```python
-# Apply rainbow pattern
+# Run from UE Python console:
+exec(open('/path/to/UEMCP/scripts/manipulate-calibration-colors.py').read())
+
+# Then use these functions:
 create_rainbow_pattern()
-
-# Create checkerboard pattern  
-create_checkerboard()
-
-# Set all elements to a single color
-set_all_to_color(1.0, 0.0, 0.0)  # All red
-set_all_to_color(0.0, 1.0, 0.0)  # All green
-set_all_to_color(0.0, 0.0, 1.0)  # All blue
+create_checkerboard_pattern()
+randomize_colors()
+create_gradient()
+change_all_grid_colors((1, 0, 0))  # All red
 ```
 
 ### Using MCP Tools
@@ -90,24 +91,32 @@ CalibrationGrid/
       └── Marker_SE
 ```
 
-## Restoring Original Colors
+## Creating New Grids
 
-If you want to restore the original color pattern:
+To create different grid configurations, use the scripts in the `scripts/` folder:
 
-```python
-# In UE Python console
-exec(open('/Users/antic/github.com/atomantic/UEMCP/Demo/update_calibration_grid.py').read())
+```javascript
+// Create a 10x10 grid with materials
+node scripts/create-simple-calibration-grid.js
+
+// Create ultra-simple grid with basic shapes
+node scripts/create-ultra-simple-grid.js
 ```
 
-Or use the apply_colors_to_grid() function to restore based on element names.
+Or use Python scripts for plane-based grids:
+```python
+exec(open('/path/to/UEMCP/scripts/create-plane-calibration-grid.py').read())
+```
 
 ## Customization
 
-You can easily modify the grid by changing these parameters in the creation script:
+The Demo project's calibration grid uses:
 
-- `GRID_SIZE`: Number of rows/columns (currently 7)
-- `CELL_SIZE`: Spacing between elements (currently 200 units)
-- `CUBE_SCALE`: Size of each element (currently 0.8)
+- **Grid Size**: 8 rows × 10 columns  
+- **Cell Size**: 150 units spacing between elements
+- **Element Scale**: 0.8 scale for each shape
+
+You can modify these values in the creation scripts to suit your needs.
 
 ## Troubleshooting
 
