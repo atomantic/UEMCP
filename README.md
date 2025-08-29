@@ -34,14 +34,31 @@ The script will detect which AI tools you have installed and offer to configure 
 - **OpenAI Codex**: Trusted projects via `~/.codex/config.toml`
 - **GitHub Copilot**: Usage instructions provided
 
-**Windows users:** Use WSL or Git Bash, then run `./setup.sh`
+### 📝 Windows Users
+
+**Recommended: Use WSL (Windows Subsystem for Linux)**
+```bash
+# Install WSL if you haven't already
+wsl --install
+
+# In WSL/Ubuntu terminal:
+git clone https://github.com/atomantic/UEMCP.git
+cd UEMCP
+./setup.sh
+```
+
+**Alternative: Git Bash**
+- Install [Git for Windows](https://git-scm.com/download/win) which includes Git Bash
+- Run `./setup.sh` in Git Bash terminal
+
+**Note:** The setup script will copy (not symlink) the plugin to your UE project on Windows to avoid permission issues.
 
 **Advanced options:**
 ```bash
-# Specify UE project (automatically installs plugin)
+# Specify UE project (automatically installs plugin via copy)
 ./setup.sh --project "/path/to/project.uproject"
 
-# Install with symlink for plugin development
+# Install with symlink for UEMCP plugin development
 ./setup.sh --project "/path/to/project.uproject" --symlink
 
 # Non-interactive mode (for CI/CD)

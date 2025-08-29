@@ -733,14 +733,15 @@ if [ "$SHOW_HELP" = true ]; then
     echo ""
     echo "Options:"
     echo "  --project <path>    Path to Unreal Engine project (will install plugin)"
-    echo "  --symlink           Create symlink instead of copying plugin (dev mode)"
-    echo "  --copy              Copy plugin files instead of symlinking"
+    echo "  --copy              Copy plugin files (default - recommended)"
+    echo "  --symlink           Create symlink for development (changes reflect immediately)"
     echo "  --no-interactive    Run without prompts (automation/CI)"
     echo "  --help              Show this help"
     echo ""
     echo "Examples:"
-    echo "  ./setup.sh                                          # Interactive setup"
-    echo "  ./setup.sh --project /path/to/project --symlink    # Dev setup"
+    echo "  ./setup.sh                                          # Interactive setup (copies plugin)"
+    echo "  ./setup.sh --project /path/to/project              # Install to specific project"
+    echo "  ./setup.sh --project /path/to/project --symlink    # Dev mode with symlink"
     echo "  ./setup.sh --no-interactive                        # CI/automation"
     echo ""
     echo "The script will automatically detect installed AI tools:"
@@ -1160,16 +1161,16 @@ if [ -n "$PROJECT_PATH" ]; then
             if [ -z "$USE_SYMLINK" ] && [ "$INTERACTIVE" = true ]; then
                 echo ""
                 log_info "Choose installation method:"
-                echo "  1. Symlink (recommended for development - changes reflect immediately)"
-                echo "  2. Copy (recommended for production - isolated from source)"
+                echo "  1. Copy (recommended - works on all platforms, stable)"
+                echo "  2. Symlink (for UEMCP developers - changes reflect immediately)"
                 read -p "Select [1-2] (default: 1): " method
                 if [ "$method" = "2" ]; then
-                    USE_SYMLINK="false"
-                else
                     USE_SYMLINK="true"
+                else
+                    USE_SYMLINK="false"
                 fi
             elif [ -z "$USE_SYMLINK" ]; then
-                USE_SYMLINK="true"  # Default to symlink
+                USE_SYMLINK="false"  # Default to copy (more compatible)
             fi
             
             install_plugin "$VALID_PROJECT_PATH" "$USE_SYMLINK"
