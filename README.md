@@ -403,11 +403,13 @@ Most remaining limitations can be worked around using the `python_proxy` tool. S
 
 ## 🗺️ Roadmap
 
-### Upcoming Releases
-- **v0.7.0** (Jan 2025) - Socket-based building, batch operations, FAB import
-- **v0.8.0** (Feb 2025) - Blueprint manipulation, undo/redo system
-- **v0.9.0** (Mar 2025) - Performance optimizations, production readiness
-- **v1.0.0** (Apr 2025) - Production release with full feature set
+### Released
+- **v0.7.0** - Socket-based building, batch operations, FAB import
+- **v0.8.0** - Blueprint creation, undo/redo system
+
+### Upcoming
+- **v0.9.0** - Performance optimizations, production readiness
+- **v1.0.0** - Production release with full feature set
 
 See [PLAN.md](PLAN.md) for detailed roadmap and release criteria.
 
