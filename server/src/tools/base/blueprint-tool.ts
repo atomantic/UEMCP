@@ -116,7 +116,7 @@ export abstract class BlueprintTool<TArgs = unknown> extends BaseTool<TArgs> {
   /**
    * Format error response
    */
-  protected formatError(message: string): ReturnType<typeof ResponseFormatter.success> {
-    return ResponseFormatter.success(`Error: ${message}`);
+  protected formatError(message: string): ReturnType<typeof ResponseFormatter.error> {
+    return ResponseFormatter.error(message);
   }
 }

@@ -169,7 +169,7 @@ def create(
 
 
 # NOTE: add_component() has been removed as it cannot be implemented
-# due to Unreal Engine Python API limitations. 
+# due to Unreal Engine Python API limitations.
 # Component addition must be done manually in the Blueprint editor.
 # This functionality may be added in future UE versions.
 

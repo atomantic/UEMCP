@@ -133,7 +133,7 @@ export class CheckpointRestoreTool extends BaseTool<CheckpointRestoreArgs> {
       } else {
         message += 'No checkpoints available';
       }
-      return ResponseFormatter.success(message);
+      return ResponseFormatter.error(message);
     }
 
     const status = this.history.getStatus();

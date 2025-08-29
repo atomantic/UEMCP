@@ -80,7 +80,7 @@ class ActorOperations:
             # Configure actor
             actor.set_actor_label(name)
             actor.set_actor_scale3d(ue_scale)
-            
+
             # Store asset path as metadata for undo support
             # WARNING: Using tags for metadata storage has known limitations:
             # 1. Risk of collision with other systems using tags
@@ -724,7 +724,7 @@ class ActorOperations:
         folder = common_folder or actor_config.get("folder")
         if folder:
             spawned_actor.set_folder_path(folder)
-        
+
         # Store asset path as metadata for undo support
         asset_path = actor_config.get("assetPath")
         # WARNING: Using tags for metadata - see detailed warning in spawn() method
@@ -1483,7 +1483,7 @@ class ActorOperations:
                     # Fallback to old method
                     elif tag.startswith('/Game/'):
                         asset_path = tag
-            
+
             # If no tag found, try to get from static mesh component
             if not asset_path and isinstance(actor, unreal.StaticMeshActor):
                 try:
@@ -1513,3 +1513,29 @@ class ActorOperations:
         except Exception as e:
             log_error(f"Failed to get actor state: {str(e)}")
             return {"success": False, "error": str(e)}
+
+    def _validate_tag_integrity(self, actor, expected_asset_path=None):
+        """Validate that actor tags haven't been corrupted.
+
+        TODO: Implement more robust metadata storage when UE provides better APIs.
+        Currently tags are the only persistent storage mechanism available.
+
+        Args:
+            actor: Actor to check
+            expected_asset_path: Expected asset path if known
+
+        Returns:
+            bool: True if tags appear valid
+        """
+        if not hasattr(actor, 'tags'):
+            return False
+
+        # Check for UEMCP tags
+        uemcp_tags = [tag for tag in actor.tags if tag.startswith('UEMCP_')]
+
+        if expected_asset_path:
+            expected_tag = f'UEMCP_Asset:{expected_asset_path}'
+            return expected_tag in actor.tags
+
+        # Just check that we have at least one UEMCP tag
+        return len(uemcp_tags) > 0

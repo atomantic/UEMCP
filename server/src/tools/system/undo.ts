@@ -108,7 +108,7 @@ export class UndoTool extends BaseTool<UndoArgs> {
     const undoData = operation.undoData;
     
     if (!undoData) {
-      throw new Error('No undo data available');
+      throw new Error(`No undo data available for operation${operation.id ? ` (ID: ${operation.id})` : ''}`);
     }
     
     switch (undoData.type) {
