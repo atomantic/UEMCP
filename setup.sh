@@ -1163,10 +1163,11 @@ if [ -n "$PROJECT_PATH" ]; then
                 log_info "Choose installation method:"
                 echo "  1. Copy (recommended - works on all platforms, stable)"
                 echo "  2. Symlink (for development - source changes reflect immediately)"
-                read -p "Select [1-2] (default: 1): " method
+                read -p "Select [1-2] (default: 1/Copy): " method
                 if [ "$method" = "2" ]; then
-                    USE_SYMLINK="true"
+                    USE_SYMLINK="true"  # User selected symlink
                 else
+                    # Default to copy (option 1 or empty/enter)
                     USE_SYMLINK="false"
                 fi
             elif [ -z "$USE_SYMLINK" ]; then
