@@ -3,6 +3,10 @@ import { ToolDefinition } from '../base/base-tool.js';
 import { ResponseFormatter } from '../../utils/response-formatter.js';
 import { OperationHistory } from '../../services/operation-history.js';
 
+// Constants for formatting
+const SEPARATOR_LENGTH = 60;
+const SUBSECTION_SEPARATOR_LENGTH = 40;
+
 interface HistoryListArgs {
   limit?: number;
   showRedo?: boolean;
@@ -52,7 +56,7 @@ export class HistoryListTool extends BaseTool<HistoryListArgs> {
     const redoHistory = showRedo ? this.history.getRedoHistory(limit) : [];
     
     let message = `Operation History (${status.currentIndex + 1}/${status.totalOperations} operations)\n`;
-    message += '=' .repeat(60) + '\n\n';
+    message += '=' .repeat(SEPARATOR_LENGTH) + '\n\n';
     
     // Show checkpoints if any
     if (status.checkpoints.length > 0) {
@@ -66,7 +70,7 @@ export class HistoryListTool extends BaseTool<HistoryListArgs> {
     // Show undo history (operations that can be undone)
     if (undoHistory.length > 0) {
       message += `Recent Operations (can be undone):\n`;
-      message += '-'.repeat(40) + '\n';
+      message += '-'.repeat(SUBSECTION_SEPARATOR_LENGTH) + '\n';
       
       undoHistory.forEach((op, index) => {
         const timestamp = new Date(op.timestamp).toLocaleTimeString();
@@ -102,9 +106,9 @@ export class HistoryListTool extends BaseTool<HistoryListArgs> {
     
     // Show redo history if requested
     if (showRedo && redoHistory.length > 0) {
-      message += '\n' + '-'.repeat(40) + '\n';
+      message += '\n' + '-'.repeat(SUBSECTION_SEPARATOR_LENGTH) + '\n';
       message += `Operations Available for Redo:\n`;
-      message += '-'.repeat(40) + '\n';
+      message += '-'.repeat(SUBSECTION_SEPARATOR_LENGTH) + '\n';
       
       redoHistory.forEach((op, index) => {
         const timestamp = new Date(op.timestamp).toLocaleTimeString();
@@ -120,7 +124,7 @@ export class HistoryListTool extends BaseTool<HistoryListArgs> {
     }
     
     // Show summary
-    message += '\n' + '=' .repeat(60) + '\n';
+    message += '\n' + '=' .repeat(SEPARATOR_LENGTH) + '\n';
     message += `Status: ${status.canUndo ? `${status.currentIndex + 1} operations can be undone` : 'Nothing to undo'}`;
     if (status.canRedo) {
       message += `, ${status.totalOperations - status.currentIndex - 1} can be redone`;

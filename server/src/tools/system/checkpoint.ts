@@ -158,13 +158,16 @@ export class CheckpointRestoreTool extends BaseTool<CheckpointRestoreArgs> {
     const redoneOps: string[] = [];
     const errors: string[] = [];
 
+    // Create tool instances once, outside the loops
+    const undoTool = operationsToUndo > 0 ? new UndoTool() : null;
+    const redoTool = operationsToRedo > 0 ? new RedoTool() : null;
+
     // Perform undo operations
     for (let i = 0; i < operationsToUndo; i++) {
       const operation = this.history.getUndoableOperation();
-      if (operation) {
+      if (operation && undoTool) {
         try {
           // Use the undo tool's logic
-          const undoTool = new UndoTool();
           await undoTool.undoOperation(operation);
           undoneOps.push(operation.description);
           this.history.markUndone();
@@ -179,10 +182,9 @@ export class CheckpointRestoreTool extends BaseTool<CheckpointRestoreArgs> {
     // Perform redo operations
     for (let i = 0; i < operationsToRedo; i++) {
       const operation = this.history.getRedoableOperation();
-      if (operation) {
+      if (operation && redoTool) {
         try {
           // Use the redo tool's logic
-          const redoTool = new RedoTool();
           await redoTool.redoOperation(operation);
           redoneOps.push(operation.description);
           this.history.markRedone();

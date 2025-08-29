@@ -5,6 +5,9 @@
 
 import { logger } from '../utils/logger.js';
 
+// Configuration constants
+const DEFAULT_MAX_HISTORY_SIZE = 100;
+
 // Type alias for operation IDs to improve API clarity
 export type OperationId = string;
 
@@ -51,7 +54,7 @@ export class OperationHistory {
   private static instance: OperationHistory;
   private history: OperationRecord[] = [];
   private currentIndex: number = -1;
-  private maxHistorySize: number = 100;
+  private maxHistorySize: number = DEFAULT_MAX_HISTORY_SIZE;
   private checkpoints: Map<string, number> = new Map();
 
   private constructor() {
