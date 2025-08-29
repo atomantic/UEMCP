@@ -84,3 +84,14 @@ Demo/*
 !Demo/Content/
 !Demo/Source/
 !Demo/*.uproject
+!Demo/Config/
+# Keep useful scripts and documentation for other users
+!Demo/*.md
+!Demo/*.py
+!Demo/*.js
+!Demo/Scripts/
+# But still ignore Unreal's generated folders even if they match above patterns
+Demo/Saved/
+Demo/Intermediate/
+Demo/DerivedDataCache/
+Demo/Binaries/

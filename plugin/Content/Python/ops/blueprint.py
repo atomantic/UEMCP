@@ -4,7 +4,7 @@ Blueprint manipulation operations for creating and modifying Blueprint classes.
 
 import unreal
 from typing import Dict, List, Optional, Any
-from utils.logger import log_info, log_error, log_warning
+from utils.general import log_debug as log_info, log_error, log_warning
 
 
 def create(
