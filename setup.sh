@@ -739,7 +739,7 @@ if [ "$SHOW_HELP" = true ]; then
     echo "  --help              Show this help"
     echo ""
     echo "Examples:"
-    echo "  ./setup.sh                                          # Interactive setup (copies plugin)"
+    echo "  ./setup.sh                                          # Interactive setup (default: copy)"
     echo "  ./setup.sh --project /path/to/project              # Install to specific project"
     echo "  ./setup.sh --project /path/to/project --symlink    # Dev mode with symlink"
     echo "  ./setup.sh --no-interactive                        # CI/automation"
@@ -1162,7 +1162,7 @@ if [ -n "$PROJECT_PATH" ]; then
                 echo ""
                 log_info "Choose installation method:"
                 echo "  1. Copy (recommended - works on all platforms, stable)"
-                echo "  2. Symlink (for UEMCP developers - changes reflect immediately)"
+                echo "  2. Symlink (for development - source changes reflect immediately)"
                 read -p "Select [1-2] (default: 1): " method
                 if [ "$method" = "2" ]; then
                     USE_SYMLINK="true"
