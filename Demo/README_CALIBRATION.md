@@ -103,11 +103,6 @@ node scripts/create-simple-calibration-grid.js
 node scripts/create-ultra-simple-grid.js
 ```
 
-Or use Python scripts for plane-based grids:
-```python
-exec(open('/path/to/UEMCP/scripts/create-plane-calibration-grid.py').read())
-```
-
 ## Customization
 
 The Demo project's calibration grid uses:
