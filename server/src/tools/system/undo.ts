@@ -100,7 +100,7 @@ export class UndoTool extends BaseTool<UndoArgs> {
     return ResponseFormatter.success(message.trim());
   }
 
-  private async performUndo(operation: OperationRecord): Promise<void> {
+  public async performUndo(operation: OperationRecord): Promise<void> {
     const undoData = operation.undoData;
     
     if (!undoData) {

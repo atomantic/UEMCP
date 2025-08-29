@@ -163,7 +163,7 @@ export class CheckpointRestoreTool extends BaseTool<CheckpointRestoreArgs> {
         try {
           // Use the undo tool's logic
           const undoTool = new (await import('./undo.js')).UndoTool();
-          await undoTool['performUndo'](operation);
+          await undoTool.performUndo(operation);
           undoneOps.push(operation.description);
           this.history.markUndone();
         } catch (error) {
@@ -181,7 +181,7 @@ export class CheckpointRestoreTool extends BaseTool<CheckpointRestoreArgs> {
         try {
           // Use the redo tool's logic
           const redoTool = new (await import('./redo.js')).RedoTool();
-          await redoTool['performRedo'](operation);
+          await redoTool.performRedo(operation);
           redoneOps.push(operation.description);
           this.history.markRedone();
         } catch (error) {

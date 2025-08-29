@@ -80,6 +80,18 @@ class ActorOperations:
             # Configure actor
             actor.set_actor_label(name)
             actor.set_actor_scale3d(ue_scale)
+            
+            # Store asset path as metadata for undo support
+            # Using a custom property instead of tags for reliability
+            if hasattr(actor, 'set_editor_property'):
+                try:
+                    # Store in actor metadata (more reliable than tags)
+                    actor.set_editor_property('actor_hidden_in_game', False)
+                    # Add to tags as backup method
+                    if hasattr(actor, 'tags'):
+                        actor.tags.append(f'UEMCP_Asset:{assetPath}')
+                except AttributeError:
+                    pass
 
             if folder:
                 actor.set_folder_path(folder)
@@ -702,6 +714,14 @@ class ActorOperations:
         folder = common_folder or actor_config.get("folder")
         if folder:
             spawned_actor.set_folder_path(folder)
+        
+        # Store asset path as metadata for undo support
+        asset_path = actor_config.get("assetPath")
+        if asset_path and hasattr(spawned_actor, 'tags'):
+            try:
+                spawned_actor.tags.append(f'UEMCP_Asset:{asset_path}')
+            except (AttributeError, RuntimeError):
+                pass
 
         return actor_name
 
@@ -1438,12 +1458,31 @@ class ActorOperations:
 
             # Get the asset path (what was spawned)
             asset_path = None
-            # Try to determine the original asset
+            # Try to determine the original asset from tags
             if hasattr(actor, 'tags'):
                 for tag in actor.tags:
-                    if tag.startswith('/Game/'):
-                        asset_path = tag
+                    # Look for our custom tag format first
+                    if tag.startswith('UEMCP_Asset:'):
+                        asset_path = tag.replace('UEMCP_Asset:', '')
                         break
+                    # Fallback to old method
+                    elif tag.startswith('/Game/'):
+                        asset_path = tag
+            
+            # If no tag found, try to get from static mesh component
+            if not asset_path and isinstance(actor, unreal.StaticMeshActor):
+                try:
+                    mesh_comp = actor.get_editor_property(
+                        "static_mesh_component"
+                    )
+                    if mesh_comp:
+                        static_mesh = mesh_comp.get_editor_property(
+                            "static_mesh"
+                        )
+                        if static_mesh:
+                            asset_path = static_mesh.get_path_name().split('.')[0]
+                except (AttributeError, RuntimeError):
+                    pass
 
             return {
                 "success": True,

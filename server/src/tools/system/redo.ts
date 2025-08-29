@@ -3,6 +3,7 @@ import { ToolDefinition } from '../base/base-tool.js';
 import { ResponseFormatter } from '../../utils/response-formatter.js';
 import { OperationHistory, OperationRecord } from '../../services/operation-history.js';
 import { logger } from '../../utils/logger.js';
+import { getPythonCommand } from './tool-mappings.js';
 
 interface RedoArgs {
   count?: number;
@@ -93,23 +94,12 @@ export class RedoTool extends BaseTool<RedoArgs> {
     return ResponseFormatter.success(message.trim());
   }
 
-  private async performRedo(operation: OperationRecord): Promise<void> {
+  public async performRedo(operation: OperationRecord): Promise<void> {
     // Re-execute the original operation based on its type
     const toolName = operation.toolName;
     const args = operation.args;
 
-    // Map tool names to their Python commands
-    const toolMapping: Record<string, string> = {
-      'actor_spawn': 'actor.spawn',
-      'actor_delete': 'actor.delete',
-      'actor_modify': 'actor.modify',
-      'actor_duplicate': 'actor.duplicate',
-      'material_apply': 'material.apply',
-      'material_create': 'material.create',
-      // Add more mappings as needed
-    };
-
-    const pythonCommand = toolMapping[toolName];
+    const pythonCommand = getPythonCommand(toolName);
     
     if (pythonCommand) {
       const result = await this.executePythonCommand(pythonCommand, args);
