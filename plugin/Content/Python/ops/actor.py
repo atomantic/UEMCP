@@ -88,12 +88,12 @@ class ActorOperations:
             # 3. Limited to string data only
             # 4. May be cleared by other operations
             #
-            # Preferred alternatives (when available in future UE versions):
-            # - actor.set_metadata_tag() (UE 5.5+)
-            # - Custom actor components
-            # - Editor-only properties
+            # ROADMAP: When upgrading to UE 5.5+, replace with:
+            # - actor.set_metadata_tag() for hidden metadata storage
+            # - Or use custom UActorComponent subclass for persistent data
+            # - Or leverage editor subsystem for operation tracking
             #
-            # Current implementation uses namespaced tags as the least-bad option
+            # Current mitigation: Using namespaced tags (UEMCP_Asset:)
             if hasattr(actor, 'tags'):
                 try:
                     # Use namespaced tag to reduce (but not eliminate) collision risk

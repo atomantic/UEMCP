@@ -235,12 +235,11 @@ export class OperationHistory {
   }
 
   private generateId(): OperationId {
-    // Use crypto.randomUUID() if available (Node.js 14.17+), otherwise fallback
-    // to timestamp + random for better collision resistance
+    // Prefer crypto.randomUUID() for best collision resistance
     if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.randomUUID) {
       return `op_${globalThis.crypto.randomUUID()}`;
     }
-    // Fallback with higher entropy: timestamp + counter + random
+    // Fallback for older Node.js: combine timestamp + counter + random
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 15);
     const counter = (this.idCounter = (this.idCounter || 0) + 1);

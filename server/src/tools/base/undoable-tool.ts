@@ -64,13 +64,15 @@ export abstract class UndoableTool<TArgs = unknown> extends BaseTool<TArgs> {
 
   /**
    * Perform the redo operation
-   * Default implementation re-executes the original operation
+   * Note: Actual redo logic is handled by the RedoTool class
+   * which re-executes operations through the tool mapping system.
+   * This method is kept for potential future use if tools need
+   * custom redo behavior different from re-execution.
    */
   protected async performRedo(_args: TArgs): Promise<PythonResult> {
-    // By default, redo just re-executes the original operation
-    // Subclasses can override for more efficient redo
-    // Note: This is a placeholder - actual redo logic should be implemented
-    return { success: true, message: 'Redo operation placeholder' };
+    // Redo is handled by RedoTool using tool mappings
+    // Individual tools don't implement redo directly
+    throw new Error('Redo should be handled by RedoTool, not individual tool classes');
   }
 
   /**
