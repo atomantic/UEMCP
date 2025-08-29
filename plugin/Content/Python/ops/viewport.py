@@ -304,7 +304,7 @@ class ViewportOperations:
             return {"success": False, "error": str(e)}
 
     def look_at_target(self, target=None, actorName=None,
-                       distance=1000, pitch=-30, height=500):
+                       distance=1000, pitch=-30, height=500, angle=-135):
         """Point viewport camera to look at specific coordinates or actor.
 
         Args:
@@ -313,6 +313,7 @@ class ViewportOperations:
             distance: Distance from target
             pitch: Camera pitch angle
             height: Camera height offset
+            angle: Angle around target in degrees (default: -135 for NW position)
 
         Returns:
             dict: Result with camera info
@@ -331,11 +332,12 @@ class ViewportOperations:
                 return {
                     "success": False, "error": "Must provide either target coordinates or actorName"}
 
-            # Calculate camera position
-            angle = -45 * math.pi / 180  # -45 degrees in radians
+            # Calculate camera position using provided angle
+            angle_rad = angle * math.pi / 180  # Convert angle to radians
 
-            camera_x = target_location.x + distance * math.cos(angle)
-            camera_y = target_location.y + distance * math.sin(angle)
+            # Position camera at specified angle around target
+            camera_x = target_location.x + distance * math.cos(angle_rad)
+            camera_y = target_location.y + distance * math.sin(angle_rad)
             camera_z = target_location.z + height
 
             camera_location = unreal.Vector(camera_x, camera_y, camera_z)
@@ -344,11 +346,11 @@ class ViewportOperations:
             dx = target_location.x - camera_x
             dy = target_location.y - camera_y
 
-            # Calculate angle and convert to Unreal's coordinate system
-            angle_rad = math.atan2(dy, dx)
-            yaw = -(angle_rad * 180 / math.pi)
+            # Calculate angle correctly (no negation needed)
+            angle_to_target = math.atan2(dy, dx)
+            yaw = math.degrees(angle_to_target)
 
-            # Set camera rotation
+            # Set camera rotation (Roll, Pitch, Yaw order)
             camera_rotation = unreal.Rotator(0, pitch, yaw)
 
             # Apply to viewport

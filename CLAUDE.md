@@ -307,18 +307,20 @@ For detailed code comparisons showing how MCP tools reduce code by 85% on averag
 
 2. **BEST PRACTICE - Use These Instead of Manual Camera Math**:
    ```python
-   # Method 1: Use viewport_focus tool (RECOMMENDED)
+   # Method 1: Use viewport_focus tool (MOST RELIABLE - ALWAYS USE THIS FIRST!)
    viewport_focus({ actorName: 'Monument_Orb' })
+   # This simply centers on the actor without complex math
    
-   # Method 2: Use viewport_look_at tool (RECOMMENDED)
+   # Method 2: Use viewport_fit to frame multiple actors (ALSO RELIABLE)
+   viewport_fit({ actors: ['Wall_1', 'Wall_2', 'Wall_3'] })
+   
+   # Method 3: Use viewport_look_at tool (CAN BE UNPREDICTABLE)
    viewport_look_at({ 
      target: [0, 0, 300],  # Look at this point
      distance: 1000,       # From this distance
      height: 500          # At this height offset
    })
-   
-   # Method 3: Use viewport_fit to frame multiple actors
-   viewport_fit({ actors: ['Wall_1', 'Wall_2', 'Wall_3'] })
+   # WARNING: viewport_look_at still calculates position and can end up weird!
 
 ### Python Proxy Examples
 
