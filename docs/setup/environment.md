@@ -1,86 +1,109 @@
-# Environment Setup Guide
+# Environment Configuration
 
-## Environment Variables
+## Overview
 
-UEMCP supports the following environment variables for configuration:
+UEMCP uses minimal environment configuration. The `setup.sh` script handles most configuration automatically.
 
-### Required Variables
+## Optional Environment Variables
 
-```bash
-# Path to your Unreal Engine project
-export UE_PROJECT_PATH="/path/to/your/unreal/project"
+### Debug Logging
 
-# Example:
-export UE_PROJECT_PATH="$HOME/Documents/Unreal Projects/MyProject"
-```
-
-### Optional Variables
+Enable detailed debug output for troubleshooting:
 
 ```bash
-# Path to Unreal Engine installation (if not in default location)
-export UE_INSTALL_LOCATION="/path/to/unreal/engine"
-
 # Enable debug logging
 export DEBUG="uemcp:*"
 
-# Python executable (if not using system python3)
-export PYTHON_EXECUTABLE="/path/to/python3"
+# Or set in Claude Desktop config (see below)
 ```
 
-## Setting Environment Variables
+### Project Path (Optional)
+
+The MCP server can optionally log which UE project you're working with:
+
+```bash
+# Optional - only used for logging
+export UE_PROJECT_PATH="/path/to/your/unreal/project"
+```
+
+This is **not required** for UEMCP to function. The Python listener in UE handles all project-specific operations.
+
+## Configuration in Claude Desktop
+
+You can set environment variables in your Claude Desktop configuration:
 
 ### macOS/Linux
-
-Add to your shell profile (`~/.zshrc`, `~/.bashrc`, or `~/.bash_profile`):
-
-```bash
-# UEMCP Configuration
-export UE_PROJECT_PATH="$HOME/Documents/Unreal Projects/MyProject"
-export UE_INSTALL_LOCATION="/Applications/Epic Games/UE_5.6"
-export DEBUG="uemcp:*"
-```
-
-Then reload your shell:
-```bash
-source ~/.zshrc  # or ~/.bashrc
+```json
+{
+  "mcpServers": {
+    "uemcp": {
+      "command": "node",
+      "args": ["/path/to/UEMCP/dist/index.js"],
+      "env": {
+        "DEBUG": "uemcp:*",  // Optional: Enable debug logging
+        "UE_PROJECT_PATH": "/path/to/project"  // Optional: For logging only
+      }
+    }
+  }
+}
 ```
 
 ### Windows
-
-Using Command Prompt:
-```cmd
-setx UE_PROJECT_PATH "C:\Users\%USERNAME%\Documents\Unreal Projects\MyProject"
-setx UE_INSTALL_LOCATION "C:\Program Files\Epic Games\UE_5.6"
+```json
+{
+  "mcpServers": {
+    "uemcp": {
+      "command": "node.exe",
+      "args": ["C:\\path\\to\\UEMCP\\dist\\index.js"],
+      "env": {
+        "DEBUG": "uemcp:*"  // Optional: Enable debug logging
+      }
+    }
+  }
+}
 ```
 
-Using PowerShell:
-```powershell
-[Environment]::SetEnvironmentVariable("UE_PROJECT_PATH", "$env:USERPROFILE\Documents\Unreal Projects\MyProject", "User")
-[Environment]::SetEnvironmentVariable("UE_INSTALL_LOCATION", "C:\Program Files\Epic Games\UE_5.6", "User")
-```
+## Python Environment
 
-## Verifying Environment
+The setup script automatically handles Python configuration:
 
-Test your environment setup:
+1. **Virtual Environment** (optional but recommended)
+   - Created automatically by `setup.sh` if you choose
+   - Isolates UEMCP dependencies from system Python
+   - Activate with: `source venv/bin/activate`
+
+2. **Python Version**
+   - Development requires Python 3.11 to match UE's built-in version
+   - The setup script will check and warn if version mismatch
+
+## Verifying Your Setup
+
+After running `setup.sh`, verify your environment:
 
 ```bash
-# Check variables are set
-echo $UE_PROJECT_PATH
-echo $UE_INSTALL_LOCATION
+# Check if MCP server runs
+node dist/index.js
 
-# Test UEMCP with environment
-cd <PATH_TO_UEMCP>
-npm test
+# In another terminal, test connection
+node test-connection.js
+
+# If using virtual environment
+source venv/bin/activate
+python --version  # Should show 3.11.x
 ```
 
-## Using with Test Scripts
+## Environment-Free Operation
 
-All test scripts will automatically use these environment variables:
+**Important:** UEMCP is designed to work without any environment variables:
 
-```bash
-# Run tests with your project
-node test-uemcp-simple.js
+- The MCP server runs without configuration
+- The UE plugin auto-starts the Python listener
+- All project-specific operations happen inside UE
+- Debug logging can be enabled when needed
 
-# Override for a specific test
-UE_PROJECT_PATH="/another/project" node test-mcp-integration.js
-```
+The only required setup is:
+1. Run `setup.sh` to build and configure
+2. Copy plugin to your UE project
+3. Start Claude Desktop
+
+No environment variables needed!
