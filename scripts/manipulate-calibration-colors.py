@@ -94,7 +94,7 @@ def create_checkerboard_pattern(color1=(1, 1, 1), color2=(0, 0, 0)):
                         change_actor_color(actor, color1)
                     else:
                         change_actor_color(actor, color2)
-                except:
+                except (ValueError, IndexError):
                     pass
     
     print("Created checkerboard pattern")

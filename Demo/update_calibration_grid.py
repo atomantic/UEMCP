@@ -150,7 +150,7 @@ def apply_color_to_actor(actor, color_tuple):
                     unreal.LinearColor(r, g, b, 1.0)
                 )
                 break
-            except:
+            except (AttributeError, RuntimeError):
                 continue
         
         # Apply the material
@@ -253,7 +253,7 @@ def create_test_patterns():
                             apply_color_to_actor(actor, ("White", 1.0, 1.0, 1.0))
                         else:
                             apply_color_to_actor(actor, ("Black", 0.1, 0.1, 0.1))
-                    except:
+                    except (ValueError, IndexError):
                         pass
         
         print("Applied checkerboard pattern")
