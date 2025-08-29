@@ -3,6 +3,8 @@ import { ToolDefinition } from '../base/base-tool.js';
 import { ResponseFormatter } from '../../utils/response-formatter.js';
 import { OperationHistory } from '../../services/operation-history.js';
 import { logger } from '../../utils/logger.js';
+import { UndoTool } from './undo.js';
+import { RedoTool } from './redo.js';
 
 interface CheckpointCreateArgs {
   name: string;
@@ -162,7 +164,7 @@ export class CheckpointRestoreTool extends BaseTool<CheckpointRestoreArgs> {
       if (operation) {
         try {
           // Use the undo tool's logic
-          const undoTool = new (await import('./undo.js')).UndoTool();
+          const undoTool = new UndoTool();
           await undoTool.undoOperation(operation);
           undoneOps.push(operation.description);
           this.history.markUndone();
@@ -180,7 +182,7 @@ export class CheckpointRestoreTool extends BaseTool<CheckpointRestoreArgs> {
       if (operation) {
         try {
           // Use the redo tool's logic
-          const redoTool = new (await import('./redo.js')).RedoTool();
+          const redoTool = new RedoTool();
           await redoTool.redoOperation(operation);
           redoneOps.push(operation.description);
           this.history.markRedone();

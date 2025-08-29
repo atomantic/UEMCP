@@ -141,21 +141,12 @@ export class UndoTool extends BaseTool<UndoArgs> {
             actor_name: undoData.actorName,
           };
           
-          if (undoData.previousState.location) {
-            params.location = undoData.previousState.location;
-          }
-          if (undoData.previousState.rotation) {
-            params.rotation = undoData.previousState.rotation;
-          }
-          if (undoData.previousState.scale) {
-            params.scale = undoData.previousState.scale;
-          }
-          if (undoData.previousState.mesh) {
-            params.mesh = undoData.previousState.mesh;
-          }
-          if (undoData.previousState.folder) {
-            params.folder = undoData.previousState.folder;
-          }
+          // Dynamically add all previousState properties
+          Object.entries(undoData.previousState).forEach(([key, value]) => {
+            if (value !== undefined) {
+              params[key] = value;
+            }
+          });
           
           await this.executePythonCommand('actor.modify', params);
         }

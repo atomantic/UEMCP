@@ -80,7 +80,7 @@ export class BlueprintSetVariableTool extends BlueprintTool<BlueprintSetVariable
       variable_name: args.variableName,
       variable_type: args.variableType,
       default_value: args.defaultValue,
-      is_editable: args.isEditable !== false,
+      is_editable: args.isEditable ?? true,
       is_read_only: args.isReadOnly || false,
       category: args.category || 'Default',
       tooltip: args.tooltip,

@@ -5,8 +5,11 @@
 
 import { logger } from '../utils/logger.js';
 
+// Type alias for operation IDs to improve API clarity
+export type OperationId = string;
+
 export interface OperationRecord {
-  id: string;
+  id: OperationId;
   timestamp: number;
   toolName: string;
   args: unknown;
@@ -65,7 +68,7 @@ export class OperationHistory {
   /**
    * Record a new operation
    */
-  recordOperation(record: Omit<OperationRecord, 'id' | 'timestamp'>): string {
+  recordOperation(record: Omit<OperationRecord, 'id' | 'timestamp'>): OperationId {
     const id = this.generateId();
     const timestamp = Date.now();
     
@@ -228,7 +231,7 @@ export class OperationHistory {
     return false;
   }
 
-  private generateId(): string {
+  private generateId(): OperationId {
     return `op_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 }

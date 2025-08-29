@@ -92,43 +92,73 @@ def create(
         # Note: Direct modification of Blueprint classes via Python is limited
 
         # Add components if specified
-        added_components = []
         if components:
+            log_warning(
+                "Component addition to Blueprints is not yet implemented "
+                "due to Unreal Python API limitations. Components were not added."
+            )
             for comp_def in components:
                 comp_name = comp_def.get('name')
                 comp_type = comp_def.get('type')
-
                 if comp_name and comp_type:
-                    # Note: Adding components programmatically to
-                    # Blueprints requires using the Blueprint editor
-                    # subsystem which has limitations
-                    added_components.append(f"{comp_name} ({comp_type})")
-                    log_info(f"Component {comp_name} queued for addition")
+                    # Note: This only logs the intended components
+                    # Actual addition requires Blueprint editor subsystem
+                    log_info(
+                        f"Component {comp_name} ({comp_type}) requested but "
+                        f"not added - requires manual addition in Blueprint editor"
+                    )
 
         # Add variables if specified
-        added_variables = []
         if variables:
+            log_warning(
+                "Variable addition to Blueprints is not yet implemented "
+                "due to Unreal Python API limitations. Variables were not added."
+            )
             for var_def in variables:
                 var_name = var_def.get('name')
                 var_type = var_def.get('type')
-
                 if var_name and var_type:
-                    # Note: Adding variables programmatically requires
-                    # Blueprint compilation
-                    added_variables.append(f"{var_name}: {var_type}")
-                    log_info(f"Variable {var_name} queued for addition")
+                    # Note: This only logs the intended variables
+                    # Actual addition requires Blueprint editor subsystem
+                    log_info(
+                        f"Variable {var_name} ({var_type}) requested but "
+                        f"not added - requires manual addition in Blueprint editor"
+                    )
 
         # Compile the Blueprint
         unreal.EditorAssetLibrary.save_asset(asset_path)
 
         log_info(f"Created Blueprint: {asset_path}")
 
-        return {
+        result = {
             'success': True,
-            'blueprintPath': asset_path,
-            'components': added_components,
-            'variables': added_variables
+            'blueprintPath': asset_path
         }
+
+        # Include warnings about limitations
+        if components:
+            result['componentsNotAdded'] = [
+                f"{c.get('name')} ({c.get('type')})"
+                for c in components
+                if c.get('name') and c.get('type')
+            ]
+            result['componentWarning'] = (
+                "Components were not added due to UE Python API limitations. "
+                "Please add them manually in the Blueprint editor."
+            )
+
+        if variables:
+            result['variablesNotAdded'] = [
+                f"{v.get('name')}: {v.get('type')}"
+                for v in variables
+                if v.get('name') and v.get('type')
+            ]
+            result['variableWarning'] = (
+                "Variables were not added due to UE Python API limitations. "
+                "Please add them manually in the Blueprint editor."
+            )
+
+        return result
 
     except Exception as e:
         log_error(f"Error creating Blueprint: {e}")
@@ -175,33 +205,27 @@ def add_component(
                 'error': f'Blueprint not found: {blueprint_path}'
             }
 
-        # Note: The Unreal Python API has limitations for modifying
-        # Blueprints. This is a simplified implementation that
-        # demonstrates the concept. Full implementation would require
-        # using the Blueprint editor subsystem
+        # Note: The Unreal Python API has severe limitations for modifying
+        # Blueprints. Component addition is not actually implemented.
 
-        log_info(
-            f"Component {component_name} of type {component_type} "
-            f"added to Blueprint structure"
-        )
         log_warning(
-            "Note: Full Blueprint component addition requires "
-            "editor subsystem access"
+            f"Component addition not implemented: {component_name} of type "
+            f"{component_type} was NOT added to {blueprint_path}. "
+            f"Manual addition in Blueprint editor is required."
         )
-
-        # Set properties if provided
-        properties_set = []
-        if properties:
-            for prop_name, prop_value in properties.items():
-                properties_set.append(f"{prop_name} = {prop_value}")
-
-        # Save the Blueprint
-        unreal.EditorAssetLibrary.save_asset(blueprint_path)
 
         return {
-            'success': True,
-            'message': f'Component {component_name} added to {blueprint_path}',
-            'propertiesSet': properties_set
+            'success': False,
+            'error': (
+                f'Component addition is not implemented due to UE Python API limitations. '
+                f'Please add {component_name} ({component_type}) manually in the Blueprint editor.'
+            ),
+            'blueprintPath': blueprint_path,
+            'requestedComponent': {
+                'name': component_name,
+                'type': component_type,
+                'properties': properties
+            }
         }
 
     except Exception as e:
@@ -249,36 +273,32 @@ def set_variable(
                 'error': f'Blueprint not found: {blueprint_path}'
             }
 
-        # Note: The Unreal Python API has limitations for modifying
-        # Blueprint variables. This is a simplified implementation that
-        # demonstrates the concept. Full implementation would require
-        # using the Blueprint editor subsystem
+        # Note: The Unreal Python API has severe limitations for modifying
+        # Blueprint variables. Variable addition is not actually implemented.
 
-        log_info(
-            f"Variable {variable_name} of type {variable_type} "
-            f"configured in Blueprint"
-        )
         log_warning(
-            "Note: Full Blueprint variable modification requires "
-            "editor subsystem access"
+            f"Variable addition not implemented: {variable_name} of type "
+            f"{variable_type} was NOT added to {blueprint_path}. "
+            f"Manual addition in Blueprint editor is required."
         )
-
-        # For demonstration, we'll compile the Blueprint
-        # In a full implementation, this would use the Blueprint compiler
-        blueprint_compiled = False
-        try:
-            # Trigger a compile (this is a simplified approach)
-            unreal.EditorAssetLibrary.save_asset(blueprint_path)
-            blueprint_compiled = True
-        except Exception as compile_error:
-            log_warning(f"Blueprint compilation warning: {compile_error}")
 
         return {
-            'success': True,
-            'message': (
-                f'Variable {variable_name} configured in {blueprint_path}'
+            'success': False,
+            'error': (
+                f'Variable addition is not implemented due to UE Python API limitations. '
+                f'Please add {variable_name} ({variable_type}) manually in the Blueprint editor.'
             ),
-            'compiled': blueprint_compiled
+            'blueprintPath': blueprint_path,
+            'requestedVariable': {
+                'name': variable_name,
+                'type': variable_type,
+                'defaultValue': default_value,
+                'isEditable': is_editable,
+                'isReadOnly': is_read_only,
+                'category': category,
+                'tooltip': tooltip,
+                'replicationMode': replication_mode
+            }
         }
 
     except Exception as e:
