@@ -82,17 +82,26 @@ class ActorOperations:
             actor.set_actor_scale3d(ue_scale)
             
             # Store asset path as metadata for undo support
-            # Using a custom property instead of tags for reliability
-            if hasattr(actor, 'set_editor_property'):
+            # WARNING: Using tags for metadata storage has known limitations:
+            # 1. Risk of collision with other systems using tags
+            # 2. Tags are user-visible and editable in the editor
+            # 3. Limited to string data only
+            # 4. May be cleared by other operations
+            #
+            # Preferred alternatives (when available in future UE versions):
+            # - actor.set_metadata_tag() (UE 5.5+)
+            # - Custom actor components
+            # - Editor-only properties
+            #
+            # Current implementation uses namespaced tags as the least-bad option
+            if hasattr(actor, 'tags'):
                 try:
-                    # NOTE: Using tags to store asset paths is fragile and may conflict
-                    # with other uses of tags. This is a temporary solution until UE provides
-                    # a better way to store custom metadata on actors via Python API.
-                    # TODO: Consider using a dedicated actor component or property when available.
-                    if hasattr(actor, 'tags'):
-                        actor.tags.append(f'UEMCP_Asset:{assetPath}')
-                except AttributeError:
-                    pass
+                    # Use namespaced tag to reduce (but not eliminate) collision risk
+                    actor.tags.append(f'UEMCP_Asset:{assetPath}')
+                    log_debug(f"Tagged actor with asset path: {assetPath}")
+                except (AttributeError, RuntimeError) as e:
+                    log_debug(f"Could not tag actor with asset path: {e}")
+                    # Non-critical failure - undo may not work for this actor
 
             if folder:
                 actor.set_folder_path(folder)
@@ -718,12 +727,14 @@ class ActorOperations:
         
         # Store asset path as metadata for undo support
         asset_path = actor_config.get("assetPath")
-        # NOTE: Using tags to store asset paths is fragile - see comment in spawn() method
+        # WARNING: Using tags for metadata - see detailed warning in spawn() method
         if asset_path and hasattr(spawned_actor, 'tags'):
             try:
                 spawned_actor.tags.append(f'UEMCP_Asset:{asset_path}')
-            except (AttributeError, RuntimeError):
-                pass
+                log_debug(f"Tagged batch actor with asset path: {asset_path}")
+            except (AttributeError, RuntimeError) as e:
+                log_debug(f"Could not tag batch actor: {e}")
+                # Non-critical - undo may not work for this actor
 
         return actor_name
 
