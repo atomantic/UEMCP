@@ -278,27 +278,49 @@ For detailed code comparisons showing how MCP tools reduce code by 85% on averag
    - **Yaw**: Turn left/right - **WARNING: This is the direction camera FACES, not compass direction!**
      - Yaw 0° = Camera facing EAST (+Y direction)
      - Yaw 90° = Camera facing NORTH (-X direction)
-     - Yaw 180° = Camera facing WEST (-Y direction)
-     - Yaw -90° = Camera facing SOUTH (+X direction)
+     - Yaw 180° or -180° = Camera facing WEST (-Y direction)
+     - Yaw -90° or 270° = Camera facing SOUTH (+X direction)
    - **Roll**: Tilt sideways (KEEP AT 0 for normal viewing - non-zero creates tilted horizon!)
    
-   **IMPORTANT**: To calculate Yaw to look at a target:
+   **CORRECT WAY TO CALCULATE YAW** (to look at a target from camera position):
    ```python
    import math
-   dx = target_x - camera_x
+   dx = target_x - camera_x  
    dy = target_y - camera_y
+   # Calculate angle in radians
    angle_rad = math.atan2(dy, dx)
-   yaw = -(angle_rad * 180 / math.pi)  # Negate for UE coordinate system
+   # Convert to degrees
+   yaw = math.degrees(angle_rad)
    ```
-
-2. **Focusing on Actors**:
-   ```python
-   # Method 1: Use viewport_focus tool
-   viewport_focus({ actorName: 'HouseFoundation' })
    
-   # Method 2: Use python_proxy for more control
-   target_actor = unreal.EditorLevelLibrary.get_actor_reference('ActorName')
-   unreal.EditorLevelLibrary.set_actor_selection_state(target_actor, True)
+   **COMMON MISTAKE TO AVOID**:
+   - If camera is at [1200, 1200, z] and target is at [0, 0, z]
+   - dx = 0 - 1200 = -1200, dy = 0 - 1200 = -1200
+   - angle = atan2(-1200, -1200) = -135° (or 225°)
+   - NOT -45°! That points the opposite direction!
+   
+   **QUICK REFERENCE** (for camera looking at origin [0,0,z]):
+   - Camera at [+X, +Y]: Use Yaw ≈ -135° or 225°
+   - Camera at [+X, -Y]: Use Yaw ≈ -45° or 315°  
+   - Camera at [-X, +Y]: Use Yaw ≈ 135° or -225°
+   - Camera at [-X, -Y]: Use Yaw ≈ 45° or -315°
+
+2. **BEST PRACTICE - Use These Instead of Manual Camera Math**:
+   ```python
+   # Method 1: Use viewport_focus tool (MOST RELIABLE - ALWAYS USE THIS FIRST!)
+   viewport_focus({ actorName: 'Monument_Orb' })
+   # This simply centers on the actor without complex math
+   
+   # Method 2: Use viewport_fit to frame multiple actors (ALSO RELIABLE)
+   viewport_fit({ actors: ['Wall_1', 'Wall_2', 'Wall_3'] })
+   
+   # Method 3: Use viewport_look_at tool (CAN BE UNPREDICTABLE)
+   viewport_look_at({ 
+     target: [0, 0, 300],  # Look at this point
+     distance: 1000,       # From this distance
+     height: 500          # At this height offset
+   })
+   # WARNING: viewport_look_at still calculates position and can end up weird!
 
 ### Python Proxy Examples
 
@@ -342,8 +364,6 @@ def place_actors_in_grid(asset_path, grid_size=5, spacing=200):
 
 place_actors_in_grid("/Game/MyMesh", 3, 300)
 ```
-   unreal.EditorLevelLibrary.focus_viewport_on_actors([target_actor])
-   ```
 
 3. **Common Camera Views**:
    - **Top-down**: Rotation = [-90, 0, 0] (Pitch=-90, looking straight down)
@@ -727,3 +747,4 @@ Before committing, always run `./test-ci-locally.sh` and ensure:
 4. **Deprecation warnings**: Fixed by using `UnrealEditorSubsystem()` instead of deprecated APIs
 
 5. **Git CRLF warnings**: If you see "CRLF will be replaced by LF" warnings, the file has Windows line endings that need to be fixed
+- after taking a viewport screenshot, wait a second to allow the file to be written

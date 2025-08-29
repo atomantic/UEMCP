@@ -20,17 +20,19 @@ This document outlines the implementation roadmap, release schedule, and future 
 
 **See [Release Notes](docs/release-notes/v0.7.0.md) for full details.**
 
-### 🚀 Version 0.8.0 (Target: February 2025)
+### 🚀 Version 0.8.0
 **Theme: "Blueprint Integration & Advanced Workflows"**
 
 #### Planned Features
-- [ ] Blueprint manipulation tools (create, modify components)
+- [x] Blueprint creation tool (blueprint_create implemented)
 - [ ] Socket pattern matching for automatic connections
-- [ ] Undo/Redo system for operations
+- [x] Undo/Redo system for operations (implemented)
 - [ ] Enhanced error recovery and retry mechanisms
 - [ ] Batch operations for all actor tools
 
-### 🌟 Version 0.9.0 (Target: March 2025)
+**Note**: Blueprint component/variable modification blocked by UE Python API limitations
+
+### 🌟 Version 0.9.0
 **Theme: "Production Readiness"**
 
 #### Planned Features
@@ -41,7 +43,7 @@ This document outlines the implementation roadmap, release schedule, and future 
 - [ ] Production deployment guide
 - [ ] Multi-project management support
 
-### 🎉 Version 1.0.0 (Target: April 2025)
+### 🎉 Version 1.0.0
 **Theme: "Production Release"**
 
 #### Release Criteria for 1.0.0
@@ -51,7 +53,7 @@ This document outlines the implementation roadmap, release schedule, and future 
 - ✅ 30+ working MCP tools covering all essential operations
 - ✅ Full Python bridge to Unreal Engine
 - ✅ Hot reload support for development
-- [ ] Complete Blueprint manipulation capabilities
+- [x] Blueprint creation capability (limited by UE Python API)
 - [ ] Full undo/redo system
 - [ ] Socket-based automatic building assembly
 
@@ -90,16 +92,6 @@ This document outlines the implementation roadmap, release schedule, and future 
 - [ ] 5+ external contributors
 - [ ] Used in 10+ production projects
 - [ ] Case studies from real projects
-
-## Current Status (December 2024 - v0.7.0 Released)
-
-✅ **Phase 1: Foundation & Scaffolding** - COMPLETE
-✅ **Phase 2: Basic MCP Implementation** - COMPLETE  
-✅ **Phase 3: Python-UE Bridge** - COMPLETE
-✅ **Phase 4: House Building Experiment** - COMPLETE (see [docs/examples/house-building.md](docs/examples/house-building.md))
-✅ **Phase 5: Core Enhancement Tools** - COMPLETE
-✅ **Phase 6: Material Management Tools** - COMPLETE
-🚧 **Phase 7: Next Development Phase** - IN PLANNING
 
 ### Implemented Architecture
 
@@ -184,21 +176,30 @@ The `actor_snap_to_socket` tool has been successfully implemented and released i
 - Integrate with UE's transaction system where possible
 - Handle complex operations (batch spawns, etc.) as single undo units
 
-### Option C: Blueprint Tools
+### Option C: Blueprint Tools (Partially Implemented)
 **Objective**: Enable programmatic creation and modification of Blueprint classes
 
-**New MCP Tools**:
-1. **blueprint_create** - Create new Blueprint classes from C++ or Blueprint parents
-2. **blueprint_add_component** - Add components to Blueprint actors
-3. **blueprint_set_variable** - Create and modify Blueprint variables
-4. **blueprint_add_function** - Add custom functions with parameters
-5. **blueprint_create_event_graph** - Set up event-driven logic
+**Implemented MCP Tools**:
+1. ✅ **blueprint_create** - Create new Blueprint classes from C++ or Blueprint parents (v0.8.0)
 
-**Use Cases**:
-- Create interactive doors/windows with open/close functionality
-- Build reusable gameplay mechanics
-- Set up trigger volumes with custom events
-- Create UI widgets programmatically
+**Blocked by UE Python API Limitations**:
+The following tools were attempted but cannot be implemented due to Unreal Engine Python API restrictions:
+1. ❌ **blueprint_add_component** - Cannot add components to Blueprints via Python
+2. ❌ **blueprint_set_variable** - Cannot modify Blueprint variables via Python
+3. ❌ **blueprint_add_function** - Cannot add functions to Blueprints via Python
+4. ❌ **blueprint_create_event_graph** - Cannot modify Blueprint graphs via Python
+
+**Note**: These limitations are fundamental to UE's Python API design, which provides read access but limited write access to Blueprint internals. Future UE versions may expand Python Blueprint capabilities.
+
+**Current Workaround**:
+- Use `blueprint_create` to create the Blueprint class
+- Document required components/variables in comments
+- Manual addition in Blueprint editor is required for full functionality
+
+**Use Cases (with manual steps)**:
+- Create Blueprint class templates that users complete manually
+- Generate documentation for required Blueprint setup
+- Prepare Blueprint hierarchies for manual completion
 
 ### Option D: Level & World Composition Tools
 **Objective**: Advanced level management and world building

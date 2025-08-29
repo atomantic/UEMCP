@@ -42,6 +42,11 @@ export {
   materialApplyTool,
 } from './materials/index.js';
 
+// Blueprint tools
+export {
+  blueprintCreateTool,
+} from './blueprints/index.js';
+
 // Level tools
 export {
   levelActorsTool,
@@ -57,6 +62,11 @@ export {
   pythonProxyTool,
   restartListenerTool,
   ueLogsTool,
+  undoTool,
+  redoTool,
+  historyListTool,
+  checkpointCreateTool,
+  checkpointRestoreTool,
 } from './system/index.js';
 
 // Re-export everything together for convenience
@@ -64,5 +74,6 @@ export * from './actors/index.js';
 export * from './viewport/index.js';
 export * from './assets/index.js';
 export * from './materials/index.js';
+export * from './blueprints/index.js';
 export * from './level/index.js';
 export * from './system/index.js';

@@ -8,6 +8,7 @@ interface ViewportLookAtArgs {
   distance?: number;
   pitch?: number;
   height?: number;
+  angle?: number;
 }
 
 /**
@@ -46,6 +47,11 @@ export class ViewportLookAtTool extends ViewportTool<ViewportLookAtArgs> {
             type: 'number',
             description: 'Camera height offset from target (default: 500)',
             default: 500,
+          },
+          angle: {
+            type: 'number',
+            description: 'Angle around target in degrees (default: -135 for NW position)',
+            default: -135,
           },
         },
       },

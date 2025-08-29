@@ -9,3 +9,7 @@ export { helpTool } from './help.js';
 export { pythonProxyTool } from './python-proxy.js';
 export { restartListenerTool } from './restart-listener.js';
 export { ueLogsTool } from './ue-logs.js';
+export { undoTool } from './undo.js';
+export { redoTool } from './redo.js';
+export { historyListTool } from './history-list.js';
+export { checkpointCreateTool, checkpointRestoreTool } from './checkpoint.js';

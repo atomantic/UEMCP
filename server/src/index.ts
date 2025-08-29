@@ -38,6 +38,8 @@ import {
   materialInfoTool,
   materialCreateTool,
   materialApplyTool,
+  // Blueprint tools
+  blueprintCreateTool,
   // Level tools
   levelActorsTool,
   levelSaveTool,
@@ -49,6 +51,11 @@ import {
   pythonProxyTool,
   restartListenerTool,
   ueLogsTool,
+  undoTool,
+  redoTool,
+  historyListTool,
+  checkpointCreateTool,
+  checkpointRestoreTool,
 } from './tools/index.js';
 
 // Create array of all tools
@@ -76,6 +83,7 @@ const allTools = [
   materialInfoTool,
   materialCreateTool,
   materialApplyTool,
+  blueprintCreateTool,
   levelActorsTool,
   levelSaveTool,
   levelOutlinerTool,
@@ -85,6 +93,11 @@ const allTools = [
   pythonProxyTool,
   restartListenerTool,
   ueLogsTool,
+  undoTool,
+  redoTool,
+  historyListTool,
+  checkpointCreateTool,
+  checkpointRestoreTool,
 ];
 
 // Define tool type

@@ -4,7 +4,10 @@ UEMCP Actor Operations - All actor-related operations
 
 import unreal
 import time
-from utils import create_vector, create_rotator, create_transform, find_actor_by_name, load_asset, log_debug, log_error
+from utils import (
+    create_vector, create_rotator, create_transform,
+    find_actor_by_name, load_asset, log_debug, log_error
+)
 
 
 class ActorOperations:
@@ -77,6 +80,28 @@ class ActorOperations:
             # Configure actor
             actor.set_actor_label(name)
             actor.set_actor_scale3d(ue_scale)
+
+            # Store asset path as metadata for undo support
+            # WARNING: Using tags for metadata storage has known limitations:
+            # 1. Risk of collision with other systems using tags
+            # 2. Tags are user-visible and editable in the editor
+            # 3. Limited to string data only
+            # 4. May be cleared by other operations
+            #
+            # ROADMAP: When upgrading to UE 5.5+, replace with:
+            # - actor.set_metadata_tag() for hidden metadata storage
+            # - Or use custom UActorComponent subclass for persistent data
+            # - Or leverage editor subsystem for operation tracking
+            #
+            # Current mitigation: Using namespaced tags (UEMCP_Asset:)
+            if hasattr(actor, 'tags'):
+                try:
+                    # Use namespaced tag to reduce (but not eliminate) collision risk
+                    actor.tags.append(f'UEMCP_Asset:{assetPath}')
+                    log_debug(f"Tagged actor with asset path: {assetPath}")
+                except (AttributeError, RuntimeError) as e:
+                    log_debug(f"Could not tag actor with asset path: {e}")
+                    # Non-critical failure - undo may not work for this actor
 
             if folder:
                 actor.set_folder_path(folder)
@@ -699,6 +724,17 @@ class ActorOperations:
         folder = common_folder or actor_config.get("folder")
         if folder:
             spawned_actor.set_folder_path(folder)
+
+        # Store asset path as metadata for undo support
+        asset_path = actor_config.get("assetPath")
+        # WARNING: Using tags for metadata - see detailed warning in spawn() method
+        if asset_path and hasattr(spawned_actor, 'tags'):
+            try:
+                spawned_actor.tags.append(f'UEMCP_Asset:{asset_path}')
+                log_debug(f"Tagged batch actor with asset path: {asset_path}")
+            except (AttributeError, RuntimeError) as e:
+                log_debug(f"Could not tag batch actor: {e}")
+                # Non-critical - undo may not work for this actor
 
         return actor_name
 
@@ -1397,3 +1433,109 @@ class ActorOperations:
                 "success": True,
                 "message": "Actor successfully snapped to socket"
             }
+
+    def get_actor_state(self, actor_name):
+        """Get the current state of an actor for undo support.
+
+        Args:
+            actor_name: Name of the actor to get state for
+
+        Returns:
+            dict: Actor state including location, rotation, scale, mesh, folder
+        """
+        try:
+            actor = find_actor_by_name(actor_name)
+
+            if not actor:
+                return {
+                    "success": False,
+                    "error": f'Actor "{actor_name}" not found'
+                }
+
+            # Get transform
+            location = actor.get_actor_location()
+            rotation = actor.get_actor_rotation()
+            scale = actor.get_actor_scale3d()
+
+            # Get folder path
+            folder = actor.get_folder_path() if hasattr(actor, 'get_folder_path') else None
+
+            # Get mesh if it's a static mesh actor
+            mesh = None
+            if actor.get_class().get_name() == "StaticMeshActor":
+                mesh_comp = actor.get_component_by_class(unreal.StaticMeshComponent)
+                if mesh_comp:
+                    static_mesh = mesh_comp.get_editor_property('static_mesh')
+                    if static_mesh:
+                        mesh = static_mesh.get_path_name()
+
+            # Get the asset path (what was spawned)
+            asset_path = None
+            # Try to determine the original asset from tags
+            if hasattr(actor, 'tags'):
+                for tag in actor.tags:
+                    # Look for our custom tag format first
+                    # Using string slicing instead of replace for more reliable parsing
+                    prefix = 'UEMCP_Asset:'
+                    if tag.startswith(prefix):
+                        asset_path = tag[len(prefix):]
+                        break
+                    # Fallback to old method
+                    elif tag.startswith('/Game/'):
+                        asset_path = tag
+
+            # If no tag found, try to get from static mesh component
+            if not asset_path and isinstance(actor, unreal.StaticMeshActor):
+                try:
+                    mesh_comp = actor.get_editor_property(
+                        "static_mesh_component"
+                    )
+                    if mesh_comp:
+                        static_mesh = mesh_comp.get_editor_property(
+                            "static_mesh"
+                        )
+                        if static_mesh:
+                            asset_path = static_mesh.get_path_name().split('.')[0]
+                except (AttributeError, RuntimeError):
+                    pass
+
+            return {
+                "success": True,
+                "actor_name": actor_name,
+                "location": [location.x, location.y, location.z],
+                "rotation": [rotation.roll, rotation.pitch, rotation.yaw],
+                "scale": [scale.x, scale.y, scale.z],
+                "mesh": mesh,
+                "folder": folder,
+                "asset_path": asset_path
+            }
+
+        except Exception as e:
+            log_error(f"Failed to get actor state: {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    def _validate_tag_integrity(self, actor, expected_asset_path=None):
+        """Validate that actor tags haven't been corrupted.
+
+        TODO: Implement more robust metadata storage when UE provides better APIs.
+        Currently tags are the only persistent storage mechanism available.
+
+        Args:
+            actor: Actor to check
+            expected_asset_path: Expected asset path if known
+
+        Returns:
+            bool: True if tags appear valid
+        """
+        if not hasattr(actor, 'tags'):
+            return False
+
+        # Check for UEMCP tags
+        uemcp_tags = [tag for tag in actor.tags if tag.startswith('UEMCP_')]
+
+        if expected_asset_path:
+            expected_tag = f'UEMCP_Asset:{expected_asset_path}'
+            return expected_tag in actor.tags
+
+        # Just check that we have at least one UEMCP tag
+        return len(uemcp_tags) > 0
