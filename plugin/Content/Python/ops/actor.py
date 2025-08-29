@@ -85,9 +85,10 @@ class ActorOperations:
             # Using a custom property instead of tags for reliability
             if hasattr(actor, 'set_editor_property'):
                 try:
-                    # Store in actor metadata (more reliable than tags)
-                    actor.set_editor_property('actor_hidden_in_game', False)
-                    # Add to tags as backup method
+                    # NOTE: Using tags to store asset paths is fragile and may conflict
+                    # with other uses of tags. This is a temporary solution until UE provides
+                    # a better way to store custom metadata on actors via Python API.
+                    # TODO: Consider using a dedicated actor component or property when available.
                     if hasattr(actor, 'tags'):
                         actor.tags.append(f'UEMCP_Asset:{assetPath}')
                 except AttributeError:
@@ -717,6 +718,7 @@ class ActorOperations:
         
         # Store asset path as metadata for undo support
         asset_path = actor_config.get("assetPath")
+        # NOTE: Using tags to store asset paths is fragile - see comment in spawn() method
         if asset_path and hasattr(spawned_actor, 'tags'):
             try:
                 spawned_actor.tags.append(f'UEMCP_Asset:{asset_path}')
@@ -1462,8 +1464,10 @@ class ActorOperations:
             if hasattr(actor, 'tags'):
                 for tag in actor.tags:
                     # Look for our custom tag format first
-                    if tag.startswith('UEMCP_Asset:'):
-                        asset_path = tag[len('UEMCP_Asset:'):]
+                    # Using string slicing instead of replace for more reliable parsing
+                    prefix = 'UEMCP_Asset:'
+                    if tag.startswith(prefix):
+                        asset_path = tag[len(prefix):]
                         break
                     # Fallback to old method
                     elif tag.startswith('/Game/'):
