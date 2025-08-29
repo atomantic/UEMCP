@@ -168,145 +168,16 @@ def create(
         }
 
 
-def add_component(
-    blueprint_path: str,
-    component_name: str,
-    component_type: str,
-    parent_component: Optional[str] = None,
-    attach_socket_name: Optional[str] = None,
-    relative_location: Optional[List[float]] = None,
-    relative_rotation: Optional[List[float]] = None,
-    relative_scale: Optional[List[float]] = None,
-    properties: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
-    """
-    Add a component to an existing Blueprint.
-
-    Args:
-        blueprint_path: Path to the Blueprint asset
-        component_name: Name for the new component
-        component_type: Type of component to add
-        parent_component: Optional parent component name
-        attach_socket_name: Optional socket for attachment
-        relative_location: Relative location [X, Y, Z]
-        relative_rotation: Relative rotation [Roll, Pitch, Yaw]
-        relative_scale: Relative scale [X, Y, Z]
-        properties: Additional properties to set
-
-    Returns:
-        Dictionary with operation result
-    """
-    try:
-        # Load the Blueprint
-        blueprint = unreal.EditorAssetLibrary.load_asset(blueprint_path)
-        if not blueprint or not isinstance(blueprint, unreal.Blueprint):
-            return {
-                'success': False,
-                'error': f'Blueprint not found: {blueprint_path}'
-            }
-
-        # Note: The Unreal Python API has severe limitations for modifying
-        # Blueprints. Component addition is not actually implemented.
-
-        log_warning(
-            f"Component addition not implemented: {component_name} of type "
-            f"{component_type} was NOT added to {blueprint_path}. "
-            f"Manual addition in Blueprint editor is required."
-        )
-
-        return {
-            'success': False,
-            'error': (
-                f'Component addition is not implemented due to UE Python API limitations. '
-                f'Please add {component_name} ({component_type}) manually in the Blueprint editor.'
-            ),
-            'blueprintPath': blueprint_path,
-            'requestedComponent': {
-                'name': component_name,
-                'type': component_type,
-                'properties': properties
-            }
-        }
-
-    except Exception as e:
-        log_error(f"Error adding component to Blueprint: {e}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
+# NOTE: add_component() has been removed as it cannot be implemented
+# due to Unreal Engine Python API limitations. 
+# Component addition must be done manually in the Blueprint editor.
+# This functionality may be added in future UE versions.
 
 
-def set_variable(
-    blueprint_path: str,
-    variable_name: str,
-    variable_type: str,
-    default_value: Optional[Any] = None,
-    is_editable: bool = True,
-    is_read_only: bool = False,
-    category: str = 'Default',
-    tooltip: Optional[str] = None,
-    replication_mode: str = 'None'
-) -> Dict[str, Any]:
-    """
-    Create or modify a Blueprint variable.
-
-    Args:
-        blueprint_path: Path to the Blueprint asset
-        variable_name: Name of the variable
-        variable_type: Type of the variable
-        default_value: Default value for the variable
-        is_editable: Whether the variable is editable in instances
-        is_read_only: Whether the variable is read-only
-        category: Category for organizing the variable
-        tooltip: Tooltip text for the variable
-        replication_mode: Replication mode for multiplayer
-
-    Returns:
-        Dictionary with operation result
-    """
-    try:
-        # Load the Blueprint
-        blueprint = unreal.EditorAssetLibrary.load_asset(blueprint_path)
-        if not blueprint or not isinstance(blueprint, unreal.Blueprint):
-            return {
-                'success': False,
-                'error': f'Blueprint not found: {blueprint_path}'
-            }
-
-        # Note: The Unreal Python API has severe limitations for modifying
-        # Blueprint variables. Variable addition is not actually implemented.
-
-        log_warning(
-            f"Variable addition not implemented: {variable_name} of type "
-            f"{variable_type} was NOT added to {blueprint_path}. "
-            f"Manual addition in Blueprint editor is required."
-        )
-
-        return {
-            'success': False,
-            'error': (
-                f'Variable addition is not implemented due to UE Python API limitations. '
-                f'Please add {variable_name} ({variable_type}) manually in the Blueprint editor.'
-            ),
-            'blueprintPath': blueprint_path,
-            'requestedVariable': {
-                'name': variable_name,
-                'type': variable_type,
-                'defaultValue': default_value,
-                'isEditable': is_editable,
-                'isReadOnly': is_read_only,
-                'category': category,
-                'tooltip': tooltip,
-                'replicationMode': replication_mode
-            }
-        }
-
-    except Exception as e:
-        log_error(f"Error setting Blueprint variable: {e}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
+# NOTE: set_variable() has been removed as it cannot be implemented
+# due to Unreal Engine Python API limitations.
+# Variable addition must be done manually in the Blueprint editor.
+# This functionality may be added in future UE versions.
 
 
 def get_info(blueprint_path: str) -> Dict[str, Any]:

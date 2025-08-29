@@ -40,8 +40,6 @@ import {
   materialApplyTool,
   // Blueprint tools
   blueprintCreateTool,
-  blueprintAddComponentTool,
-  blueprintSetVariableTool,
   // Level tools
   levelActorsTool,
   levelSaveTool,
@@ -86,8 +84,6 @@ const allTools = [
   materialCreateTool,
   materialApplyTool,
   blueprintCreateTool,
-  blueprintAddComponentTool,
-  blueprintSetVariableTool,
   levelActorsTool,
   levelSaveTool,
   levelOutlinerTool,

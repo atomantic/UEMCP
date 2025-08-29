@@ -16,8 +16,6 @@ export const TOOL_TO_PYTHON_MAPPING: Record<string, string> = {
   'material_list': 'material.list',
   'material_info': 'material.info',
   'blueprint_create': 'blueprint.create',
-  'blueprint_add_component': 'blueprint.add_component',
-  'blueprint_set_variable': 'blueprint.set_variable',
   'blueprint_get_info': 'blueprint.get_info',
   // Add more mappings as new tools are added
 };
