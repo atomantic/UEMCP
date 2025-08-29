@@ -72,10 +72,7 @@ export class BlueprintSetVariableTool extends BlueprintTool<BlueprintSetVariable
   }
 
   protected async execute(args: BlueprintSetVariableArgs): Promise<ReturnType<typeof ResponseFormatter.success>> {
-    // Validate required fields
-    if (!args.blueprintPath || !args.variableName || !args.variableType) {
-      return this.formatError('blueprintPath, variableName, and variableType are required');
-    }
+    // Required fields are validated by the inputSchema
     
     // Execute Python command to set variable
     const result = await this.executePythonCommand('blueprint.set_variable', {

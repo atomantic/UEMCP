@@ -61,11 +61,6 @@ export abstract class UndoableTool<TArgs = unknown> extends BaseTool<TArgs> {
     return `${this.definition.name} operation`;
   }
 
-  /**
-   * Perform the undo operation
-   * Must be implemented by subclasses that support undo
-   */
-  protected abstract performUndo(undoData: UndoData): Promise<PythonResult>;
 
   /**
    * Perform the redo operation

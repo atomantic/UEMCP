@@ -100,11 +100,6 @@ export class BlueprintCreateTool extends BlueprintTool<BlueprintCreateArgs> {
   }
 
   protected async execute(args: BlueprintCreateArgs): Promise<ReturnType<typeof ResponseFormatter.success>> {
-    // Validate required field
-    if (!args.className) {
-      return this.formatError('className is required');
-    }
-    
     // Execute Python command to create Blueprint
     const result = await this.executePythonCommand('blueprint.create', {
       class_name: args.className,

@@ -94,7 +94,11 @@ export class RedoTool extends BaseTool<RedoArgs> {
     return ResponseFormatter.success(message.trim());
   }
 
-  public async performRedo(operation: OperationRecord): Promise<void> {
+  public async redoOperation(operation: OperationRecord): Promise<void> {
+    return this.performRedo(operation);
+  }
+
+  protected async performRedo(operation: OperationRecord): Promise<void> {
     // Re-execute the original operation based on its type
     const toolName = operation.toolName;
     const args = operation.args;

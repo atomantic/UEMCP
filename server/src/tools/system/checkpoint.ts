@@ -47,7 +47,7 @@ export class CheckpointCreateTool extends BaseTool<CheckpointCreateArgs> {
 
   protected async execute(args: CheckpointCreateArgs): Promise<ReturnType<typeof ResponseFormatter.success>> {
     if (!args.name) {
-      return ResponseFormatter.success('Error: Checkpoint name is required');
+      throw new Error('Checkpoint name is required');
     }
 
     // Create the checkpoint
@@ -115,7 +115,7 @@ export class CheckpointRestoreTool extends BaseTool<CheckpointRestoreArgs> {
 
   protected async execute(args: CheckpointRestoreArgs): Promise<ReturnType<typeof ResponseFormatter.success>> {
     if (!args.name) {
-      return ResponseFormatter.success('Error: Checkpoint name is required');
+      throw new Error('Checkpoint name is required');
     }
 
     const checkpointIndex = this.history.getCheckpointIndex(args.name);
@@ -163,7 +163,7 @@ export class CheckpointRestoreTool extends BaseTool<CheckpointRestoreArgs> {
         try {
           // Use the undo tool's logic
           const undoTool = new (await import('./undo.js')).UndoTool();
-          await undoTool.performUndo(operation);
+          await undoTool.undoOperation(operation);
           undoneOps.push(operation.description);
           this.history.markUndone();
         } catch (error) {
@@ -181,7 +181,7 @@ export class CheckpointRestoreTool extends BaseTool<CheckpointRestoreArgs> {
         try {
           // Use the redo tool's logic
           const redoTool = new (await import('./redo.js')).RedoTool();
-          await redoTool.performRedo(operation);
+          await redoTool.redoOperation(operation);
           redoneOps.push(operation.description);
           this.history.markRedone();
         } catch (error) {

@@ -79,11 +79,6 @@ export class BlueprintAddComponentTool extends BlueprintTool<BlueprintAddCompone
   }
 
   protected async execute(args: BlueprintAddComponentArgs): Promise<ReturnType<typeof ResponseFormatter.success>> {
-    // Validate required fields
-    if (!args.blueprintPath || !args.componentName || !args.componentType) {
-      return this.formatError('blueprintPath, componentName, and componentType are required');
-    }
-    
     // Execute Python command to add component
     const result = await this.executePythonCommand('blueprint.add_component', {
       blueprint_path: args.blueprintPath,

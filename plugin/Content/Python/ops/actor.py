@@ -1463,7 +1463,7 @@ class ActorOperations:
                 for tag in actor.tags:
                     # Look for our custom tag format first
                     if tag.startswith('UEMCP_Asset:'):
-                        asset_path = tag.replace('UEMCP_Asset:', '')
+                        asset_path = tag[len('UEMCP_Asset:'):]
                         break
                     # Fallback to old method
                     elif tag.startswith('/Game/'):

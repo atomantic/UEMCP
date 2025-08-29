@@ -89,9 +89,7 @@ def create(
                 'error': 'Failed to create Blueprint asset'
             }
 
-        # Get the Blueprint's generated class for modification
         # Note: Direct modification of Blueprint classes via Python is limited
-        # blueprint_class = blueprint.generated_class()
 
         # Add components if specified
         added_components = []
@@ -99,7 +97,6 @@ def create(
             for comp_def in components:
                 comp_name = comp_def.get('name')
                 comp_type = comp_def.get('type')
-                # comp_props = comp_def.get('properties', {})
 
                 if comp_name and comp_type:
                     # Note: Adding components programmatically to
@@ -114,8 +111,6 @@ def create(
             for var_def in variables:
                 var_name = var_def.get('name')
                 var_type = var_def.get('type')
-                # default_value = var_def.get('defaultValue')
-                # is_editable = var_def.get('isEditable', True)
 
                 if var_name and var_type:
                     # Note: Adding variables programmatically requires
@@ -179,27 +174,6 @@ def add_component(
                 'success': False,
                 'error': f'Blueprint not found: {blueprint_path}'
             }
-
-        # Map component type strings to Unreal classes
-        # component_type_mapping = {
-        #     'StaticMeshComponent': unreal.StaticMeshComponent,
-        #     'SkeletalMeshComponent': unreal.SkeletalMeshComponent,
-        #     'BoxComponent': unreal.BoxComponent,
-        #     'SphereComponent': unreal.SphereComponent,
-        #     'CapsuleComponent': unreal.CapsuleComponent,
-        #     'PointLightComponent': unreal.PointLightComponent,
-        #     'SpotLightComponent': unreal.SpotLightComponent,
-        #     'DirectionalLightComponent': unreal.DirectionalLightComponent,
-        #     'AudioComponent': unreal.AudioComponent,
-        #     'CameraComponent': unreal.CameraComponent,
-        #     'SpringArmComponent': unreal.SpringArmComponent,
-        #     'WidgetComponent': unreal.WidgetComponent,
-        #     'SceneComponent': unreal.SceneComponent,
-        # }
-
-        # component_class = component_type_mapping.get(
-        #     component_type, unreal.SceneComponent
-        # )
 
         # Note: The Unreal Python API has limitations for modifying
         # Blueprints. This is a simplified implementation that
