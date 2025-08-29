@@ -80,7 +80,12 @@ coverage/
 
 # Demo folder (Unreal Engine experimental/test content)
 Demo/*
-# Keep source content and assets
-!Demo/Content/
-!Demo/Source/
+# Keep only the project file and documentation
 !Demo/*.uproject
+!Demo/README_CALIBRATION.md
+# Always ignore Unreal's generated folders
+Demo/Saved/
+Demo/Intermediate/
+Demo/DerivedDataCache/
+Demo/Binaries/
+Demo/Config/
