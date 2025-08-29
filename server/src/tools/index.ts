@@ -64,6 +64,11 @@ export {
   pythonProxyTool,
   restartListenerTool,
   ueLogsTool,
+  undoTool,
+  redoTool,
+  historyListTool,
+  checkpointCreateTool,
+  checkpointRestoreTool,
 } from './system/index.js';
 
 // Re-export everything together for convenience

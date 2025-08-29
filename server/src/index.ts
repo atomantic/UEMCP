@@ -53,6 +53,11 @@ import {
   pythonProxyTool,
   restartListenerTool,
   ueLogsTool,
+  undoTool,
+  redoTool,
+  historyListTool,
+  checkpointCreateTool,
+  checkpointRestoreTool,
 } from './tools/index.js';
 
 // Create array of all tools
@@ -92,6 +97,11 @@ const allTools = [
   pythonProxyTool,
   restartListenerTool,
   ueLogsTool,
+  undoTool,
+  redoTool,
+  historyListTool,
+  checkpointCreateTool,
+  checkpointRestoreTool,
 ];
 
 // Define tool type

@@ -1397,3 +1397,62 @@ class ActorOperations:
                 "success": True,
                 "message": "Actor successfully snapped to socket"
             }
+    
+    def get_actor_state(self, actor_name):
+        """Get the current state of an actor for undo support.
+        
+        Args:
+            actor_name: Name of the actor to get state for
+            
+        Returns:
+            dict: Actor state including location, rotation, scale, mesh, folder
+        """
+        try:
+            actor = find_actor_by_name(actor_name)
+            
+            if not actor:
+                return {
+                    "success": False,
+                    "error": f'Actor "{actor_name}" not found'
+                }
+            
+            # Get transform
+            location = actor.get_actor_location()
+            rotation = actor.get_actor_rotation()
+            scale = actor.get_actor_scale3d()
+            
+            # Get folder path
+            folder = actor.get_folder_path() if hasattr(actor, 'get_folder_path') else None
+            
+            # Get mesh if it's a static mesh actor
+            mesh = None
+            if actor.get_class().get_name() == "StaticMeshActor":
+                mesh_comp = actor.get_component_by_class(unreal.StaticMeshComponent)
+                if mesh_comp:
+                    static_mesh = mesh_comp.get_editor_property('static_mesh')
+                    if static_mesh:
+                        mesh = static_mesh.get_path_name()
+            
+            # Get the asset path (what was spawned)
+            asset_path = None
+            # Try to determine the original asset
+            if hasattr(actor, 'tags'):
+                for tag in actor.tags:
+                    if tag.startswith('/Game/'):
+                        asset_path = tag
+                        break
+            
+            return {
+                "success": True,
+                "actor_name": actor_name,
+                "location": [location.x, location.y, location.z],
+                "rotation": [rotation.roll, rotation.pitch, rotation.yaw],
+                "scale": [scale.x, scale.y, scale.z],
+                "mesh": mesh,
+                "folder": folder,
+                "asset_path": asset_path
+            }
+            
+        except Exception as e:
+            log_error(f"Failed to get actor state: {str(e)}")
+            return {"success": False, "error": str(e)}
