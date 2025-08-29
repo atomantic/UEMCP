@@ -39,7 +39,7 @@ export abstract class UndoableTool<TArgs = unknown> extends BaseTool<TArgs> {
     } catch (error) {
       // Remove the operation from history if it failed
       // Note: In a real implementation, we'd need a way to remove failed operations
-      logger.error(`Operation ${operationId} failed: ${error}`);
+      logger.error(`Operation ${operationId} failed: ${String(error)}`);
       throw error;
     }
   }
@@ -57,7 +57,7 @@ export abstract class UndoableTool<TArgs = unknown> extends BaseTool<TArgs> {
    * Get a human-readable description of the operation
    * Should be implemented by subclasses for better history display
    */
-  protected getOperationDescription(args: TArgs): string {
+  protected getOperationDescription(_args: TArgs): string {
     return `${this.definition.name} operation`;
   }
 
@@ -103,12 +103,12 @@ export abstract class UndoableTool<TArgs = unknown> extends BaseTool<TArgs> {
 
     if (result.success) {
       return {
-        location: result.location as number[] | undefined,
-        rotation: result.rotation as number[] | undefined,
-        scale: result.scale as number[] | undefined,
-        mesh: result.mesh as string | undefined,
-        folder: result.folder as string | undefined,
-        asset_path: result.asset_path as string | undefined,
+        location: Array.isArray(result.location) ? result.location : undefined,
+        rotation: Array.isArray(result.rotation) ? result.rotation : undefined,
+        scale: Array.isArray(result.scale) ? result.scale : undefined,
+        mesh: result.mesh ? String(result.mesh) : undefined,
+        folder: result.folder ? String(result.folder) : undefined,
+        asset_path: result.asset_path ? String(result.asset_path) : undefined,
       };
     }
 

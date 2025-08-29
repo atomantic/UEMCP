@@ -1,7 +1,7 @@
 import { BaseTool } from '../base/base-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
 import { ResponseFormatter } from '../../utils/response-formatter.js';
-import { OperationHistory } from '../../services/operation-history.js';
+import { OperationHistory, OperationRecord } from '../../services/operation-history.js';
 import { logger } from '../../utils/logger.js';
 
 interface UndoArgs {
@@ -68,7 +68,7 @@ export class UndoTool extends BaseTool<UndoArgs> {
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         failedOperations.push(`${operation.description} (${errorMsg})`);
-        logger.error(`Failed to undo operation ${operation.id}: ${error}`);
+        logger.error(`Failed to undo operation ${operation.id}: ${String(error)}`);
         break; // Stop on error
       }
     }
@@ -100,8 +100,12 @@ export class UndoTool extends BaseTool<UndoArgs> {
     return ResponseFormatter.success(message.trim());
   }
 
-  private async performUndo(operation: any): Promise<void> {
+  private async performUndo(operation: OperationRecord): Promise<void> {
     const undoData = operation.undoData;
+    
+    if (!undoData) {
+      throw new Error('No undo data available');
+    }
     
     switch (undoData.type) {
       case 'actor_spawn':
@@ -129,7 +133,7 @@ export class UndoTool extends BaseTool<UndoArgs> {
       case 'actor_modify':
         // Undo modify by restoring previous state
         if (undoData.actorName && undoData.previousState) {
-          const params: any = {
+          const params: Record<string, unknown> = {
             actor_name: undoData.actorName,
           };
           
@@ -178,7 +182,7 @@ export class UndoTool extends BaseTool<UndoArgs> {
         break;
 
       default:
-        throw new Error(`Unknown undo type: ${undoData.type}`);
+        throw new Error(`Unknown undo type: ${String(undoData.type)}`);
     }
   }
 }

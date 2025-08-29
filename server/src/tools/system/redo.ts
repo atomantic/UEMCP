@@ -1,7 +1,7 @@
 import { BaseTool } from '../base/base-tool.js';
 import { ToolDefinition } from '../base/base-tool.js';
 import { ResponseFormatter } from '../../utils/response-formatter.js';
-import { OperationHistory } from '../../services/operation-history.js';
+import { OperationHistory, OperationRecord } from '../../services/operation-history.js';
 import { logger } from '../../utils/logger.js';
 
 interface RedoArgs {
@@ -61,7 +61,7 @@ export class RedoTool extends BaseTool<RedoArgs> {
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         failedOperations.push(`${operation.description} (${errorMsg})`);
-        logger.error(`Failed to redo operation ${operation.id}: ${error}`);
+        logger.error(`Failed to redo operation ${operation.id}: ${String(error)}`);
         break; // Stop on error
       }
     }
@@ -93,7 +93,7 @@ export class RedoTool extends BaseTool<RedoArgs> {
     return ResponseFormatter.success(message.trim());
   }
 
-  private async performRedo(operation: any): Promise<void> {
+  private async performRedo(operation: OperationRecord): Promise<void> {
     // Re-execute the original operation based on its type
     const toolName = operation.toolName;
     const args = operation.args;

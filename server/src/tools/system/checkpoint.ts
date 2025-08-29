@@ -168,7 +168,7 @@ export class CheckpointRestoreTool extends BaseTool<CheckpointRestoreArgs> {
           this.history.markUndone();
         } catch (error) {
           errors.push(`Failed to undo: ${operation.description}`);
-          logger.error(`Failed to undo during checkpoint restore: ${error}`);
+          logger.error(`Failed to undo during checkpoint restore: ${String(error)}`);
           break;
         }
       }
@@ -186,7 +186,7 @@ export class CheckpointRestoreTool extends BaseTool<CheckpointRestoreArgs> {
           this.history.markRedone();
         } catch (error) {
           errors.push(`Failed to redo: ${operation.description}`);
-          logger.error(`Failed to redo during checkpoint restore: ${error}`);
+          logger.error(`Failed to redo during checkpoint restore: ${String(error)}`);
           break;
         }
       }
