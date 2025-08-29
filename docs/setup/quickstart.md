@@ -1,6 +1,6 @@
-# UEMCP Quick Start Guide
+# Quick Start Guide
 
-Welcome to UEMCP! This guide will get you up and running in under 5 minutes.
+Get UEMCP running in under 5 minutes!
 
 ## 🚀 One-Command Setup
 
@@ -10,120 +10,104 @@ cd UEMCP
 ./setup.sh
 ```
 
-That's it! The setup script handles everything automatically, including installing Node.js and Python if needed.
+That's it! The setup script handles everything automatically.
 
-### Advanced Setup Options
+## 📋 What Gets Installed
+
+The setup script will:
+1. ✅ Check/install Node.js 18+ (via Homebrew, apt, or nvm)
+2. ✅ Check/install Python 3.11 (optional, for development)
+3. ✅ Create virtual environment (optional but recommended)
+4. ✅ Install all dependencies
+5. ✅ Build the MCP server
+6. ✅ Configure Claude Desktop and/or Claude Code
+7. ✅ Install the UE plugin to your project (if path provided)
+
+## 🎮 Using UEMCP
+
+### Step 1: Start Unreal Engine
+Open your project with the UEMCP plugin installed. The Python listener starts automatically.
+
+### Step 2: Launch Claude
+```bash
+# For Claude Code (recommended)
+claude -c
+
+# Or use Claude Desktop (restart it after setup)
+```
+
+### Step 3: Use MCP Tools
+Ask Claude to:
+- "Show me all actors in the level"
+- "Spawn a cube at location 0,0,100"
+- "Take a screenshot of the viewport"
+- "Show me available assets"
+
+## 🧪 Testing Your Setup
 
 ```bash
-# Install to your Unreal project (automatically installs plugin)
-./setup.sh --project "/path/to/your/ue/project"
+# Test MCP server connection
+node test-connection.js
 
-# Non-interactive mode (great for CI/CD)
+# In UE Python console, check listener status
+status()
+```
+
+## 🔧 Setup Options
+
+```bash
+# Install directly to your UE project
+./setup.sh --project "/path/to/YourProject.uproject"
+
+# Use symlink for development (recommended)
+./setup.sh --project "/path/to/YourProject.uproject" --symlink
+
+# Use copy for production deployment
+./setup.sh --project "/path/to/YourProject.uproject" --copy
+
+# Non-interactive mode for CI/CD
 ./setup.sh --no-interactive --project "/path/to/project"
+
+# Skip Python setup (Node.js only)
+./setup.sh --skip-python
 
 # See all options
 ./setup.sh --help
 ```
 
-## 🎯 What Just Happened?
+## 💡 Tips
 
-The setup script:
-1. ✅ Detected your installed AI development tools
-2. ✅ Configured MCP support for Claude, Amazon Q, Gemini, and Codex
-3. ✅ Installed Node.js if not present
-4. ✅ Installed Python if not present (optional)
-5. ✅ Created a virtual environment for Python
-6. ✅ Installed all dependencies
-7. ✅ Built the MCP server
-8. ✅ Asked for your Unreal Engine project path (optional)
-9. ✅ Installed the UEMCP plugin to your project (if requested)
-
-## 🧪 Testing Your Setup
-
-### Test 1: Local Connection Test
+### Windows Users
+Use WSL (Windows Subsystem for Linux) or Git Bash:
 ```bash
-node test-connection.js
+# Install WSL if needed
+wsl --install
+
+# Then run setup in WSL
+./setup.sh
 ```
 
-You should see:
-- Server starting up
-- List of available tools
-- Successful connection message
-
-### Test 2: Claude Desktop
-1. **Restart Claude Desktop** (important!)
-2. Start a new conversation
-3. Say: "What UEMCP tools are available?"
-
-Claude should respond with a list of available Unreal Engine tools.
-
-## 🎮 Using UEMCP
-
-### Basic Commands
-
-Ask Claude to:
-- "Show me information about my current UE project"
-- "List the assets in my project"
-- "Spawn a cube at location 0,0,100"
-- "Take a screenshot of the viewport"
-- "Show me all actors in the current level"
-- "Save the current level"
-
-### Setting Your Project
-
-If you didn't set a project during init:
-
+### Manual Plugin Installation
+If you prefer manual installation:
 ```bash
-# macOS/Linux
-export UE_PROJECT_PATH="/path/to/your/project.uproject"
+# Symlink (for development)
+ln -s "$(pwd)/plugin" "/path/to/YourProject/Plugins/UEMCP"
 
-# Windows
-set UE_PROJECT_PATH=C:\path\to\your\project.uproject
+# Or copy (for production)
+cp -r plugin "/path/to/YourProject/Plugins/UEMCP"
 ```
 
-**Note:** The path should point to the `.uproject` file, not just the directory.
-
-### Installing the Plugin
-
-For full functionality, install the UEMCP plugin to your UE project:
-
-```bash
-# If you didn't do this during setup, run:
-./setup.sh --project "/path/to/project.uproject"
-```
-
-The plugin enables:
-- Python listener for real-time commands
-- All 11 MCP tools
-- Hot reload support
-
-## 🔧 Common Issues
-
-### "Claude doesn't see UEMCP"
-- Make sure you **fully restarted** Claude Desktop
-- Check the MCP indicator in Claude's interface
-- Run `node test-connection.js` to verify the server works
-
-### "Project not found"
-- Set your project path: `export UE_PROJECT_PATH="/actual/path"`
-- Make sure the path points to your `.uproject` file's directory
-
-### "Permission denied"
-- On macOS/Linux: `chmod +x setup.sh`
-- On Windows: Run using Git Bash or WSL
+### Troubleshooting
+- **Claude doesn't see tools**: Restart Claude Desktop completely
+- **Port 8765 in use**: Run `restart_listener()` in UE Python console
+- **Connection failed**: Check UE Output Log for listener status
 
 ## 📚 Next Steps
 
-1. **Explore available tools**: Ask Claude "What can you do with Unreal Engine?"
-2. **Read the docs**: Check out [complete documentation](../README.md)
-3. **Join the community**: Report issues or request features on GitHub
-
-## 💡 Pro Tips
-
-- Enable debug logging: `export DEBUG=uemcp:*`
-- Watch server logs: `tail -f ~/.uemcp/logs/server.log` (if logging is enabled)
-- Use environment files: Copy `.env.example` to `.env` for persistent config
+- [Read the full documentation](../../README.md)
+- [Learn about available tools](../../README.md#-available-tools)
+- [Check troubleshooting guide](../development/troubleshooting.md)
 
 ---
 
-Need help? Check our [troubleshooting guide](troubleshooting.md) or open an issue on GitHub!
+**Need help?** Check the [troubleshooting guide](../development/troubleshooting.md) or [create an issue](https://github.com/atomantic/UEMCP/issues).

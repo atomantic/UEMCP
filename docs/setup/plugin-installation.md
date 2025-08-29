@@ -1,183 +1,132 @@
-# UEMCP Plugin Installation Guide
+# Plugin Installation Details
 
 ## Overview
 
-The UEMCP system consists of two main components:
-1. **MCP Server** (Node.js) - Communicates with AI assistants
-2. **UEMCP Plugin** (Content-only) - Python listener that runs inside Unreal Engine
+The UEMCP plugin is a **content-only** Unreal Engine plugin (no C++ compilation required).
 
-## Key Features
+## Installation Methods
 
-- **No C++ compilation required** - It's a content-only plugin
-- **Instant installation** - Just copy the plugin folder
-- **Hot reload support** - Update code without restarting UE
+### Automatic (via setup.sh)
+See the [Quick Start Guide](quickstart.md) - the setup script handles everything.
 
-## Installation Steps
+### Manual Installation
 
-### 1. Install the UEMCP Plugin
+#### 1. Copy or Symlink the Plugin
 
-#### Option A: Using setup.sh (Recommended)
 ```bash
-# Run the setup script (automatically installs plugin when project is specified)
-./setup.sh --project "/path/to/your/project.uproject"
+# Navigate to your UE project
+cd "/path/to/YourProject"
 
-# For development, use symlink (recommended):
-./setup.sh --project "/path/to/your/project.uproject" --symlink
+# Create Plugins directory if needed
+mkdir -p Plugins
 
-# For production deployment, use copy:
-./setup.sh --project "/path/to/your/project.uproject" --copy
+# Option A: Symlink (for development)
+ln -s "/path/to/UEMCP/plugin" "Plugins/UEMCP"
+
+# Option B: Copy (for production)
+cp -r "/path/to/UEMCP/plugin" "Plugins/UEMCP"
 ```
 
-#### Option B: Manual Installation
-```bash
-# Create Plugins directory if it doesn't exist
-mkdir -p "<YOUR_UE_PROJECT>/Plugins"
+#### 2. Enable in Unreal Engine
 
-# For development (symlink):
-ln -s <PATH_TO_UEMCP>/plugin "<YOUR_UE_PROJECT>/Plugins/UEMCP"
+1. Open your project in Unreal Editor
+2. Go to **Edit → Plugins**
+3. Search for "Python" and enable **Python Script Plugin**
+4. Search for "UEMCP" and ensure it's enabled
+5. Restart Unreal Editor
 
-# For production (copy):
-cp -r <PATH_TO_UEMCP>/plugin "<YOUR_UE_PROJECT>/Plugins/UEMCP"
+## Symlink vs Copy
+
+| Method | Use Case | Pros | Cons |
+|--------|----------|------|------|
+| **Symlink** | Development | • Instant updates from git<br>• Hot reload support<br>• Single source of truth | • Requires git repo present<br>• Path-dependent |
+| **Copy** | Production | • Self-contained<br>• Portable with project<br>• No external dependencies | • Manual updates needed<br>• Takes disk space |
+
+## Plugin Structure
+
+```
+UEMCP/
+├── UEMCP.uplugin         # Plugin descriptor
+└── Content/
+    └── Python/
+        ├── init_unreal.py     # Auto-starts on UE launch
+        ├── uemcp_listener.py  # HTTP server
+        ├── uemcp_helpers.py   # Helper functions
+        └── ops/               # Operation modules
+            ├── actor.py
+            ├── viewport.py
+            ├── asset.py
+            └── ...
 ```
 
-**Symlink vs Copy:**
-- **Symlink** (Development): Changes in git repo reflect immediately, supports hot reload
-- **Copy** (Production): Self-contained, no dependency on git repo location
+## Verification
 
-### 2. Enable Required Plugins
+After installation, verify the plugin is working:
 
-In Unreal Editor:
-1. Go to Edit → Plugins
-2. Enable these plugins:
-   - **Python Script Plugin** (built-in) - Required
-   - **UEMCP** (our plugin) - Should auto-enable after copying
-
-### 3. Restart Unreal Editor
-
-After installing the plugin, restart Unreal Editor for the changes to take effect.
-
-### 4. Verify Installation
-
-The plugin should start automatically. Check the Output Log for:
+### In Output Log
+Look for:
 ```
+LogPython: UEMCP: Starting listener...
 LogPython: UEMCP: Listener started on http://localhost:8765
 ```
 
-You can also verify in the Python console:
-```python
-# Check if listener is running
-status()
-```
-
-## How It Works
-
-### Communication Flow
-
-```
-1. AI Assistant (Claude/Cursor) sends command to MCP Server
-2. MCP Server sends HTTP request to Python listener (port 8765)
-3. Python listener queues command for main thread execution
-4. Command executed using Unreal's Python API
-5. Results flow back through HTTP response
-```
-
-### Architecture Benefits
-
-- **No compilation** - Pure Python implementation
-- **Hot reload** - Use `restart_listener()` to update code
-- **Thread-safe** - Commands queued for main thread
-- **Reliable** - HTTP communication with retry logic
-
-### Example: Spawning an Actor
-
-1. **AI sends command** → MCP Server receives:
-```json
-{
-  "tool": "actor_spawn",
-  "arguments": {
-    "assetPath": "/Game/Meshes/SM_Wall",
-    "location": [1000, 0, 0]
-  }
-}
-```
-
-2. **MCP Server** → HTTP POST to localhost:8765:
-```json
-{
-  "type": "actor.spawn",
-  "params": {
-    "assetPath": "/Game/Meshes/SM_Wall",
-    "location": [1000, 0, 0]
-  },
-  "requestId": "unique-id"
-}
-```
-
-3. **Python Listener** → Executes in UE:
-```python
-# Queued and executed on main thread
-asset = unreal.EditorAssetLibrary.load_asset(asset_path)
-actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
-    asset, location, rotation
-)
-```
-
-4. **Result** → Returns to AI:
-```json
-{
-  "success": true,
-  "actor": "SM_Wall_2",
-  "location": [1000, 0, 0]
-}
-```
-
-## Plugin Commands
-
-Use these in the UE Python console:
-
+### In Python Console
 ```python
 # Check status
 status()
 
-# Restart listener (hot reload)
-restart_listener()
+# Should show:
+# UEMCP: Listener is RUNNING on http://localhost:8765
+```
 
-# Stop listener
-stop_listener()
+## Hot Reload
 
-# Start listener
-start_listener()
+During development, you can reload code changes without restarting UE:
 
-# Enable debug logging
-import os
-os.environ['UEMCP_DEBUG'] = '1'
+```python
+# In UE Python console
 restart_listener()
 ```
 
-## Current Features
-
-- **11 working MCP tools** for asset management, actor spawning, level editing
-- **Hot reload** - Update Python code without restarting UE
-- **Error handling** - Graceful error recovery and detailed logging
-- **Performance optimization** - Reduced command processing to prevent overload
+This will:
+1. Stop the current listener
+2. Reload all Python modules
+3. Start a fresh listener with your changes
 
 ## Troubleshooting
 
+### Plugin Not Found
+- Ensure the plugin is in `YourProject/Plugins/UEMCP/`
+- Check that `UEMCP.uplugin` exists in the plugin folder
+- Restart Unreal Editor after adding the plugin
+
+### Python Script Plugin Not Enabled
+- Go to Edit → Plugins
+- Search for "Python Script Plugin"
+- Enable it and restart UE
+
 ### Listener Not Starting
-- Check Output Log for errors
-- Ensure Python Script Plugin is enabled
+- Check Output Log for Python errors
+- Verify port 8765 is not in use
 - Try `restart_listener()` in Python console
 
-### Port 8765 Already in Use
-```python
-# In UE Python console
-restart_listener()  # This will clean up and restart
+## Updating the Plugin
+
+### If Using Symlink
+```bash
+cd /path/to/UEMCP
+git pull
+# In UE: restart_listener()
 ```
 
-### HTTP 529 Errors
-- The listener automatically throttles requests
-- If persistent, use `restart_listener()`
+### If Using Copy
+```bash
+cd /path/to/UEMCP
+git pull
+cp -r plugin "/path/to/YourProject/Plugins/UEMCP"
+# Restart Unreal Editor
+```
 
-### Missing File Errors
-- Check DefaultEngine.ini for old references
-- Ensure plugin files are in correct location
+---
+
+For initial setup, see the [Quick Start Guide](quickstart.md).
