@@ -369,13 +369,14 @@ npm run lint          # Linting
 
 ## 📚 Documentation
 
-See the **[Documentation Index](docs/README.md)** for organized access to all documentation.
-
-### Quick Links
-- **[Quick Start Guide](docs/setup/quickstart.md)** - Get started in 2 minutes
-- **[Development Guide](CLAUDE.md)** - Core development patterns
-- **[MCP Tools vs Python Proxy](docs/reference/mcp-tools-vs-python-proxy.md)** - 85% code reduction examples
+- **[Setup Reference](docs/setup.md)** - Manual setup and configuration details
+- **[Architecture](docs/development/architecture.md)** - System design and components
 - **[Troubleshooting](docs/development/troubleshooting.md)** - Common issues and solutions
+- **[Examples](docs/examples.md)** - Advanced usage patterns and experiments
+- **[MCP vs Python](docs/reference/mcp-tools-vs-python-proxy.md)** - 85% code reduction comparison
+- **[Python Workarounds](docs/reference/python-api-workarounds.md)** - Known UE Python limitations
+- **[Contributing](docs/CONTRIBUTING.md)** - How to contribute
+- **[Development](CLAUDE.md)** - For AI assistants and developers
 
 ## ⚠️ Known Limitations
 
@@ -403,11 +404,13 @@ Most remaining limitations can be worked around using the `python_proxy` tool. S
 
 ## 🗺️ Roadmap
 
-### Upcoming Releases
-- **v0.7.0** (Jan 2025) - Socket-based building, batch operations, FAB import
-- **v0.8.0** (Feb 2025) - Blueprint manipulation, undo/redo system
-- **v0.9.0** (Mar 2025) - Performance optimizations, production readiness
-- **v1.0.0** (Apr 2025) - Production release with full feature set
+### Released
+- **v0.7.0** - Socket-based building, batch operations, FAB import
+- **v0.8.0** - Blueprint creation, undo/redo system
+
+### Upcoming
+- **v0.9.0** - Performance optimizations, production readiness
+- **v1.0.0** - Production release with full feature set
 
 See [PLAN.md](PLAN.md) for detailed roadmap and release criteria.
 

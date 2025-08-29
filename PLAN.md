@@ -6,7 +6,7 @@ This document outlines the implementation roadmap, release schedule, and future 
 
 ## Release Roadmap
 
-### ✅ Version 0.7.0 (Released: December 28, 2024)
+### ✅ Version 0.7.0 (Released)
 **Theme: "Socket-Based Building & Enhanced Workflows"**
 
 #### Completed Features
@@ -20,17 +20,20 @@ This document outlines the implementation roadmap, release schedule, and future 
 
 **See [Release Notes](docs/release-notes/v0.7.0.md) for full details.**
 
-### 🚀 Version 0.8.0
+### ✅ Version 0.8.0 (Released)
 **Theme: "Blueprint Integration & Advanced Workflows"**
 
-#### Planned Features
-- [x] Blueprint creation tool (blueprint_create implemented)
-- [ ] Socket pattern matching for automatic connections
-- [x] Undo/Redo system for operations (implemented)
-- [ ] Enhanced error recovery and retry mechanisms
-- [ ] Batch operations for all actor tools
+#### Completed Features
+- ✅ Blueprint creation tool (blueprint_create)
+- ✅ Undo/Redo system for operations
+- ⚠️ Blueprint component/variable modification (blocked by UE Python API)
 
-**Note**: Blueprint component/variable modification blocked by UE Python API limitations
+#### Deferred to Future Releases
+- Socket pattern matching for automatic connections
+- Enhanced error recovery and retry mechanisms
+- Batch operations for all actor tools
+
+**See [Release Notes](docs/release-notes/v0.8.0.md) for full details.**
 
 ### 🌟 Version 0.9.0
 **Theme: "Production Readiness"**
@@ -107,19 +110,19 @@ The current architecture is stable and production-ready:
 
 ### Recently Completed Tools (Phases 5-6)
 
-**Phase 5 - Core Enhancements (Completed November 2024):**
+**Phase 5 - Core Enhancements (Completed):**
 1. ✅ **Enhanced asset_info** - Comprehensive bounds, pivot, socket, and collision data
 2. ✅ **batch_spawn** - Efficient multi-actor spawning with 4-5x performance improvement
 3. ✅ **placement_validate** - Gap/overlap detection for modular building validation
 4. ✅ **asset_import** - FAB marketplace and local asset import with advanced settings
 
-**Phase 6 - Material Management (Completed December 2024):**
+**Phase 6 - Material Management (Completed):**
 1. ✅ **material_list** - List and filter materials in project
 2. ✅ **material_info** - Get detailed material information including parameters
 3. ✅ **material_create** - Create new materials and material instances
 4. ✅ **material_apply** - Apply materials to actors and components
 
-## Recently Completed Fixes (December 2024)
+## Recently Completed Fixes
 
 ### Major Bug Fixes Completed
 1. ✅ **Fixed restart_listener crashes**

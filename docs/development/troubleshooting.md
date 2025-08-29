@@ -68,7 +68,7 @@ dir %APPDATA%\Claude\claude_desktop_config.json
 
 4. **Test server manually**
    ```bash
-   node <PATH_FROM_CONFIG>/server/dist/index.js
+   node <PATH_FROM_CONFIG>/dist/index.js
    ```
 
 #### "MCP server connection failed"
@@ -119,7 +119,9 @@ npm install --verbose
 
 #### "Python not found"
 
-**Note:** Python is required for development. Use Python 3.11 to match UE 5.4+ built-in version.
+**Note:** Python is required for development. Match your UE version's built-in Python:
+- UE 5.4-5.5: Python 3.11
+- UE 5.6+: Python 3.11 (as of January 2025)
 
 **To enable Python features:**
 ```bash
@@ -166,9 +168,13 @@ pip3 install -r requirements-ci.txt   # Excludes unreal module
    taskkill /PID <PID> /F  # Windows
    ```
 
-2. Or restart the listener in UE:
+2. Or use the built-in port utilities:
    ```python
    # In UE Python console
+   import uemcp_port_utils
+   uemcp_port_utils.force_free_port(8765)
+   
+   # Then restart the listener
    restart_listener()
    ```
 
@@ -224,33 +230,28 @@ pip3 install -r requirements-ci.txt   # Excludes unreal module
 1. Check `Config/DefaultEngine.ini` in your UE project
 2. Remove any line referencing `init_unreal_simple.py`
 
-#### "Unreal Engine crashes when running restart_listener()"
+#### "restart_listener() doesn't reload my code changes"
 
-**Symptoms:**
-- UE crashes immediately when calling `restart_listener()`
-- May happen from Python console or through MCP tool
+**Note:** As of v0.8.0, `restart_listener()` uses a safe scheduled restart that won't crash UE!
 
-**Cause:**
-- Python modules cannot be safely reloaded while code from those modules is executing
-- The HTTP server cannot restart itself while handling requests
+**How it works:**
+- The listener schedules a restart for the next tick cycle
+- Automatically stops, reloads modules, and restarts
+- Takes about 2-3 seconds to complete
+- No risk of crashes or freezes
 
-**Solution:**
-Use the manual two-step restart process:
+**To reload code changes:**
 ```python
-# Step 1: Stop the listener
-restart_listener()  # This just stops the server
-
-# Step 2: Complete restart manually
-import importlib
-importlib.reload(uemcp_listener)
-uemcp_listener.start_listener()
+# Just call restart_listener() - it's safe now!
+restart_listener()
 ```
 
-**Alternative:** If you just need to reload code changes:
-1. Save your Python files
-2. Use the manual restart steps above
-3. Your changes will be loaded with the fresh module
-3. The correct startup is handled by `init_unreal.py`
+**What happens:**
+1. Listener schedules a restart (0.5 second delay)
+2. Current HTTP server gracefully shuts down
+3. Python modules are reloaded with your changes
+4. New listener starts automatically
+5. You see "Listener restarted successfully" in the log
 
 #### "Deprecation warnings for EditorLevelLibrary"
 
