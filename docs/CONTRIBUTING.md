@@ -22,9 +22,22 @@ First off, thank you for considering contributing to UEMCP! Your help is greatly
 
 ## Coding Conventions
 
-- **C++:** Follow the [Unreal Engine Coding Standard](https://docs.unrealengine.com/en-US/ProgrammingAndScripting/ProgrammingWithCPP/CodingStandard/index.html).
-- **Python:** Adhere to PEP 8.
-- **Comments:** Write clear and concise comments where necessary. Focus on the *why*, not the *what*.
+- **TypeScript:** Follow ESLint rules, no `any` types without justification
+- **Python:** Adhere to PEP 8, use type hints, catch specific exceptions
+- **Line Endings:** Always use LF (Unix-style), not CRLF
+- **Testing:** Run `./test-ci-locally.sh` before committing
+
+See [CLAUDE.md](../CLAUDE.md) for detailed code standards.
+
+## Release Process
+
+For maintainers releasing new versions:
+
+1. Update version in `package.json` and `plugin/UEMCP.uplugin`
+2. Update PLAN.md roadmap status
+3. Create release notes in `docs/release-notes/vX.Y.Z.md`
+4. Tag release: `git tag vX.Y.Z && git push --tags`
+5. Create GitHub release with notes
 
 ## Questions?
 
