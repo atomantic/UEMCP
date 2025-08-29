@@ -16,14 +16,14 @@ def create(
 ) -> Dict[str, Any]:
     """
     Create a new Blueprint class.
-    
+
     Args:
         class_name: Name for the new Blueprint class
         parent_class: Parent class name or path
         target_folder: Destination folder for the Blueprint
         components: Optional list of components to add
         variables: Optional list of variables to add
-    
+
     Returns:
         Dictionary with creation result
     """
@@ -31,17 +31,17 @@ def create(
         # Ensure target folder exists
         if not unreal.EditorAssetLibrary.does_directory_exist(target_folder):
             unreal.EditorAssetLibrary.make_directory(target_folder)
-        
+
         # Construct the full asset path
         asset_path = f"{target_folder}/{class_name}"
-        
+
         # Check if Blueprint already exists
         if unreal.EditorAssetLibrary.does_asset_exist(asset_path):
             return {
                 'success': False,
                 'error': f'Blueprint already exists at {asset_path}'
             }
-        
+
         # Resolve parent class
         parent_class_obj = None
         if '/' in parent_class:
@@ -65,14 +65,16 @@ def create(
                 'ActorComponent': unreal.ActorComponent,
                 'SceneComponent': unreal.SceneComponent,
             }
-            
-            parent_class_obj = parent_class_mapping.get(parent_class, unreal.Actor)
-        
+
+            parent_class_obj = parent_class_mapping.get(
+                parent_class, unreal.Actor
+            )
+
         # Create the Blueprint asset
         asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
         blueprint_factory = unreal.BlueprintFactory()
         blueprint_factory.set_editor_property('parent_class', parent_class_obj)
-        
+
         # Create the Blueprint
         blueprint = asset_tools.create_asset(
             asset_name=class_name,
@@ -80,56 +82,59 @@ def create(
             asset_class=unreal.Blueprint,
             factory=blueprint_factory
         )
-        
+
         if not blueprint:
             return {
                 'success': False,
                 'error': 'Failed to create Blueprint asset'
             }
-        
+
         # Get the Blueprint's generated class for modification
-        blueprint_class = blueprint.generated_class()
-        
+        # Note: Direct modification of Blueprint classes via Python is limited
+        # blueprint_class = blueprint.generated_class()
+
         # Add components if specified
         added_components = []
         if components:
             for comp_def in components:
                 comp_name = comp_def.get('name')
                 comp_type = comp_def.get('type')
-                comp_props = comp_def.get('properties', {})
-                
+                # comp_props = comp_def.get('properties', {})
+
                 if comp_name and comp_type:
-                    # Note: Adding components programmatically to Blueprints requires
-                    # using the Blueprint editor subsystem which has limitations
+                    # Note: Adding components programmatically to
+                    # Blueprints requires using the Blueprint editor
+                    # subsystem which has limitations
                     added_components.append(f"{comp_name} ({comp_type})")
                     log_info(f"Component {comp_name} queued for addition")
-        
+
         # Add variables if specified
         added_variables = []
         if variables:
             for var_def in variables:
                 var_name = var_def.get('name')
                 var_type = var_def.get('type')
-                default_value = var_def.get('defaultValue')
-                is_editable = var_def.get('isEditable', True)
-                
+                # default_value = var_def.get('defaultValue')
+                # is_editable = var_def.get('isEditable', True)
+
                 if var_name and var_type:
-                    # Note: Adding variables programmatically requires Blueprint compilation
+                    # Note: Adding variables programmatically requires
+                    # Blueprint compilation
                     added_variables.append(f"{var_name}: {var_type}")
                     log_info(f"Variable {var_name} queued for addition")
-        
+
         # Compile the Blueprint
         unreal.EditorAssetLibrary.save_asset(asset_path)
-        
+
         log_info(f"Created Blueprint: {asset_path}")
-        
+
         return {
             'success': True,
             'blueprintPath': asset_path,
             'components': added_components,
             'variables': added_variables
         }
-        
+
     except Exception as e:
         log_error(f"Error creating Blueprint: {e}")
         return {
@@ -151,7 +156,7 @@ def add_component(
 ) -> Dict[str, Any]:
     """
     Add a component to an existing Blueprint.
-    
+
     Args:
         blueprint_path: Path to the Blueprint asset
         component_name: Name for the new component
@@ -162,7 +167,7 @@ def add_component(
         relative_rotation: Relative rotation [Roll, Pitch, Yaw]
         relative_scale: Relative scale [X, Y, Z]
         properties: Additional properties to set
-    
+
     Returns:
         Dictionary with operation result
     """
@@ -174,48 +179,57 @@ def add_component(
                 'success': False,
                 'error': f'Blueprint not found: {blueprint_path}'
             }
-        
+
         # Map component type strings to Unreal classes
-        component_type_mapping = {
-            'StaticMeshComponent': unreal.StaticMeshComponent,
-            'SkeletalMeshComponent': unreal.SkeletalMeshComponent,
-            'BoxComponent': unreal.BoxComponent,
-            'SphereComponent': unreal.SphereComponent,
-            'CapsuleComponent': unreal.CapsuleComponent,
-            'PointLightComponent': unreal.PointLightComponent,
-            'SpotLightComponent': unreal.SpotLightComponent,
-            'DirectionalLightComponent': unreal.DirectionalLightComponent,
-            'AudioComponent': unreal.AudioComponent,
-            'CameraComponent': unreal.CameraComponent,
-            'SpringArmComponent': unreal.SpringArmComponent,
-            'WidgetComponent': unreal.WidgetComponent,
-            'SceneComponent': unreal.SceneComponent,
-        }
-        
-        component_class = component_type_mapping.get(component_type, unreal.SceneComponent)
-        
-        # Note: The Unreal Python API has limitations for modifying Blueprints
-        # This is a simplified implementation that demonstrates the concept
-        # Full implementation would require using the Blueprint editor subsystem
-        
-        log_info(f"Component {component_name} of type {component_type} added to Blueprint structure")
-        log_warning("Note: Full Blueprint component addition requires editor subsystem access")
-        
+        # component_type_mapping = {
+        #     'StaticMeshComponent': unreal.StaticMeshComponent,
+        #     'SkeletalMeshComponent': unreal.SkeletalMeshComponent,
+        #     'BoxComponent': unreal.BoxComponent,
+        #     'SphereComponent': unreal.SphereComponent,
+        #     'CapsuleComponent': unreal.CapsuleComponent,
+        #     'PointLightComponent': unreal.PointLightComponent,
+        #     'SpotLightComponent': unreal.SpotLightComponent,
+        #     'DirectionalLightComponent': unreal.DirectionalLightComponent,
+        #     'AudioComponent': unreal.AudioComponent,
+        #     'CameraComponent': unreal.CameraComponent,
+        #     'SpringArmComponent': unreal.SpringArmComponent,
+        #     'WidgetComponent': unreal.WidgetComponent,
+        #     'SceneComponent': unreal.SceneComponent,
+        # }
+
+        # component_class = component_type_mapping.get(
+        #     component_type, unreal.SceneComponent
+        # )
+
+        # Note: The Unreal Python API has limitations for modifying
+        # Blueprints. This is a simplified implementation that
+        # demonstrates the concept. Full implementation would require
+        # using the Blueprint editor subsystem
+
+        log_info(
+            f"Component {component_name} of type {component_type} "
+            f"added to Blueprint structure"
+        )
+        log_warning(
+            "Note: Full Blueprint component addition requires "
+            "editor subsystem access"
+        )
+
         # Set properties if provided
         properties_set = []
         if properties:
             for prop_name, prop_value in properties.items():
                 properties_set.append(f"{prop_name} = {prop_value}")
-        
+
         # Save the Blueprint
         unreal.EditorAssetLibrary.save_asset(blueprint_path)
-        
+
         return {
             'success': True,
             'message': f'Component {component_name} added to {blueprint_path}',
             'propertiesSet': properties_set
         }
-        
+
     except Exception as e:
         log_error(f"Error adding component to Blueprint: {e}")
         return {
@@ -237,7 +251,7 @@ def set_variable(
 ) -> Dict[str, Any]:
     """
     Create or modify a Blueprint variable.
-    
+
     Args:
         blueprint_path: Path to the Blueprint asset
         variable_name: Name of the variable
@@ -248,7 +262,7 @@ def set_variable(
         category: Category for organizing the variable
         tooltip: Tooltip text for the variable
         replication_mode: Replication mode for multiplayer
-    
+
     Returns:
         Dictionary with operation result
     """
@@ -260,14 +274,21 @@ def set_variable(
                 'success': False,
                 'error': f'Blueprint not found: {blueprint_path}'
             }
-        
-        # Note: The Unreal Python API has limitations for modifying Blueprint variables
-        # This is a simplified implementation that demonstrates the concept
-        # Full implementation would require using the Blueprint editor subsystem
-        
-        log_info(f"Variable {variable_name} of type {variable_type} configured in Blueprint")
-        log_warning("Note: Full Blueprint variable modification requires editor subsystem access")
-        
+
+        # Note: The Unreal Python API has limitations for modifying
+        # Blueprint variables. This is a simplified implementation that
+        # demonstrates the concept. Full implementation would require
+        # using the Blueprint editor subsystem
+
+        log_info(
+            f"Variable {variable_name} of type {variable_type} "
+            f"configured in Blueprint"
+        )
+        log_warning(
+            "Note: Full Blueprint variable modification requires "
+            "editor subsystem access"
+        )
+
         # For demonstration, we'll compile the Blueprint
         # In a full implementation, this would use the Blueprint compiler
         blueprint_compiled = False
@@ -277,13 +298,15 @@ def set_variable(
             blueprint_compiled = True
         except Exception as compile_error:
             log_warning(f"Blueprint compilation warning: {compile_error}")
-        
+
         return {
             'success': True,
-            'message': f'Variable {variable_name} configured in {blueprint_path}',
+            'message': (
+                f'Variable {variable_name} configured in {blueprint_path}'
+            ),
             'compiled': blueprint_compiled
         }
-        
+
     except Exception as e:
         log_error(f"Error setting Blueprint variable: {e}")
         return {
@@ -295,10 +318,10 @@ def set_variable(
 def get_info(blueprint_path: str) -> Dict[str, Any]:
     """
     Get detailed information about a Blueprint.
-    
+
     Args:
         blueprint_path: Path to the Blueprint asset
-    
+
     Returns:
         Dictionary with Blueprint information
     """
@@ -310,25 +333,25 @@ def get_info(blueprint_path: str) -> Dict[str, Any]:
                 'success': False,
                 'error': f'Blueprint not found: {blueprint_path}'
             }
-        
+
         # Get basic information
         info = {
             'success': True,
             'blueprintPath': blueprint_path,
             'className': blueprint.get_name(),
         }
-        
+
         # Get parent class information
         parent_class = blueprint.get_editor_property('parent_class')
         if parent_class:
             info['parentClass'] = parent_class.get_name()
-        
+
         # Note: Getting detailed component and variable information
         # requires more advanced Blueprint introspection which has
         # limitations in the Python API
-        
+
         return info
-        
+
     except Exception as e:
         log_error(f"Error getting Blueprint info: {e}")
         return {

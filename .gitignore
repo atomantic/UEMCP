@@ -82,7 +82,5 @@ coverage/
 Demo/*
 # Keep source content and assets
 !Demo/Content/
-Demo/Content/Blueprints/
-Demo/Content/Materials/
 !Demo/Source/
 !Demo/*.uproject
