@@ -1,9 +1,19 @@
 """
 UEMCP Asset Operations - All asset and content browser operations
+
+Enhanced with improved error handling framework to eliminate try/catch boilerplate.
 """
 
 import unreal
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
+
+# Enhanced error handling framework
+from utils.error_handling import (
+    validate_inputs, handle_unreal_errors, safe_operation,
+    RequiredRule, TypeRule, AssetPathRule,
+    require_asset, AssetError, ValidationError
+)
+
 from utils import load_asset, asset_exists, log_error
 
 
@@ -63,7 +73,14 @@ class AssetOperations:
             or len(aggregate_geom.convex_elems) > 0
         )
 
-    def list_assets(self, path="/Game", assetType=None, limit=20):
+    @validate_inputs({
+        'path': [RequiredRule(), TypeRule(str)],
+        'assetType': [TypeRule((str, type(None)))],
+        'limit': [TypeRule(int)]
+    })
+    @handle_unreal_errors("list_assets")
+    @safe_operation("asset")
+    def list_assets(self, path: str = "/Game", assetType: Optional[str] = None, limit: int = 20):
         """List assets in a given path.
 
         Args:
@@ -74,46 +91,46 @@ class AssetOperations:
         Returns:
             dict: Result with asset list
         """
-        try:
-            asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
-            assets = asset_registry.get_assets_by_path(path, recursive=True)
+        asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
+        assets = asset_registry.get_assets_by_path(path, recursive=True)
 
-            # Filter by asset type if specified
-            if assetType:
-                filtered_assets = []
-                for asset in assets:
-                    asset_type_name = (
-                        str(asset.asset_class_path.asset_name)
-                        if hasattr(asset.asset_class_path, "asset_name")
-                        else str(asset.asset_class_path)
-                    )
-
-                    if asset_type_name == assetType:
-                        filtered_assets.append(asset)
-                assets = filtered_assets
-
-            # Build asset list with limit
-            asset_list = []
-            for i, asset in enumerate(assets):
-                if i >= limit:
-                    break
-
+        # Filter by asset type if specified
+        if assetType:
+            filtered_assets = []
+            for asset in assets:
                 asset_type_name = (
                     str(asset.asset_class_path.asset_name)
                     if hasattr(asset.asset_class_path, "asset_name")
                     else str(asset.asset_class_path)
                 )
 
-                asset_list.append(
-                    {"name": str(asset.asset_name), "type": asset_type_name, "path": str(asset.package_name)}
-                )
+                if asset_type_name == assetType:
+                    filtered_assets.append(asset)
+            assets = filtered_assets
 
-            return {"success": True, "assets": asset_list, "totalCount": len(assets), "path": path}
+        # Build asset list with limit
+        asset_list = []
+        for i, asset in enumerate(assets):
+            if i >= limit:
+                break
 
-        except Exception as e:
-            log_error(f"Failed to list assets: {str(e)}")
-            return {"success": False, "error": str(e)}
+            asset_type_name = (
+                str(asset.asset_class_path.asset_name)
+                if hasattr(asset.asset_class_path, "asset_name")
+                else str(asset.asset_class_path)
+            )
 
+            asset_list.append(
+                {"name": str(asset.asset_name), "type": asset_type_name, "path": str(asset.package_name)}
+            )
+
+        return {"assets": asset_list, "totalCount": len(assets), "path": path}
+
+    @validate_inputs({
+        'assetPath': [RequiredRule(), AssetPathRule()]
+    })
+    @handle_unreal_errors("get_asset_info")
+    @safe_operation("asset")
     def get_asset_info(self, assetPath: str) -> Dict[str, Any]:
         """Get detailed information about an asset.
 
@@ -123,42 +140,28 @@ class AssetOperations:
         Returns:
             dict: Asset information
         """
-        try:
-            # Check if asset exists first
-            if not asset_exists(assetPath):
-                return {"success": False, "error": f"Asset does not exist: {assetPath}"}
+        # Load the asset using error handling framework
+        asset = require_asset(assetPath)
 
-            # Load the asset
-            asset = load_asset(assetPath)
-            if not asset:
-                return {
-                    "success": False,
-                    "error": f"Failed to load asset (exists but could not be loaded): {assetPath}",
-                }
+        info = {"assetPath": assetPath, "assetType": asset.get_class().get_name()}
 
-            info = {"success": True, "assetPath": assetPath, "assetType": asset.get_class().get_name()}
+        # Get bounds for static meshes
+        if isinstance(asset, unreal.StaticMesh):
+            self._add_static_mesh_info(info, asset)
 
-            # Get bounds for static meshes
-            if isinstance(asset, unreal.StaticMesh):
-                self._add_static_mesh_info(info, asset)
+        # Get info for blueprints
+        elif isinstance(asset, unreal.Blueprint):
+            self._add_blueprint_info(info, asset, assetPath)
 
-            # Get info for blueprints
-            elif isinstance(asset, unreal.Blueprint):
-                self._add_blueprint_info(info, asset, assetPath)
+        # Get info for materials
+        elif isinstance(asset, unreal.Material) or isinstance(asset, unreal.MaterialInstance):
+            self._add_material_info(info, asset)
 
-            # Get info for materials
-            elif isinstance(asset, unreal.Material) or isinstance(asset, unreal.MaterialInstance):
-                self._add_material_info(info, asset)
+        # Get info for textures
+        elif isinstance(asset, unreal.Texture2D):
+            self._add_texture_info(info, asset)
 
-            # Get info for textures
-            elif isinstance(asset, unreal.Texture2D):
-                self._add_texture_info(info, asset)
-
-            return info
-
-        except Exception as e:
-            log_error(f"Failed to get asset info: {str(e)}")
-            return {"success": False, "error": str(e)}
+        return info
 
     def _add_static_mesh_info(self, info: dict, asset: unreal.StaticMesh):
         """Add static mesh information to the info dict.
@@ -430,7 +433,12 @@ class AssetOperations:
             }
         )
 
-    def validate_asset_paths(self, paths):
+    @validate_inputs({
+        'paths': [RequiredRule(), TypeRule(list)]
+    })
+    @handle_unreal_errors("validate_asset_paths")
+    @safe_operation("asset")
+    def validate_asset_paths(self, paths: List[str]):
         """Validate multiple asset paths exist.
 
         Args:
@@ -439,23 +447,24 @@ class AssetOperations:
         Returns:
             dict: Validation results for each path
         """
-        try:
-            results = {}
-            for path in paths:
-                results[path] = asset_exists(path)
+        results = {}
+        for path in paths:
+            results[path] = asset_exists(path)
 
-            return {
-                "success": True,
-                "results": results,
-                "validCount": sum(1 for v in results.values() if v),
-                "invalidCount": sum(1 for v in results.values() if not v),
-            }
+        return {
+            "results": results,
+            "validCount": sum(1 for v in results.values() if v),
+            "invalidCount": sum(1 for v in results.values() if not v),
+        }
 
-        except Exception as e:
-            log_error(f"Failed to validate asset paths: {str(e)}")
-            return {"success": False, "error": str(e)}
-
-    def find_assets_by_type(self, assetType, searchPath="/Game", limit=50):
+    @validate_inputs({
+        'assetType': [RequiredRule(), TypeRule(str)],
+        'searchPath': [RequiredRule(), TypeRule(str)],
+        'limit': [TypeRule(int)]
+    })
+    @handle_unreal_errors("find_assets_by_type")
+    @safe_operation("asset")
+    def find_assets_by_type(self, assetType: str, searchPath: str = "/Game", limit: int = 50):
         """Find all assets of a specific type.
 
         Args:
@@ -466,58 +475,52 @@ class AssetOperations:
         Returns:
             dict: List of matching assets
         """
-        try:
-            asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
+        asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
 
-            # Build filter
-            filter = unreal.ARFilter()
-            filter.package_paths = [searchPath]
-            filter.recursive_paths = True
+        # Build filter
+        filter = unreal.ARFilter()
+        filter.package_paths = [searchPath]
+        filter.recursive_paths = True
 
-            if assetType == "StaticMesh":
-                filter.class_names = ["StaticMesh"]
-            elif assetType == "Material":
-                filter.class_names = ["Material", "MaterialInstance"]
-            elif assetType == "Blueprint":
-                filter.class_names = ["Blueprint"]
-            elif assetType == "Texture":
-                filter.class_names = ["Texture2D"]
-            else:
-                # Generic class filter
-                filter.class_names = [assetType]
+        if assetType == "StaticMesh":
+            filter.class_names = ["StaticMesh"]
+        elif assetType == "Material":
+            filter.class_names = ["Material", "MaterialInstance"]
+        elif assetType == "Blueprint":
+            filter.class_names = ["Blueprint"]
+        elif assetType == "Texture":
+            filter.class_names = ["Texture2D"]
+        else:
+            # Generic class filter
+            filter.class_names = [assetType]
 
-            # Get assets
-            assets = asset_registry.get_assets(filter)
+        # Get assets
+        assets = asset_registry.get_assets(filter)
 
-            # Build result list
-            asset_list = []
-            for i, asset in enumerate(assets):
-                if i >= limit:
-                    break
+        # Build result list
+        asset_list = []
+        for i, asset in enumerate(assets):
+            if i >= limit:
+                break
 
-                asset_list.append(
-                    {
-                        "name": str(asset.asset_name),
-                        "path": str(asset.package_name),
-                        "type": (
-                            str(asset.asset_class_path.asset_name)
-                            if hasattr(asset.asset_class_path, "asset_name")
-                            else str(asset.asset_class_path)
-                        ),
-                    }
-                )
+            asset_list.append(
+                {
+                    "name": str(asset.asset_name),
+                    "path": str(asset.package_name),
+                    "type": (
+                        str(asset.asset_class_path.asset_name)
+                        if hasattr(asset.asset_class_path, "asset_name")
+                        else str(asset.asset_class_path)
+                    ),
+                }
+            )
 
-            return {
-                "success": True,
-                "assets": asset_list,
-                "totalCount": len(assets),
-                "assetType": assetType,
-                "searchPath": searchPath,
-            }
-
-        except Exception as e:
-            log_error(f"Failed to find assets by type: {str(e)}")
-            return {"success": False, "error": str(e)}
+        return {
+            "assets": asset_list,
+            "totalCount": len(assets),
+            "assetType": assetType,
+            "searchPath": searchPath,
+        }
 
     def import_assets(
         self,

@@ -1,9 +1,19 @@
 """
 UEMCP Material Operations - All material creation and management operations
+
+Enhanced with improved error handling framework to eliminate try/catch boilerplate.
 """
 
 import unreal
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
+
+# Enhanced error handling framework
+from utils.error_handling import (
+    validate_inputs, handle_unreal_errors, safe_operation,
+    RequiredRule, TypeRule, AssetPathRule,
+    require_asset, require_actor, AssetError, ActorError, ValidationError
+)
+
 from utils import load_asset, asset_exists, log_error, log_debug
 from utils.general import find_actor_by_name
 
@@ -11,7 +21,14 @@ from utils.general import find_actor_by_name
 class MaterialOperations:
     """Handles all material-related operations."""
 
-    def list_materials(self, path="/Game", pattern="", limit=50):
+    @validate_inputs({
+        'path': [RequiredRule(), TypeRule(str)],
+        'pattern': [TypeRule(str)],
+        'limit': [TypeRule(int)]
+    })
+    @handle_unreal_errors("list_materials")
+    @safe_operation("material")
+    def list_materials(self, path: str = "/Game", pattern: str = "", limit: int = 50):
         """List materials in a given path with optional name filtering.
 
         Args:
@@ -22,32 +39,24 @@ class MaterialOperations:
         Returns:
             dict: Result with material list
         """
-        try:
-            asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
-            all_assets = asset_registry.get_assets_by_path(
-                path, recursive=True)
+        asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
+        all_assets = asset_registry.get_assets_by_path(path, recursive=True)
 
-            # Filter for material types
-            material_assets = self._filter_material_assets(all_assets)
+        # Filter for material types
+        material_assets = self._filter_material_assets(all_assets)
 
-            # Apply pattern filter if specified
-            filtered_assets = self._apply_pattern_filter(
-                material_assets, pattern)
+        # Apply pattern filter if specified
+        filtered_assets = self._apply_pattern_filter(material_assets, pattern)
 
-            # Build material list with limit
-            material_list = self._build_material_list(filtered_assets, limit)
+        # Build material list with limit
+        material_list = self._build_material_list(filtered_assets, limit)
 
-            return {
-                "success": True,
-                "materials": material_list,
-                "totalCount": len(filtered_assets),
-                "path": path,
-                "pattern": pattern if pattern else None,
-            }
-
-        except Exception as e:
-            log_error(f"Failed to list materials: {str(e)}")
-            return {"success": False, "error": str(e)}
+        return {
+            "materials": material_list,
+            "totalCount": len(filtered_assets),
+            "path": path,
+            "pattern": pattern if pattern else None,
+        }
 
     def _filter_material_assets(self, all_assets):
         """Filter assets to only include materials.
@@ -173,6 +182,11 @@ class MaterialOperations:
             log_debug(
                 f"Could not load additional info for material {material_info['path']}: {e}")
 
+    @validate_inputs({
+        'material_path': [RequiredRule(), AssetPathRule()]
+    })
+    @handle_unreal_errors("get_material_info")
+    @safe_operation("material")
     def get_material_info(self, material_path: str) -> Dict[str, Any]:
         """Get detailed information about a material.
 
@@ -182,28 +196,20 @@ class MaterialOperations:
         Returns:
             dict: Material information including parameters, textures, and properties
         """
-        try:
-            # Validate and load material
-            material, error = self._validate_and_load_material(material_path)
-            if error:
-                return error
+        # Load material using error handling framework
+        material = require_asset(material_path)
 
-            # Build basic info
-            info = self._build_basic_material_info(material, material_path)
+        # Build basic info
+        info = self._build_basic_material_info(material, material_path)
 
-            # Add material properties
-            self._add_material_properties(info, material)
+        # Add material properties
+        self._add_material_properties(info, material)
 
-            # Handle Material Instance specific info
-            if isinstance(material, (unreal.MaterialInstance,
-                          unreal.MaterialInstanceConstant)):
-                self._add_material_instance_info(info, material)
+        # Handle Material Instance specific info
+        if isinstance(material, (unreal.MaterialInstance, unreal.MaterialInstanceConstant)):
+            self._add_material_instance_info(info, material)
 
-            return info
-
-        except Exception as e:
-            log_error(f"Failed to get material info: {str(e)}")
-            return {"success": False, "error": str(e)}
+        return info
 
     def _validate_and_load_material(self, material_path):
         """Validate material exists and load it.
