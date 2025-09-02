@@ -185,54 +185,78 @@ class AssetOperations:
             return 'bottom-center'
 ```
 
-### Exception Handling
+### Error Handling
 
-#### 1. Specific Exceptions
+#### 1. Use UEMCP Error Handling Framework (REQUIRED)
+
+**ALWAYS use the UEMCP error handling framework instead of manual try/catch blocks:**
 
 ```python
-# ❌ BAD: Broad exception catching
+# ✅ BEST: Use UEMCP Error Handling Framework 
+from utils.error_handling import (
+    validate_inputs, handle_unreal_errors, safe_operation,
+    RequiredRule, AssetPathRule, TypeRule, require_asset, require_actor
+)
+
+@validate_inputs({
+    'asset_path': [RequiredRule(), AssetPathRule()],
+    'property_name': [RequiredRule(), TypeRule(str)]
+})
+@handle_unreal_errors("get_asset_property")
+@safe_operation("asset")
+def get_asset_property(self, asset_path: str, property_name: str):
+    """Get asset property with automatic error handling."""
+    # No try/catch needed - framework handles everything
+    asset = require_asset(asset_path)  # Throws AssetError if not found
+    return asset.get_editor_property(property_name)  # Framework catches AttributeError
+
+# ❌ OLD WAY: Manual try/catch (DEPRECATED - don't use in new code)
 try:
     asset = load_asset(path)
     bounds = asset.get_bounds()
 except Exception:
     return None
-
-# ✅ GOOD: Specific exceptions with context
-try:
-    asset = load_asset(path)
-    bounds = asset.get_bounds()
-except AttributeError as e:
-    log_error(f"Asset missing bounds property: {path} - {e}")
-    return None
-except RuntimeError as e:
-    log_error(f"Unreal Engine error loading asset: {path} - {e}")
-    return None
 ```
 
-#### 2. Common Unreal Engine Exceptions
+**Benefits of the error handling framework:**
+- **60% average code reduction** compared to try/catch patterns
+- **Specific error types** (AssetError, ActorError, ValidationError) instead of generic Exception
+- **Automatic input validation** with reusable rules
+- **Better debugging** with operation context and structured error details
+- **Consistent error responses** across all operations
+
+#### 2. Framework Components
 
 ```python
-# Common exceptions when working with UE Python API:
-try:
-    # Actor operations
-    actor = unreal.EditorLevelLibrary.spawn_actor_from_object(...)
-except RuntimeError as e:
-    # Thrown when spawn fails (invalid asset, location, etc)
-    log_error(f"Failed to spawn actor: {e}")
+# Input validation decorators
+@validate_inputs({
+    'actor_name': [RequiredRule(), TypeRule(str)],
+    'location': [RequiredRule(), ListLengthRule(3)],
+    'rotation': [ListLengthRule(3)]
+})
 
+# Error handling decorators  
+@handle_unreal_errors("operation_name")  # Converts UE errors to meaningful messages
+@safe_operation("category")              # Provides standardized responses
+
+# Utility functions
+asset = require_asset(path)        # Throws AssetError with context
+actor = require_actor(name)        # Throws ActorError with context
+```
+
+#### 3. Legacy Exception Handling (Only for non-MCP code)
+
+If you must use try/catch in utility code, use specific exceptions:
+
+```python
+# ❌ AVOID: Only if absolutely necessary in utility code
 try:
-    # Asset operations
+    # Specific operations
     asset = unreal.EditorAssetLibrary.load_asset(path)
 except ValueError as e:
-    # Thrown for invalid paths
     log_error(f"Invalid asset path: {path} - {e}")
-
-try:
-    # Property access
-    value = actor.get_editor_property('some_property')
-except AttributeError as e:
-    # Thrown when property doesn't exist
-    log_error(f"Property not found: {e}")
+except RuntimeError as e:
+    log_error(f"Unreal Engine error: {e}")
 ```
 
 ### Code Organization

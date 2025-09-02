@@ -223,23 +223,20 @@ class SystemOperations:
             log_error(f"Failed to get help: {str(e)}")
             return {"success": False, "error": str(e)}
 
+    @handle_unreal_errors("test_connection")
+    @safe_operation("system")
     def test_connection(self):
         """Test the connection to the Python listener.
 
         Returns:
             dict: Connection test result
         """
-        try:
-            return {
-                "success": True,
-                "message": "Connection successful",
-                "version": "1.0.0",
-                "pythonVersion": sys.version.split()[0],
-                "unrealVersion": unreal.SystemLibrary.get_engine_version(),
-            }
-        except Exception as e:
-            log_error(f"Connection test failed: {str(e)}")
-            return {"success": False, "error": str(e)}
+        return {
+            "message": "Connection successful",
+            "version": "1.0.0",
+            "pythonVersion": sys.version.split()[0],
+            "unrealVersion": unreal.SystemLibrary.get_engine_version(),
+        }
 
     def restart_listener(self, force=False):
         """Restart the Python listener to reload code changes.
