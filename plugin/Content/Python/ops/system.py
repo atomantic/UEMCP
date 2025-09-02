@@ -1,11 +1,21 @@
 """
 UEMCP System Operations - System-level commands and utilities
+
+Enhanced with improved error handling framework to eliminate try/catch boilerplate.
 """
 
 import unreal
 import os
 import sys
 # import importlib
+from typing import Dict, Any, Optional
+
+# Enhanced error handling framework
+from utils.error_handling import (
+    validate_inputs, handle_unreal_errors, safe_operation,
+    RequiredRule, TypeRule, ValidationError
+)
+
 from utils import log_error
 from uemcp_command_registry import get_registry
 

@@ -1,5 +1,7 @@
 """
 UEMCP Viewport Operations - All viewport and camera-related operations
+
+Enhanced with improved error handling framework to eliminate try/catch boilerplate.
 """
 
 import unreal
@@ -8,14 +10,32 @@ import time
 import math
 # import tempfile
 import platform as py_platform
+from typing import Dict, Any, List, Optional
+
+# Enhanced error handling framework
+from utils.error_handling import (
+    validate_inputs, handle_unreal_errors, safe_operation,
+    RequiredRule, TypeRule, ListLengthRule,
+    require_actor, ActorError, ValidationError
+)
+
 from utils import create_vector, create_rotator, find_actor_by_name, execute_console_command, log_debug, log_error
 
 
 class ViewportOperations:
     """Handles all viewport and camera-related operations."""
 
-    def screenshot(self, width=640, height=360,
-                   screenPercentage=50, compress=True, quality=60):
+    @validate_inputs({
+        'width': [TypeRule(int)],
+        'height': [TypeRule(int)],
+        'screenPercentage': [TypeRule((int, float))],
+        'compress': [TypeRule(bool)],
+        'quality': [TypeRule(int)]
+    })
+    @handle_unreal_errors("take_screenshot")
+    @safe_operation("viewport")
+    def screenshot(self, width: int = 640, height: int = 360,
+                   screenPercentage: float = 50, compress: bool = True, quality: int = 60):
         """Take a viewport screenshot.
 
         Args:
@@ -28,56 +48,59 @@ class ViewportOperations:
         Returns:
             dict: Result with filepath
         """
-        try:
-            # Create temp directory for screenshots
-            timestamp = int(time.time())
-            base_filename = f"uemcp_screenshot_{timestamp}"
+        # Create temp directory for screenshots
+        timestamp = int(time.time())
+        base_filename = f"uemcp_screenshot_{timestamp}"
 
-            # Take screenshot
-            unreal.AutomationLibrary.take_high_res_screenshot(
-                width,
-                height,
-                base_filename,
-                None,  # Camera (None = current view)
-                False,  # Mask enabled
-                False,  # Capture HDR
-                unreal.ComparisonTolerance.LOW,
+        # Take screenshot
+        unreal.AutomationLibrary.take_high_res_screenshot(
+            width,
+            height,
+            base_filename,
+            None,  # Camera (None = current view)
+            False,  # Mask enabled
+            False,  # Capture HDR
+            unreal.ComparisonTolerance.LOW,
+        )
+
+        # Determine expected save path
+        project_path = unreal.SystemLibrary.get_project_directory()
+        system = py_platform.system()
+
+        if system == "Darwin":  # macOS
+            expected_path = os.path.join(
+                project_path,
+                "Saved",
+                "Screenshots",
+                "MacEditor",
+                f"{base_filename}.png")
+        elif system == "Windows":
+            expected_path = os.path.join(
+                project_path, "Saved", "Screenshots", "WindowsEditor", f"{base_filename}.png"
+            )
+        else:
+            expected_path = os.path.join(
+                project_path, "Saved", "Screenshots", "LinuxEditor", f"{base_filename}.png"
             )
 
-            # Determine expected save path
-            project_path = unreal.SystemLibrary.get_project_directory()
-            system = py_platform.system()
+        log_debug(f"Screenshot requested: {expected_path}")
 
-            if system == "Darwin":  # macOS
-                expected_path = os.path.join(
-                    project_path,
-                    "Saved",
-                    "Screenshots",
-                    "MacEditor",
-                    f"{base_filename}.png")
-            elif system == "Windows":
-                expected_path = os.path.join(
-                    project_path, "Saved", "Screenshots", "WindowsEditor", f"{base_filename}.png"
-                )
-            else:
-                expected_path = os.path.join(
-                    project_path, "Saved", "Screenshots", "LinuxEditor", f"{base_filename}.png"
-                )
+        return {
+            "filepath": expected_path,
+            "message": f"Screenshot initiated. File will be saved to: {expected_path}",
+        }
 
-            log_debug(f"Screenshot requested: {expected_path}")
-
-            return {
-                "success": True,
-                "filepath": expected_path,
-                "message": f"Screenshot initiated. File will be saved to: {expected_path}",
-            }
-
-        except Exception as e:
-            log_error(f"Failed to take screenshot: {str(e)}")
-            return {"success": False, "error": str(e)}
-
-    def set_camera(self, location=None, rotation=None,
-                   focusActor=None, distance=500):
+    @validate_inputs({
+        'location': [ListLengthRule(3)],
+        'rotation': [ListLengthRule(3)],
+        'focusActor': [TypeRule((str, type(None)))],
+        'distance': [TypeRule((int, float))]
+    })
+    @handle_unreal_errors("set_camera")
+    @safe_operation("viewport")
+    def set_camera(self, location: Optional[List[float]] = None, 
+                   rotation: Optional[List[float]] = None, focusActor: Optional[str] = None, 
+                   distance: float = 500):
         """Set viewport camera position and rotation.
 
         Args:
@@ -89,79 +112,66 @@ class ViewportOperations:
         Returns:
             dict: Result with camera info
         """
-        try:
-            editor_subsystem = unreal.get_editor_subsystem(
-                unreal.UnrealEditorSubsystem)
+        editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
 
-            if focusActor:
-                # Find and focus on specific actor
-                target_actor = find_actor_by_name(focusActor)
+        if focusActor:
+            # Find and focus on specific actor using error handling framework
+            target_actor = require_actor(focusActor)
 
-                if not target_actor:
-                    return {"success": False,
-                            "error": f"Actor not found: {focusActor}"}
+            # Get actor location and bounds
+            actor_location = target_actor.get_actor_location()
+            actor_bounds = target_actor.get_actor_bounds(False)
+            _ = actor_bounds[1]  # Box extent
 
-                # Get actor location and bounds
-                actor_location = target_actor.get_actor_location()
-                actor_bounds = target_actor.get_actor_bounds(False)
-                _ = actor_bounds[1]  # Box extent
+            # Calculate camera position
+            camera_offset = unreal.Vector(-distance * 0.7, 0, distance * 0.7)  # Back, Side, Up
+            camera_location = actor_location + camera_offset
 
-                # Calculate camera position
-                # Back  # Side  # Up
-                camera_offset = unreal.Vector(-distance *
-                                              0.7, 0, distance * 0.7)
-                camera_location = actor_location + camera_offset
+            # Calculate rotation to look at actor
+            direction = actor_location - camera_location
+            camera_rotation = direction.rotation()
 
-                # Calculate rotation to look at actor
-                direction = actor_location - camera_location
-                camera_rotation = direction.rotation()
+            # Set viewport camera
+            editor_subsystem.set_level_viewport_camera_info(camera_location, camera_rotation)
 
-                # Set viewport camera
-                editor_subsystem.set_level_viewport_camera_info(
-                    camera_location, camera_rotation)
+            # Also pilot the actor for better framing
+            unreal.EditorLevelLibrary.pilot_level_actor(target_actor)
+            unreal.EditorLevelLibrary.eject_pilot_level_actor()
 
-                # Also pilot the actor for better framing
-                unreal.EditorLevelLibrary.pilot_level_actor(target_actor)
-                unreal.EditorLevelLibrary.eject_pilot_level_actor()
+            current_loc = camera_location
+            current_rot = camera_rotation
 
-                current_loc = camera_location
-                current_rot = camera_rotation
+        else:
+            # Manual camera positioning
+            if location is None:
+                raise ValidationError(
+                    "Location required when not focusing on an actor",
+                    operation="set_camera"
+                )
 
+            current_loc = create_vector(location)
+
+            if rotation is not None:
+                current_rot = create_rotator(rotation)
             else:
-                # Manual camera positioning
-                if location is None:
-                    return {
-                        "success": False, "error": "Location required when not focusing on an actor"}
+                # Default rotation looking forward and slightly down
+                current_rot = unreal.Rotator()
+                current_rot.pitch = -30.0
+                current_rot.yaw = 0.0
+                current_rot.roll = 0.0
 
-                current_loc = create_vector(location)
+            # Set the viewport camera
+            editor_subsystem.set_level_viewport_camera_info(current_loc, current_rot)
 
-                if rotation is not None:
-                    current_rot = create_rotator(rotation)
-                else:
-                    # Default rotation looking forward and slightly down
-                    current_rot = unreal.Rotator()
-                    current_rot.pitch = -30.0
-                    current_rot.yaw = 0.0
-                    current_rot.roll = 0.0
-
-                # Set the viewport camera
-                editor_subsystem.set_level_viewport_camera_info(
-                    current_loc, current_rot)
-
-            return {
-                "success": True,
-                "location": {"x": float(current_loc.x), "y": float(current_loc.y), "z": float(current_loc.z)},
-                "rotation": {
-                    "pitch": float(current_rot.pitch),
-                    "yaw": float(current_rot.yaw),
-                    "roll": float(current_rot.roll),
-                },
-                "message": "Viewport camera updated",
-            }
-
-        except Exception as e:
-            log_error(f"Failed to set camera: {str(e)}")
-            return {"success": False, "error": str(e)}
+        return {
+            "location": {"x": float(current_loc.x), "y": float(current_loc.y), "z": float(current_loc.z)},
+            "rotation": {
+                "pitch": float(current_rot.pitch),
+                "yaw": float(current_rot.yaw),
+                "roll": float(current_rot.roll),
+            },
+            "message": "Viewport camera updated",
+        }
 
     def focus_on_actor(self, actorName, preserveRotation=False):
         """Focus viewport on a specific actor.
