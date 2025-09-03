@@ -67,6 +67,7 @@ export {
   historyListTool,
   checkpointCreateTool,
   checkpointRestoreTool,
+  batchOperationsTool,
 } from './system/index.js';
 
 // Re-export everything together for convenience

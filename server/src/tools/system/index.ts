@@ -13,3 +13,4 @@ export { undoTool } from './undo.js';
 export { redoTool } from './redo.js';
 export { historyListTool } from './history-list.js';
 export { checkpointCreateTool, checkpointRestoreTool } from './checkpoint.js';
+export { batchOperationsTool } from './batch-operations.js';

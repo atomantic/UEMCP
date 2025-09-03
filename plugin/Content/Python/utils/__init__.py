@@ -22,6 +22,20 @@ from .general import (
 from .validation import ValidationManager, validate_actor_spawn, validate_actor_deleted, validate_actor_modifications
 from .port import check_port_available, force_free_port, is_port_in_use, force_free_port_silent
 from .thread_tracker import track_thread, get_tracked_threads, clear_threads
+from .memory_optimization import (
+    track_operation,
+    cleanup_memory,
+    get_memory_stats,
+    check_memory_pressure,
+    configure_memory_manager,
+)
+from .viewport_optimization import (
+    optimized_viewport,
+    start_viewport_optimization,
+    end_viewport_optimization,
+    is_viewport_optimized,
+    configure_viewport_optimization,
+)
 
 __all__ = [
     # General utils
@@ -53,4 +67,16 @@ __all__ = [
     "track_thread",
     "get_tracked_threads",
     "clear_threads",
+    # Memory optimization
+    "track_operation",
+    "cleanup_memory",
+    "get_memory_stats",
+    "check_memory_pressure",
+    "configure_memory_manager",
+    # Viewport optimization
+    "optimized_viewport",
+    "start_viewport_optimization",
+    "end_viewport_optimization",
+    "is_viewport_optimized",
+    "configure_viewport_optimization",
 ]

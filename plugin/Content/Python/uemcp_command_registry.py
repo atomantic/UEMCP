@@ -200,6 +200,10 @@ def register_all_operations():
         material_ops = MaterialOperations()
         registry.register_operations(material_ops)
 
+        # Register batch operations
+        from ops.batch_operations import execute_batch_operations
+        registry.register_command('batch_operations', execute_batch_operations)
+
         log_debug(f"Registered {len(registry.handlers)} commands")
 
     except ImportError as e:
