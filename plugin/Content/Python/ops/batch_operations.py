@@ -72,9 +72,6 @@ class BatchOperationManager:
             # Execute the operation - let the operation handle its own errors
             op_result = self._execute_single_operation(operation_name, params)
             
-            # Track operation for memory management
-            track_operation()
-            
             # Track result with proper error extraction
             operation_result = {
                 'id': op_id,
@@ -97,6 +94,9 @@ class BatchOperationManager:
         
         results['executionTime'] = time.time() - self.start_time
         log_debug(f"Batch execution completed in {results['executionTime']:.2f}s")
+        
+        # Track the entire batch as a single operation for memory management
+        track_operation()
         
         return results
     
@@ -149,9 +149,24 @@ class BatchOperationManager:
                 'error': f"Method {method_name} not found for operation {operation}"
             }
         
-        # Execute the method - it should handle its own errors via the error handling framework
+        # Execute the method with parameter validation
         # The framework ensures we always get back a dict with success/error status
-        return method(**params)
+        try:
+            # Validate params is a dictionary and safe to unpack
+            if not isinstance(params, dict):
+                return {
+                    'success': False,
+                    'error': f"Invalid params type for {operation}: expected dict, got {type(params).__name__}"
+                }
+            
+            # Execute the method - let the method's own validation handle parameter specifics
+            return method(**params)
+        except TypeError as e:
+            # Catch parameter mismatch errors (unexpected keyword arguments, missing required args)
+            return {
+                'success': False,
+                'error': f"Parameter error for {operation}: {str(e)}"
+            }
 
 
 # Global batch manager instance

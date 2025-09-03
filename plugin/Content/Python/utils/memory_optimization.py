@@ -87,8 +87,9 @@ class MemoryManager:
             execute_console_command("obj gc")
             
             # Clear unused texture streaming pool
-            execute_console_command("r.Streaming.PoolSize 0")
             original_pool_size = self._get_streaming_pool_size()
+            execute_console_command("r.Streaming.PoolSize 0")
+            time.sleep(1)  # Allow time for memory cleanup to take effect
             execute_console_command(f"r.Streaming.PoolSize {original_pool_size}")  # Reset to original
             
             # Memory after cleanup if psutil is available
