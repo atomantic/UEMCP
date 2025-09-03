@@ -94,7 +94,11 @@ class MemoryManager:
             # Clear unused texture streaming pool
             original_pool_size = self._get_streaming_pool_size()
             execute_console_command("r.Streaming.PoolSize 0")
-            time.sleep(self.streaming_cleanup_delay)  # Configurable delay for memory cleanup
+            
+            # Allow time for memory cleanup to take effect
+            # Note: Uses blocking sleep - could be replaced with UE tick system for non-blocking behavior
+            if self.streaming_cleanup_delay > 0:
+                time.sleep(self.streaming_cleanup_delay)
             
             # Validate original_pool_size before resetting
             if (
@@ -104,8 +108,9 @@ class MemoryManager:
                 execute_console_command(f"r.Streaming.PoolSize {original_pool_size}")  # Reset to original
             else:
                 log_warning(
-                    f"Invalid streaming pool size '{original_pool_size}' - must be integer in [{MIN_STREAMING_POOL_SIZE}, {MAX_STREAMING_POOL_SIZE}] MB. Skipping reset."
+                    f"Invalid streaming pool size '{original_pool_size}' - must be integer in [{MIN_STREAMING_POOL_SIZE}, {MAX_STREAMING_POOL_SIZE}] MB. Resetting to safe default ({MIN_STREAMING_POOL_SIZE} MB)."
                 )
+                execute_console_command(f"r.Streaming.PoolSize {MIN_STREAMING_POOL_SIZE}")  # Reset to safe default
             
             # Memory after cleanup if psutil is available
             if HAS_PSUTIL and 'memory_before_mb' in cleanup_stats and cleanup_stats['memory_before_mb'] != 'unavailable':

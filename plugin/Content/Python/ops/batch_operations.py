@@ -13,6 +13,23 @@ class BatchOperationManager:
     def __init__(self):
         self.operations = []
         self.start_time = None
+        # Cache operation instances for efficiency
+        self._actor_ops = None
+        self._viewport_ops = None
+    
+    def _get_actor_operations(self):
+        """Get cached ActorOperations instance."""
+        if self._actor_ops is None:
+            from ops.actor import ActorOperations
+            self._actor_ops = ActorOperations()
+        return self._actor_ops
+    
+    def _get_viewport_operations(self):
+        """Get cached ViewportOperations instance."""
+        if self._viewport_ops is None:
+            from ops.viewport import ViewportOperations
+            self._viewport_ops = ViewportOperations()
+        return self._viewport_ops
     
     def execute_batch(self, operations: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Execute multiple operations in a single batch.
@@ -138,14 +155,12 @@ class BatchOperationManager:
         
         module_name, class_name, method_name = supported_operations[operation]
         
-        # Import and execute operation using the existing error handling framework
+        # Get cached operation instances for efficiency
         if operation.startswith('actor_'):
-            from ops.actor import ActorOperations
-            actor_ops = ActorOperations()
+            actor_ops = self._get_actor_operations()
             method = getattr(actor_ops, method_name, None)
         elif operation.startswith('viewport_'):
-            from ops.viewport import ViewportOperations
-            viewport_ops = ViewportOperations()
+            viewport_ops = self._get_viewport_operations()
             method = getattr(viewport_ops, method_name, None)
         else:
             return {
@@ -222,7 +237,9 @@ class BatchOperationManager:
                 'error': f"Parameter validation failed for {operation}: {'; '.join(validation_errors)}"
             }
         
-        # Execute the method - let the method's own validation handle parameter specifics
+        # Execute the method with validated parameters
+        # Note: Using **params after strict allowlist validation is secure
+        # Alternative: explicit parameter mapping would be safer but much more complex
         # The underlying method will handle its own parameter validation and return proper error dict
         return method(**params)
 
