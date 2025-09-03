@@ -75,7 +75,6 @@ describe('ViewportScreenshotTool', () => {
       });
       expect(result.content[0].text).toContain('✓ Screenshot saved:');
       expect(result.content[0].text).toContain('640x360');
-      // File path expectation removed as actual format shows undefined
     });
 
     it('should capture high-quality screenshot with custom settings', async () => {
@@ -101,7 +100,6 @@ describe('ViewportScreenshotTool', () => {
       expect(result.content[0].text).toContain('✓ Screenshot saved:');
       expect(result.content[0].text).toContain('1920x1080');
       expect(result.content[0].text).toContain('Format: PNG (uncompressed)');
-      // File path expectation removed as actual format shows undefined
     });
 
     it('should capture compressed JPEG with custom quality', async () => {

@@ -117,7 +117,6 @@ describe('LevelActorsTool', () => {
       const result = await tool.toMCPTool().handler(args);
 
       expect(result.content[0].text).toContain('Found 2 actors');
-      // Remove expectation as actual format doesn't include totals
       expect(result.content[0].text).toContain('Wall_North_01');
       expect(result.content[0].text).toContain('Wall_South_01');
     });
@@ -148,7 +147,6 @@ describe('LevelActorsTool', () => {
       const result = await tool.toMCPTool().handler(args);
 
       expect(result.content[0].text).toContain('Found 1 actor');
-      // Remove expectation as actual format doesn't include totals
       expect(result.content[0].text).toContain('FirstActor');
     });
 

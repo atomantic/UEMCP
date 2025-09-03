@@ -159,7 +159,6 @@ describe('AssetListTool', () => {
       const result = await tool.toMCPTool().handler(args);
 
       expect(result.content[0].text).toContain('Found 2 assets');
-      // Remove this expectation as actual format doesn't include totals
       expect(result.content[0].text).toContain('SM_Wall_01');
       expect(result.content[0].text).toContain('SM_Door_01');
     });
@@ -194,7 +193,6 @@ describe('AssetListTool', () => {
       const result = await tool.toMCPTool().handler(args);
 
       expect(result.content[0].text).toContain('Found 2 assets');
-      // Remove this expectation as actual format doesn't include totals
       expect(result.content[0].text).toContain('FirstAsset');
       expect(result.content[0].text).toContain('SecondAsset');
     });
@@ -270,7 +268,6 @@ describe('AssetListTool', () => {
       const result = await tool.toMCPTool().handler(args);
 
       expect(result.content[0].text).toContain('Found 0 assets');
-      // Remove this expectation as actual format doesn't include totals
     });
 
     it('should display asset paths with proper formatting', async () => {
