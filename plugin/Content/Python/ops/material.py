@@ -166,10 +166,11 @@ class MaterialOperations:
 
         # Add parent material for instances
         if isinstance(material, unreal.MaterialInstance):
-            parent = material.get_editor_property("parent")
-            if parent:
-                material_info["parentMaterial"] = str(
-                    parent.get_path_name())
+            if hasattr(material, "get_editor_property"):
+                parent = material.get_editor_property("parent")
+                if parent:
+                    material_info["parentMaterial"] = str(
+                        parent.get_path_name())
 
         # Add material domain
         if hasattr(material, "get_editor_property"):
