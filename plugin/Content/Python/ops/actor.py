@@ -12,7 +12,7 @@ from typing import List, Optional, Dict, Any
 from utils.error_handling import (
     validate_inputs, handle_unreal_errors, safe_operation,
     RequiredRule, AssetPathRule, ListLengthRule, TypeRule,
-    require_actor, require_asset, ActorError, AssetError, ValidationError
+    require_actor, require_asset, ValidationError, ProcessingError
 )
 
 from utils import (
@@ -87,11 +87,11 @@ class ActorOperations:
             actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
                 asset, ue_location, ue_rotation)
         else:
-            raise AssetError(f"Unsupported asset type: {type(asset).__name__}", 
+            raise ProcessingError(f"Unsupported asset type: {type(asset).__name__}", 
                            operation="spawn_actor", details={"assetPath": assetPath})
 
         if not actor:
-            raise ActorError("Failed to spawn actor", operation="spawn_actor", 
+            raise ProcessingError("Failed to spawn actor", operation="spawn_actor", 
                            details={"assetPath": assetPath, "location": location})
 
         # Configure actor
@@ -274,7 +274,7 @@ class ActorOperations:
         """
         mesh_component = actor.get_component_by_class(unreal.StaticMeshComponent)
         if not mesh_component:
-            raise ActorError(
+            raise ProcessingError(
                 f"Actor {actor.get_actor_label()} does not have a StaticMeshComponent",
                 operation="modify_actor",
                 details={"actorName": actor.get_actor_label(), "mesh": mesh_path}

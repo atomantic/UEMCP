@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, List
 from utils.error_handling import (
     validate_inputs, handle_unreal_errors, safe_operation,
     RequiredRule, TypeRule, AssetPathRule,
-    require_asset, require_actor, AssetError, ActorError, ValidationError, ProcessingError
+    require_asset, require_actor, ValidationError, ProcessingError
 )
 
 from utils import load_asset, asset_exists, log_error, log_debug

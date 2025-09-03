@@ -15,7 +15,7 @@ def test_error_handling_framework():
     
     try:
         from utils.error_handling import (
-            ValidationError, AssetError, ActorError,
+            ValidationError, ProcessingError,
             validate_inputs, RequiredRule, AssetPathRule, ListLengthRule,
             require_asset, require_actor, validate_location
         )
@@ -65,7 +65,7 @@ def test_error_handling_framework():
             assetPath="/Game/NonExistentAsset",  # Valid format, but doesn't exist
             location=[0, 0, 100]
         )
-        print("❌ Expected AssetError for non-existent asset")
+        print("❌ Expected ProcessingError for non-existent asset")
     except Exception as e:
         error_type = type(e).__name__
         print(f"✅ Caught {error_type}: {str(e)}")
@@ -76,7 +76,7 @@ def test_error_handling_framework():
     
     try:
         result = ops.delete("NonExistentActor")
-        print("❌ Expected ActorError for non-existent actor")
+        print("❌ Expected ProcessingError for non-existent actor")
     except Exception as e:
         error_type = type(e).__name__
         print(f"✅ Caught {error_type}: {str(e)}")
@@ -172,11 +172,11 @@ def spawn_actor(assetPath: str, location: List[float]):
     # No validation needed - done by decorator
     # No try/catch needed - done by decorators
     
-    asset = require_asset(assetPath)  # Specific AssetError if fails
+    asset = require_asset(assetPath)  # Specific ProcessingError if fails
     actor = unreal.EditorLevelLibrary.spawn_actor_from_object(asset, ...)
     
     if not actor:
-        raise ActorError("Failed to spawn actor")  # Specific error type
+        raise ProcessingError("Failed to spawn actor")  # Specific error type
         
     return {"actorName": actor.get_actor_label()}
 ```
@@ -185,7 +185,7 @@ BENEFITS:
 ✅ 60% less code
 ✅ No manual validation boilerplate  
 ✅ No try/catch boilerplate
-✅ Specific error types (AssetError, ActorError vs generic Exception)
+✅ Specific error types (ValidationError, ProcessingError vs generic Exception)
 ✅ Automatic error logging and formatting
 ✅ Type hints for better IDE support
 ✅ Reusable validation rules

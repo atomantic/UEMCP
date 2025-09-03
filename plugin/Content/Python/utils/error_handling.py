@@ -40,23 +40,8 @@ class ValidationError(UEMCPError):
     pass
 
 
-class AssetError(UEMCPError):
-    """Raised when asset operations fail."""
-    pass
-
-
-class ActorError(UEMCPError):
-    """Raised when actor operations fail."""
-    pass
-
-
-class ViewportError(UEMCPError):
-    """Raised when viewport operations fail."""
-    pass
-
-
-class UnrealEngineError(UEMCPError):
-    """Raised when UE API calls fail."""
+class ProcessingError(UEMCPError):
+    """Raised when operations fail during execution."""
     pass
 
 
@@ -205,7 +190,7 @@ def handle_unreal_errors(operation_name: str = None):
             # Specific UE error handling
             except AttributeError as e:
                 if 'unreal' in str(e).lower():
-                    raise UnrealEngineError(
+                    raise ProcessingError(
                         f"Unreal Engine API error: {str(e)}",
                         operation=op_name,
                         details={'error_type': 'AttributeError'}
@@ -214,7 +199,7 @@ def handle_unreal_errors(operation_name: str = None):
                 
             except RuntimeError as e:
                 if any(keyword in str(e).lower() for keyword in ['unreal', 'editor', 'asset', 'actor']):
-                    raise UnrealEngineError(
+                    raise ProcessingError(
                         f"Unreal Engine runtime error: {str(e)}",
                         operation=op_name,
                         details={'error_type': 'RuntimeError'}
@@ -274,7 +259,7 @@ def safe_operation(operation_type: str = 'operation'):
 
 def require_actor(actor_name: str) -> unreal.Actor:
     """
-    Find and return an actor by name, raising ActorError if not found.
+    Find and return an actor by name, raising ProcessingError if not found.
     
     Args:
         actor_name: Name of the actor to find
@@ -283,13 +268,13 @@ def require_actor(actor_name: str) -> unreal.Actor:
         unreal.Actor: The found actor
         
     Raises:
-        ActorError: If actor is not found
+        ProcessingError: If actor is not found
     """
     from utils import find_actor_by_name  # Import here to avoid circular imports
     
     actor = find_actor_by_name(actor_name)
     if not actor:
-        raise ActorError(
+        raise ProcessingError(
             f"Actor '{actor_name}' not found in level",
             operation="find_actor",
             details={'actor_name': actor_name}
@@ -299,7 +284,7 @@ def require_actor(actor_name: str) -> unreal.Actor:
 
 def require_asset(asset_path: str) -> unreal.Object:
     """
-    Load and return an asset, raising AssetError if not found or invalid.
+    Load and return an asset, raising ProcessingError if not found or invalid.
     
     Args:
         asset_path: Path to the asset
@@ -308,13 +293,13 @@ def require_asset(asset_path: str) -> unreal.Object:
         unreal.Object: The loaded asset
         
     Raises:
-        AssetError: If asset cannot be loaded
+        ProcessingError: If asset cannot be loaded
     """
     from utils import load_asset  # Import here to avoid circular imports
     
     asset = load_asset(asset_path)
     if not asset:
-        raise AssetError(
+        raise ProcessingError(
             f"Could not load asset: {asset_path}",
             operation="load_asset",
             details={'asset_path': asset_path}
@@ -390,13 +375,13 @@ if __name__ == "__main__":
         from utils import create_transform
         ue_location, ue_rotation, ue_scale = create_transform(location, [0, 0, 0], [1, 1, 1])
         
-        # This might raise UnrealEngineError which will be caught and converted
+        # This might raise ProcessingError which will be caught and converted
         actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
             asset, ue_location, ue_rotation
         )
         
         if not actor:
-            raise ActorError("Failed to spawn actor from asset")
+            raise ProcessingError("Failed to spawn actor from asset")
             
         if name:
             actor.set_actor_label(name)

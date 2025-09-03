@@ -12,7 +12,7 @@ from typing import Dict, Any, List, Optional
 from utils.error_handling import (
     validate_inputs, handle_unreal_errors, safe_operation,
     RequiredRule, TypeRule, AssetPathRule,
-    require_asset, AssetError, ValidationError
+    require_asset, ValidationError, ProcessingError
 )
 
 from utils import load_asset, asset_exists, log_error
