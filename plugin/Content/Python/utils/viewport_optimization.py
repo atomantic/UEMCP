@@ -11,6 +11,12 @@ from utils import log_debug, execute_console_command
 class ViewportManager:
     """Manages viewport performance during bulk operations."""
     
+    # Validation bounds for viewport optimization parameters
+    MIN_FPS = 1
+    MAX_FPS = 1000
+    MIN_SCREEN_PERCENTAGE = 1
+    MAX_SCREEN_PERCENTAGE = 200
+    
     def __init__(self):
         self.is_optimized = False
         self.original_realtime = {}
@@ -87,20 +93,20 @@ class ViewportManager:
             ValueError: If any parameter is not a valid positive integer within reasonable bounds
         """
         if bulk_fps is not None:
-            if not isinstance(bulk_fps, int) or bulk_fps <= 0 or bulk_fps > 1000:
-                raise ValueError(f"bulk_fps must be a positive integer between 1 and 1000, got {bulk_fps}")
+            if not isinstance(bulk_fps, int) or bulk_fps < self.MIN_FPS or bulk_fps > self.MAX_FPS:
+                raise ValueError(f"bulk_fps must be a positive integer between {self.MIN_FPS} and {self.MAX_FPS}, got {bulk_fps}")
             self.bulk_operation_fps = bulk_fps
         if bulk_screen_percentage is not None:
-            if not isinstance(bulk_screen_percentage, int) or bulk_screen_percentage <= 0 or bulk_screen_percentage > 200:
-                raise ValueError(f"bulk_screen_percentage must be a positive integer between 1 and 200, got {bulk_screen_percentage}")
+            if not isinstance(bulk_screen_percentage, int) or bulk_screen_percentage < self.MIN_SCREEN_PERCENTAGE or bulk_screen_percentage > self.MAX_SCREEN_PERCENTAGE:
+                raise ValueError(f"bulk_screen_percentage must be a positive integer between {self.MIN_SCREEN_PERCENTAGE} and {self.MAX_SCREEN_PERCENTAGE}, got {bulk_screen_percentage}")
             self.bulk_operation_screen_percentage = bulk_screen_percentage
         if normal_fps is not None:
-            if not isinstance(normal_fps, int) or normal_fps <= 0 or normal_fps > 1000:
-                raise ValueError(f"normal_fps must be a positive integer between 1 and 1000, got {normal_fps}")
+            if not isinstance(normal_fps, int) or normal_fps < self.MIN_FPS or normal_fps > self.MAX_FPS:
+                raise ValueError(f"normal_fps must be a positive integer between {self.MIN_FPS} and {self.MAX_FPS}, got {normal_fps}")
             self.normal_fps = normal_fps
         if normal_screen_percentage is not None:
-            if not isinstance(normal_screen_percentage, int) or normal_screen_percentage <= 0 or normal_screen_percentage > 200:
-                raise ValueError(f"normal_screen_percentage must be a positive integer between 1 and 200, got {normal_screen_percentage}")
+            if not isinstance(normal_screen_percentage, int) or normal_screen_percentage < self.MIN_SCREEN_PERCENTAGE or normal_screen_percentage > self.MAX_SCREEN_PERCENTAGE:
+                raise ValueError(f"normal_screen_percentage must be a positive integer between {self.MIN_SCREEN_PERCENTAGE} and {self.MAX_SCREEN_PERCENTAGE}, got {normal_screen_percentage}")
             self.normal_screen_percentage = normal_screen_percentage
     
     def _get_safe_int_value(self, name: str, value: Any, default: int) -> int:

@@ -188,6 +188,40 @@ class BatchOperationManager:
                 'error': f"Invalid parameters for {operation}: {', '.join(sorted(invalid_params))}. Allowed: {', '.join(sorted(allowed_params))}"
             }
         
+        # Basic type validation for common parameters
+        validation_errors = []
+        
+        # Validate common parameter types across operations
+        if 'actorName' in params and params['actorName'] is not None:
+            if not isinstance(params['actorName'], str) or not params['actorName'].strip():
+                validation_errors.append("'actorName' must be a non-empty string")
+        
+        if 'assetPath' in params and params['assetPath'] is not None:
+            if not isinstance(params['assetPath'], str) or not params['assetPath'].strip():
+                validation_errors.append("'assetPath' must be a non-empty string")
+        
+        if 'location' in params and params['location'] is not None:
+            if not isinstance(params['location'], list) or len(params['location']) != 3:
+                validation_errors.append("'location' must be a list of 3 numbers [X, Y, Z]")
+            elif not all(isinstance(x, (int, float)) for x in params['location']):
+                validation_errors.append("'location' values must be numbers")
+        
+        if 'rotation' in params and params['rotation'] is not None:
+            if not isinstance(params['rotation'], list) or len(params['rotation']) != 3:
+                validation_errors.append("'rotation' must be a list of 3 numbers [Roll, Pitch, Yaw]")
+            elif not all(isinstance(x, (int, float)) for x in params['rotation']):
+                validation_errors.append("'rotation' values must be numbers")
+        
+        if 'validate' in params and params['validate'] is not None:
+            if not isinstance(params['validate'], bool):
+                validation_errors.append("'validate' must be a boolean")
+        
+        if validation_errors:
+            return {
+                'success': False,
+                'error': f"Parameter validation failed for {operation}: {'; '.join(validation_errors)}"
+            }
+        
         # Execute the method - let the method's own validation handle parameter specifics
         # The underlying method will handle its own parameter validation and return proper error dict
         return method(**params)

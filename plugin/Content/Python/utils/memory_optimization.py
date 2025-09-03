@@ -9,6 +9,10 @@ import os
 from typing import Dict, Any, Optional
 from utils import log_debug, log_warning, execute_console_command
 
+# Unreal Engine streaming pool size valid range in MB
+MIN_STREAMING_POOL_SIZE = 64
+MAX_STREAMING_POOL_SIZE = 4096
+
 # Try to import psutil, fall back to basic implementation if not available
 try:
     import psutil
@@ -28,6 +32,7 @@ class MemoryManager:
         self.operation_count = 0
         self.cleanup_frequency = 100  # Cleanup every 100 operations
         self.original_streaming_pool_size = None  # Store original texture streaming pool size
+        self.streaming_cleanup_delay = 1.0  # Configurable delay for streaming pool cleanup in seconds
         
     def track_operation(self) -> None:
         """Track an operation and potentially trigger cleanup."""
@@ -89,18 +94,17 @@ class MemoryManager:
             # Clear unused texture streaming pool
             original_pool_size = self._get_streaming_pool_size()
             execute_console_command("r.Streaming.PoolSize 0")
-            time.sleep(1)  # Allow time for memory cleanup to take effect
+            time.sleep(self.streaming_cleanup_delay)  # Configurable delay for memory cleanup
             
             # Validate original_pool_size before resetting
-            # Unreal Engine valid pool size range: 64-4096 MB
             if (
                 isinstance(original_pool_size, int)
-                and 64 <= original_pool_size <= 4096
+                and MIN_STREAMING_POOL_SIZE <= original_pool_size <= MAX_STREAMING_POOL_SIZE
             ):
                 execute_console_command(f"r.Streaming.PoolSize {original_pool_size}")  # Reset to original
             else:
                 log_warning(
-                    f"Invalid streaming pool size '{original_pool_size}' - must be integer in [64, 4096] MB. Skipping reset."
+                    f"Invalid streaming pool size '{original_pool_size}' - must be integer in [{MIN_STREAMING_POOL_SIZE}, {MAX_STREAMING_POOL_SIZE}] MB. Skipping reset."
                 )
             
             # Memory after cleanup if psutil is available
@@ -175,7 +179,8 @@ class MemoryManager:
     
     def configure(self, cleanup_interval: Optional[int] = None, 
                  memory_threshold: Optional[float] = None,
-                 cleanup_frequency: Optional[int] = None) -> None:
+                 cleanup_frequency: Optional[int] = None,
+                 streaming_cleanup_delay: Optional[float] = None) -> None:
         """Configure memory manager parameters."""
         if cleanup_interval is not None:
             self.cleanup_interval = cleanup_interval
@@ -183,6 +188,8 @@ class MemoryManager:
             self.memory_threshold = memory_threshold  
         if cleanup_frequency is not None:
             self.cleanup_frequency = cleanup_frequency
+        if streaming_cleanup_delay is not None:
+            self.streaming_cleanup_delay = max(0.0, streaming_cleanup_delay)  # Ensure non-negative
 
 
 # Global memory manager instance
@@ -211,6 +218,7 @@ def check_memory_pressure() -> bool:
 
 def configure_memory_manager(cleanup_interval: Optional[int] = None,
                            memory_threshold: Optional[float] = None, 
-                           cleanup_frequency: Optional[int] = None) -> None:
+                           cleanup_frequency: Optional[int] = None,
+                           streaming_cleanup_delay: Optional[float] = None) -> None:
     """Configure memory manager parameters."""
-    _memory_manager.configure(cleanup_interval, memory_threshold, cleanup_frequency)
+    _memory_manager.configure(cleanup_interval, memory_threshold, cleanup_frequency, streaming_cleanup_delay)
