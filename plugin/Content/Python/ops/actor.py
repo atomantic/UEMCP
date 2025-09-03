@@ -640,8 +640,11 @@ class ActorOperations:
                 failed_spawns.append(result["error_data"])
         
         if failed_spawns:
-            return ProcessingError(f"Failed to spawn {len(failed_spawns)} actors",
-                                   failed_spawns)
+            return ProcessingError(
+                message=f"Failed to spawn {len(failed_spawns)} actors",
+                operation="batch_spawn_actors", 
+                details={"failed_spawns": failed_spawns}
+            )
         return None
 
     def _spawn_single_batch_actor(self, actor_config, common_folder):
