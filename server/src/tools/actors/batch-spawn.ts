@@ -112,7 +112,7 @@ export class BatchSpawnTool extends ActorTool<BatchSpawnArgs> {
     }
 
     // Execute batch spawn command
-    const result = await this.executePythonCommand('actor.batch_spawn', {
+    const result = await this.executePythonCommand('actor_batch_spawn', {
       actors: args.actors,
       commonFolder: args.commonFolder,
       validate: args.validate ?? true, // Default to true
