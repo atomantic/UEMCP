@@ -56,10 +56,15 @@ jobs:
         cp -r server UEMCP-Full-${{ github.ref_name }}/
         cp -r plugin UEMCP-Full-${{ github.ref_name }}/
         cp -r docs UEMCP-Full-${{ github.ref_name }}/
-        cp README.md LICENSE VERSIONING.md CLAUDE.md UEMCP-Full-${{ github.ref_name }}/
+        cp README.md CLAUDE.md PLAN.md RELEASE_PROCESS.md UEMCP-Full-${{ github.ref_name }}/
+        
+        # Copy LICENSE if it exists
+        if [ -f LICENSE ]; then
+          cp LICENSE UEMCP-Full-${{ github.ref_name }}/
+        fi
         
         # Copy setup scripts
-        cp init.js init.sh init.ps1 UEMCP-Full-${{ github.ref_name }}/
+        cp setup.sh UEMCP-Full-${{ github.ref_name }}/
         
         # Create zip
         zip -r UEMCP-Full-${{ github.ref_name }}.zip UEMCP-Full-${{ github.ref_name }}/
@@ -89,7 +94,7 @@ jobs:
           ```bash
           unzip UEMCP-Full-${{ github.ref_name }}.zip
           cd UEMCP-Full-${{ github.ref_name }}
-          node init.js
+          ./setup.sh
           ```
           
           #### Individual Components
