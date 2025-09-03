@@ -5,6 +5,7 @@ Enhanced with improved error handling framework to eliminate try/catch boilerpla
 """
 
 import unreal
+import os
 from typing import Dict, Any, List, Optional
 
 # Enhanced error handling framework

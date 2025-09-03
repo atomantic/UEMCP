@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, List
 from utils.error_handling import (
     validate_inputs, handle_unreal_errors, safe_operation,
     RequiredRule, TypeRule, AssetPathRule,
-    require_asset, require_actor, AssetError, ActorError, ValidationError
+    require_asset, require_actor, AssetError, ActorError, ValidationError, ProcessingError
 )
 
 from utils import load_asset, asset_exists, log_error, log_debug
@@ -533,75 +533,75 @@ class MaterialOperations:
         # Set basic material properties
         material.set_editor_property("two_sided", False)
 
-            # Create and connect material expression nodes if values are
-            # provided
-            material_editor = unreal.MaterialEditingLibrary
+        # Create and connect material expression nodes if values are
+        # provided
+        material_editor = unreal.MaterialEditingLibrary
 
-            # Base Color
-            if base_color:
-                color_node = unreal.MaterialEditingLibrary.create_material_expression(
-                    material, unreal.MaterialExpressionVectorParameter
-                )
-                color_node.set_editor_property("parameter_name", "BaseColor")
-                color_node.set_editor_property(
-                    "default_value",
-                    unreal.LinearColor(
-                        base_color.get(
-                            "r", 1.0), base_color.get(
-                            "g", 1.0), base_color.get(
-                            "b", 1.0), 1.0
-                    ),
-                )
+        # Base Color
+        if base_color:
+            color_node = unreal.MaterialEditingLibrary.create_material_expression(
+                material, unreal.MaterialExpressionVectorParameter
+            )
+            color_node.set_editor_property("parameter_name", "BaseColor")
+            color_node.set_editor_property(
+                "default_value",
+                unreal.LinearColor(
+                    base_color.get(
+                        "r", 1.0), base_color.get(
+                        "g", 1.0), base_color.get(
+                        "b", 1.0), 1.0
+                ),
+            )
 
-                # Connect to base color
-                material_editor.connect_material_property(
-                    color_node, "", unreal.MaterialProperty.MP_BASE_COLOR)
+            # Connect to base color
+            material_editor.connect_material_property(
+                color_node, "", unreal.MaterialProperty.MP_BASE_COLOR)
 
-            # Metallic
-            if metallic != 0.0:
-                metallic_node = unreal.MaterialEditingLibrary.create_material_expression(
-                    material, unreal.MaterialExpressionScalarParameter
-                )
-                metallic_node.set_editor_property("parameter_name", "Metallic")
-                metallic_node.set_editor_property("default_value", metallic)
-
-                material_editor.connect_material_property(
-                    metallic_node, "", unreal.MaterialProperty.MP_METALLIC)
-
-            # Roughness
-            roughness_node = unreal.MaterialEditingLibrary.create_material_expression(
+        # Metallic
+        if metallic != 0.0:
+            metallic_node = unreal.MaterialEditingLibrary.create_material_expression(
                 material, unreal.MaterialExpressionScalarParameter
             )
-            roughness_node.set_editor_property("parameter_name", "Roughness")
-            roughness_node.set_editor_property("default_value", roughness)
+            metallic_node.set_editor_property("parameter_name", "Metallic")
+            metallic_node.set_editor_property("default_value", metallic)
 
             material_editor.connect_material_property(
-                roughness_node, "", unreal.MaterialProperty.MP_ROUGHNESS)
+                metallic_node, "", unreal.MaterialProperty.MP_METALLIC)
 
-            # Emissive
-            if emissive:
-                emissive_node = unreal.MaterialEditingLibrary.create_material_expression(
-                    material, unreal.MaterialExpressionVectorParameter
-                )
-                emissive_node.set_editor_property(
-                    "parameter_name", "EmissiveColor")
-                emissive_node.set_editor_property(
-                    "default_value",
-                    unreal.LinearColor(
-                        emissive.get(
-                            "r", 0.0), emissive.get(
-                            "g", 0.0), emissive.get(
-                            "b", 0.0), 1.0),
-                )
+        # Roughness
+        roughness_node = unreal.MaterialEditingLibrary.create_material_expression(
+            material, unreal.MaterialExpressionScalarParameter
+        )
+        roughness_node.set_editor_property("parameter_name", "Roughness")
+        roughness_node.set_editor_property("default_value", roughness)
 
-                material_editor.connect_material_property(
-                    emissive_node, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+        material_editor.connect_material_property(
+            roughness_node, "", unreal.MaterialProperty.MP_ROUGHNESS)
 
-            # Recompile the material
-            unreal.MaterialEditingLibrary.recompile_material(material)
+        # Emissive
+        if emissive:
+            emissive_node = unreal.MaterialEditingLibrary.create_material_expression(
+                material, unreal.MaterialExpressionVectorParameter
+            )
+            emissive_node.set_editor_property(
+                "parameter_name", "EmissiveColor")
+            emissive_node.set_editor_property(
+                "default_value",
+                unreal.LinearColor(
+                    emissive.get(
+                        "r", 0.0), emissive.get(
+                        "g", 0.0), emissive.get(
+                        "b", 0.0), 1.0),
+            )
 
-            # Save the asset
-            unreal.EditorAssetLibrary.save_asset(target_path)
+            material_editor.connect_material_property(
+                emissive_node, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+
+        # Recompile the material
+        unreal.MaterialEditingLibrary.recompile_material(material)
+
+        # Save the asset
+        unreal.EditorAssetLibrary.save_asset(target_path)
 
         return {
             "materialPath": target_path,
