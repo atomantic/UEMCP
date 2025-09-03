@@ -3,7 +3,7 @@ UEMCP Viewport Optimization - Disable viewport updates during bulk operations
 """
 
 import unreal
-from typing import Optional, Any
+from typing import Optional, Any, Union
 from contextlib import contextmanager
 from utils import log_debug, execute_console_command
 
@@ -79,34 +79,34 @@ class ViewportManager:
         except Exception as e:
             log_debug(f"Failed to restore viewport: {e}")
     
-    def configure(self, bulk_fps: Optional[int] = None, bulk_screen_percentage: Optional[int] = None,
-                  normal_fps: Optional[int] = None, normal_screen_percentage: Optional[int] = None) -> None:
+    def configure(self, bulk_fps: Optional[Union[int, float]] = None, bulk_screen_percentage: Optional[Union[int, float]] = None,
+                  normal_fps: Optional[Union[int, float]] = None, normal_screen_percentage: Optional[Union[int, float]] = None) -> None:
         """Configure viewport optimization parameters.
         
         Args:
-            bulk_fps: FPS to use during bulk operations (default: 10)
-            bulk_screen_percentage: Screen percentage during bulk ops (default: 50)
-            normal_fps: Normal FPS to restore to (default: 120)
-            normal_screen_percentage: Normal screen percentage to restore to (default: 100)
+            bulk_fps: FPS to use during bulk operations (default: 10). Accepts int or float
+            bulk_screen_percentage: Screen percentage during bulk ops (default: 50). Accepts int or float
+            normal_fps: Normal FPS to restore to (default: 120). Accepts int or float
+            normal_screen_percentage: Normal screen percentage to restore to (default: 100). Accepts int or float
             
         Raises:
-            ValueError: If any parameter is not a valid positive integer within reasonable bounds
+            ValueError: If any parameter is not a valid number within reasonable bounds
         """
         if bulk_fps is not None:
-            if not isinstance(bulk_fps, int) or bulk_fps < self.MIN_FPS or bulk_fps > self.MAX_FPS:
-                raise ValueError(f"bulk_fps must be a positive integer between {self.MIN_FPS} and {self.MAX_FPS}, got {bulk_fps}")
+            if not isinstance(bulk_fps, (int, float)) or bulk_fps < self.MIN_FPS or bulk_fps > self.MAX_FPS:
+                raise ValueError(f"bulk_fps must be a number between {self.MIN_FPS} and {self.MAX_FPS}, got {bulk_fps}")
             self.bulk_operation_fps = bulk_fps
         if bulk_screen_percentage is not None:
-            if not isinstance(bulk_screen_percentage, int) or bulk_screen_percentage < self.MIN_SCREEN_PERCENTAGE or bulk_screen_percentage > self.MAX_SCREEN_PERCENTAGE:
-                raise ValueError(f"bulk_screen_percentage must be a positive integer between {self.MIN_SCREEN_PERCENTAGE} and {self.MAX_SCREEN_PERCENTAGE}, got {bulk_screen_percentage}")
+            if not isinstance(bulk_screen_percentage, (int, float)) or bulk_screen_percentage < self.MIN_SCREEN_PERCENTAGE or bulk_screen_percentage > self.MAX_SCREEN_PERCENTAGE:
+                raise ValueError(f"bulk_screen_percentage must be a number between {self.MIN_SCREEN_PERCENTAGE} and {self.MAX_SCREEN_PERCENTAGE}, got {bulk_screen_percentage}")
             self.bulk_operation_screen_percentage = bulk_screen_percentage
         if normal_fps is not None:
-            if not isinstance(normal_fps, int) or normal_fps < self.MIN_FPS or normal_fps > self.MAX_FPS:
-                raise ValueError(f"normal_fps must be a positive integer between {self.MIN_FPS} and {self.MAX_FPS}, got {normal_fps}")
+            if not isinstance(normal_fps, (int, float)) or normal_fps < self.MIN_FPS or normal_fps > self.MAX_FPS:
+                raise ValueError(f"normal_fps must be a number between {self.MIN_FPS} and {self.MAX_FPS}, got {normal_fps}")
             self.normal_fps = normal_fps
         if normal_screen_percentage is not None:
-            if not isinstance(normal_screen_percentage, int) or normal_screen_percentage < self.MIN_SCREEN_PERCENTAGE or normal_screen_percentage > self.MAX_SCREEN_PERCENTAGE:
-                raise ValueError(f"normal_screen_percentage must be a positive integer between {self.MIN_SCREEN_PERCENTAGE} and {self.MAX_SCREEN_PERCENTAGE}, got {normal_screen_percentage}")
+            if not isinstance(normal_screen_percentage, (int, float)) or normal_screen_percentage < self.MIN_SCREEN_PERCENTAGE or normal_screen_percentage > self.MAX_SCREEN_PERCENTAGE:
+                raise ValueError(f"normal_screen_percentage must be a number between {self.MIN_SCREEN_PERCENTAGE} and {self.MAX_SCREEN_PERCENTAGE}, got {normal_screen_percentage}")
             self.normal_screen_percentage = normal_screen_percentage
     
     def _get_safe_int_value(self, name: str, value: Any, default: int) -> int:
@@ -163,16 +163,16 @@ def is_viewport_optimized() -> bool:
     return _viewport_manager.is_optimized
 
 
-def configure_viewport_optimization(bulk_fps: Optional[int] = None, 
-                                   bulk_screen_percentage: Optional[int] = None,
-                                   normal_fps: Optional[int] = None, 
-                                   normal_screen_percentage: Optional[int] = None) -> None:
+def configure_viewport_optimization(bulk_fps: Optional[Union[int, float]] = None, 
+                                   bulk_screen_percentage: Optional[Union[int, float]] = None,
+                                   normal_fps: Optional[Union[int, float]] = None, 
+                                   normal_screen_percentage: Optional[Union[int, float]] = None) -> None:
     """Configure viewport optimization parameters.
     
     Args:
-        bulk_fps: FPS to use during bulk operations (default: 10)
-        bulk_screen_percentage: Screen percentage during bulk ops (default: 50) 
-        normal_fps: Normal FPS to restore to (default: 120)
-        normal_screen_percentage: Normal screen percentage to restore to (default: 100)
+        bulk_fps: FPS to use during bulk operations (default: 10). Accepts int or float
+        bulk_screen_percentage: Screen percentage during bulk ops (default: 50). Accepts int or float 
+        normal_fps: Normal FPS to restore to (default: 120). Accepts int or float
+        normal_screen_percentage: Normal screen percentage to restore to (default: 100). Accepts int or float
     """
     _viewport_manager.configure(bulk_fps, bulk_screen_percentage, normal_fps, normal_screen_percentage)
