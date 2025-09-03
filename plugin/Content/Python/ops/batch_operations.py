@@ -38,45 +38,58 @@ class BatchOperationManager:
         }
         
         for i, op in enumerate(operations):
-            try:
-                op_id = op.get('id', f'op_{i}')
-                operation_name = op.get('operation')
-                params = op.get('params', {})
-                
-                log_debug(f"Executing operation {op_id}: {operation_name}")
-                
-                # Execute the operation
-                op_result = self._execute_single_operation(operation_name, params)
-                
-                # Track operation for memory management
-                track_operation()
-                
-                # Track result
+            op_id = op.get('id', f'op_{i}')
+            operation_name = op.get('operation')
+            params = op.get('params', {})
+            
+            # Validate operation parameters upfront
+            if not operation_name:
+                operation_result = {
+                    'id': op_id,
+                    'operation': 'unknown',
+                    'success': False,
+                    'error': 'Missing operation name'
+                }
+                results['operations'].append(operation_result)
+                results['failureCount'] += 1
+                results['success'] = False
+                continue
+            
+            if not isinstance(params, dict):
                 operation_result = {
                     'id': op_id,
                     'operation': operation_name,
-                    'success': op_result.get('success', False),
-                    'result': op_result
-                }
-                
-                if operation_result['success']:
-                    results['successCount'] += 1
-                else:
-                    results['failureCount'] += 1
-                    results['success'] = False  # Mark batch as failed if any operation fails
-                
-                results['operations'].append(operation_result)
-                
-            except Exception as e:
-                log_error(f"Error executing operation {i}: {e}")
-                results['operations'].append({
-                    'id': op.get('id', f'op_{i}'),
-                    'operation': op.get('operation', 'unknown'),
                     'success': False,
-                    'error': str(e)
-                })
+                    'error': 'Invalid params - must be dictionary'
+                }
+                results['operations'].append(operation_result)
                 results['failureCount'] += 1
                 results['success'] = False
+                continue
+            
+            log_debug(f"Executing operation {op_id}: {operation_name}")
+            
+            # Execute the operation - let the operation handle its own errors
+            op_result = self._execute_single_operation(operation_name, params)
+            
+            # Track operation for memory management
+            track_operation()
+            
+            # Track result
+            operation_result = {
+                'id': op_id,
+                'operation': operation_name,
+                'success': op_result.get('success', False),
+                'result': op_result
+            }
+            
+            if operation_result['success']:
+                results['successCount'] += 1
+            else:
+                results['failureCount'] += 1
+                results['success'] = False  # Mark batch as failed if any operation fails
+            
+            results['operations'].append(operation_result)
         
         results['executionTime'] = time.time() - self.start_time
         log_debug(f"Batch execution completed in {results['executionTime']:.2f}s")
@@ -91,41 +104,50 @@ class BatchOperationManager:
             params: Operation parameters
         
         Returns:
-            Operation result dictionary
+            Operation result dictionary with success/error status
         """
-        # Import operation modules dynamically to avoid circular imports
-        if operation == 'actor_spawn':
+        # Validate operation is supported
+        supported_operations = {
+            'actor_spawn': ('ops.actor', 'ActorOperations', 'spawn_actor'),
+            'actor_modify': ('ops.actor', 'ActorOperations', 'modify_actor'),
+            'actor_delete': ('ops.actor', 'ActorOperations', 'delete_actor'),
+            'actor_duplicate': ('ops.actor', 'ActorOperations', 'duplicate_actor'),
+            'viewport_camera': ('ops.viewport', 'ViewportOperations', 'set_camera'),
+            'viewport_screenshot': ('ops.viewport', 'ViewportOperations', 'take_screenshot'),
+        }
+        
+        if operation not in supported_operations:
+            return {
+                'success': False,
+                'error': f"Unsupported batch operation: {operation}"
+            }
+        
+        module_name, class_name, method_name = supported_operations[operation]
+        
+        # Import and execute operation using the existing error handling framework
+        if operation.startswith('actor_'):
             from ops.actor import ActorOperations
             actor_ops = ActorOperations()
-            return actor_ops.spawn_actor(**params)
-        
-        elif operation == 'actor_modify':
-            from ops.actor import ActorOperations
-            actor_ops = ActorOperations()
-            return actor_ops.modify_actor(**params)
-        
-        elif operation == 'actor_delete':
-            from ops.actor import ActorOperations
-            actor_ops = ActorOperations()
-            return actor_ops.delete_actor(**params)
-        
-        elif operation == 'actor_duplicate':
-            from ops.actor import ActorOperations
-            actor_ops = ActorOperations()
-            return actor_ops.duplicate_actor(**params)
-        
-        elif operation == 'viewport_camera':
+            method = getattr(actor_ops, method_name, None)
+        elif operation.startswith('viewport_'):
             from ops.viewport import ViewportOperations
             viewport_ops = ViewportOperations()
-            return viewport_ops.set_camera(**params)
-        
-        elif operation == 'viewport_screenshot':
-            from ops.viewport import ViewportOperations
-            viewport_ops = ViewportOperations()
-            return viewport_ops.take_screenshot(**params)
-        
+            method = getattr(viewport_ops, method_name, None)
         else:
-            raise ValueError(f"Unsupported batch operation: {operation}")
+            return {
+                'success': False,
+                'error': f"Unknown operation category for: {operation}"
+            }
+        
+        if not method:
+            return {
+                'success': False,
+                'error': f"Method {method_name} not found for operation {operation}"
+            }
+        
+        # Execute the method - it should handle its own errors via the error handling framework
+        # The framework ensures we always get back a dict with success/error status
+        return method(**params)
 
 
 # Global batch manager instance
