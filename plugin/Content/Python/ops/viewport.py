@@ -10,16 +10,16 @@ import time
 import math
 # import tempfile
 import platform as py_platform
-from typing import Dict, Any, List, Optional
+from typing import List, Optional
 
 # Enhanced error handling framework
 from utils.error_handling import (
     validate_inputs, handle_unreal_errors, safe_operation,
     RequiredRule, TypeRule, ListLengthRule,
-    require_actor, ValidationError, ProcessingError
+    require_actor, ValidationError
 )
 
-from utils import create_vector, create_rotator, find_actor_by_name, execute_console_command, log_debug, log_error
+from utils import create_vector, create_rotator, execute_console_command, log_debug
 
 
 class ViewportOperations:
