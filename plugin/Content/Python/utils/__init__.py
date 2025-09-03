@@ -34,6 +34,7 @@ from .viewport_optimization import (
     start_viewport_optimization,
     end_viewport_optimization,
     is_viewport_optimized,
+    configure_viewport_optimization,
 )
 
 __all__ = [
@@ -77,4 +78,5 @@ __all__ = [
     "start_viewport_optimization",
     "end_viewport_optimization",
     "is_viewport_optimized",
+    "configure_viewport_optimization",
 ]

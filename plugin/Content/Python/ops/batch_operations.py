@@ -75,13 +75,17 @@ class BatchOperationManager:
             # Track operation for memory management
             track_operation()
             
-            # Track result
+            # Track result with proper error extraction
             operation_result = {
                 'id': op_id,
                 'operation': operation_name,
                 'success': op_result.get('success', False),
                 'result': op_result
             }
+            
+            # Extract error message for failed operations
+            if not operation_result['success'] and 'error' in op_result:
+                operation_result['error'] = op_result['error']
             
             if operation_result['success']:
                 results['successCount'] += 1

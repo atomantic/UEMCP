@@ -69,11 +69,6 @@ export class BatchOperationsTool extends BaseTool<BatchOperationsArgs> {
   }
 
   protected async execute(args: BatchOperationsArgs): Promise<ToolResponse> {
-    // Validate we have operations to execute
-    if (!args.operations || args.operations.length === 0) {
-      throw new Error('No operations provided to execute');
-    }
-
     // Execute batch operations
     const result = await this.executePythonCommand('batch_operations', {
       operations: args.operations,

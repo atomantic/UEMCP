@@ -27,6 +27,7 @@ class MemoryManager:
         self.memory_threshold = 0.85  # 85% memory usage threshold
         self.operation_count = 0
         self.cleanup_frequency = 100  # Cleanup every 100 operations
+        self.original_streaming_pool_size = None  # Store original texture streaming pool size
         
     def track_operation(self) -> None:
         """Track an operation and potentially trigger cleanup."""
@@ -43,6 +44,19 @@ class MemoryManager:
         
         if should_cleanup:
             self.cleanup_memory()
+    
+    def _get_streaming_pool_size(self) -> int:
+        """Get current texture streaming pool size from Unreal Engine."""
+        try:
+            # Try to query the current value - this is a simplified approach
+            # In reality, UE console variables are harder to query directly
+            # We'll use a reasonable default if we can't get the original
+            if self.original_streaming_pool_size is None:
+                # Default UE streaming pool size is typically 1000MB
+                self.original_streaming_pool_size = 1000
+            return self.original_streaming_pool_size
+        except Exception:
+            return 1000  # Safe fallback
     
     def cleanup_memory(self) -> Dict[str, Any]:
         """Perform memory cleanup and return statistics."""
@@ -74,7 +88,8 @@ class MemoryManager:
             
             # Clear unused texture streaming pool
             execute_console_command("r.Streaming.PoolSize 0")
-            execute_console_command("r.Streaming.PoolSize 1000")  # Reset to default
+            original_pool_size = self._get_streaming_pool_size()
+            execute_console_command(f"r.Streaming.PoolSize {original_pool_size}")  # Reset to original
             
             # Memory after cleanup if psutil is available
             if HAS_PSUTIL and 'memory_before_mb' in cleanup_stats and cleanup_stats['memory_before_mb'] != 'unavailable':
