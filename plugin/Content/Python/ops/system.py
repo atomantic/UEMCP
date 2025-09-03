@@ -346,11 +346,8 @@ class SystemOperations:
         if result is not None:
             # Handle Unreal types
             if hasattr(result, "__dict__"):
-                # Convert to dict if possible, otherwise stringify
-                if hasattr(result.__dict__, 'items'):
-                    result = {k: v for k, v in result.__dict__.items() if not k.startswith("_")}
-                else:
-                    result = str(result)
+                # Convert to dict - __dict__ is always a dictionary if it exists
+                result = {k: v for k, v in result.__dict__.items() if not k.startswith("_")}
             elif isinstance(result, (list, tuple)):
                 # Convert any Unreal objects in lists
                 result = [str(item) if hasattr(item, "__dict__") else item for item in result]
