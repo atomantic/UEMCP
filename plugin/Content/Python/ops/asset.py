@@ -233,14 +233,12 @@ class AssetOperations:
         """
         collision_info = {"hasCollision": False, "numCollisionPrimitives": 0}
 
-        # Try to get collision primitive count
-        try:
-            if hasattr(asset, "get_num_collision_primitives"):
-                num_primitives = asset.get_num_collision_primitives()
+        # Get collision primitive count
+        if hasattr(asset, "get_num_collision_primitives"):
+            num_primitives = asset.get_num_collision_primitives()
+            if num_primitives is not None:
                 collision_info["hasCollision"] = num_primitives > 0
                 collision_info["numCollisionPrimitives"] = num_primitives
-        except Exception:
-            pass
 
         # Get body setup details
         body_setup = asset.get_editor_property("body_setup")
@@ -263,11 +261,13 @@ class AssetOperations:
             list: Socket information
         """
         sockets = []
-        try:
-            if hasattr(asset, "get_sockets"):
-                mesh_sockets = asset.get_sockets()
-                if mesh_sockets:
-                    for socket in mesh_sockets:
+        if hasattr(asset, "get_sockets"):
+            mesh_sockets = asset.get_sockets()
+            if mesh_sockets:
+                for socket in mesh_sockets:
+                    # Validate socket has required attributes
+                    if (hasattr(socket, 'socket_name') and hasattr(socket, 'relative_location') and
+                        hasattr(socket, 'relative_rotation') and hasattr(socket, 'relative_scale')):
                         sockets.append(
                             {
                                 "name": str(socket.socket_name),
@@ -288,8 +288,6 @@ class AssetOperations:
                                 },
                             }
                         )
-        except Exception:
-            pass
         return sockets
 
     def _get_material_slots(self, asset):
@@ -302,23 +300,22 @@ class AssetOperations:
             list: Material slot information
         """
         material_slots = []
-        try:
-            static_materials = self._get_static_materials(asset)
+        static_materials = self._get_static_materials(asset)
+        if static_materials:
             for i, mat_slot in enumerate(static_materials):
-                slot_info = {"slotIndex": i, "slotName": f"Slot_{i}"}
+                if mat_slot:  # Validate slot exists
+                    slot_info = {"slotIndex": i, "slotName": f"Slot_{i}"}
 
-                # Get slot name
-                if hasattr(mat_slot, "material_slot_name"):
-                    slot_info["slotName"] = (
-                        str(mat_slot.material_slot_name) if mat_slot.material_slot_name else f"Slot_{i}"
-                    )
+                    # Get slot name
+                    if hasattr(mat_slot, "material_slot_name") and mat_slot.material_slot_name:
+                        slot_info["slotName"] = str(mat_slot.material_slot_name)
 
-                # Get material path
-                slot_info["materialPath"] = self._get_material_path(mat_slot)
-                material_slots.append(slot_info)
-
-        except Exception as e:
-            log_error(f"Error getting materials: {e}")
+                    # Get material path
+                    material_path = self._get_material_path(mat_slot)
+                    if material_path:
+                        slot_info["materialPath"] = material_path
+                    
+                    material_slots.append(slot_info)
         return material_slots
 
     def _get_static_materials(self, asset):
@@ -371,24 +368,26 @@ class AssetOperations:
         info["blueprintType"] = "Blueprint"
         info["blueprintClass"] = str(asset.generated_class().get_name()) if asset.generated_class() else None
 
-        try:
+        # Get blueprint default object information
+        if hasattr(asset, 'generated_class') and asset.generated_class():
             default_object = asset.generated_class().get_default_object()
             if default_object:
                 # Get bounds
                 if hasattr(default_object, "get_actor_bounds"):
-                    origin, extent = default_object.get_actor_bounds(False)
-                    info["bounds"] = {
-                        "extent": {"x": float(extent.x), "y": float(extent.y), "z": float(extent.z)},
-                        "origin": {"x": float(origin.x), "y": float(origin.y), "z": float(origin.z)},
-                        "size": {"x": float(extent.x * 2), "y": float(extent.y * 2), "z": float(extent.z * 2)},
-                    }
+                    bounds_result = default_object.get_actor_bounds(False)
+                    if bounds_result and len(bounds_result) >= 2:
+                        origin, extent = bounds_result[0], bounds_result[1]
+                        info["bounds"] = {
+                            "extent": {"x": float(extent.x), "y": float(extent.y), "z": float(extent.z)},
+                            "origin": {"x": float(origin.x), "y": float(origin.y), "z": float(origin.z)},
+                            "size": {"x": float(extent.x * 2), "y": float(extent.y * 2), "z": float(extent.z * 2)},
+                        }
 
                 # Get components
                 if hasattr(default_object, "get_components"):
-                    info["components"] = self._get_blueprint_components(default_object)
-
-        except (AttributeError, RuntimeError) as e:
-            log_error(f"Error retrieving blueprint info for '{assetPath}': {e}")
+                    components = self._get_blueprint_components(default_object)
+                    if components:
+                        info["components"] = components
 
     def _get_blueprint_components(self, default_object):
         """Get component information from a blueprint default object.
@@ -522,6 +521,15 @@ class AssetOperations:
             "searchPath": searchPath,
         }
 
+    @validate_inputs({
+        'sourcePath': [RequiredRule(), TypeRule(str)],
+        'targetFolder': [RequiredRule(), TypeRule(str)],
+        'assetType': [TypeRule(str)],
+        'batchImport': [TypeRule(bool)],
+        'importSettings': [TypeRule(dict, allow_none=True)]
+    })
+    @handle_unreal_errors("import_assets")
+    @safe_operation("asset")
     def import_assets(
         self,
         sourcePath: str,
@@ -545,35 +553,30 @@ class AssetOperations:
         import os
         import time
 
-        try:
-            start_time = time.time()
+        start_time = time.time()
 
-            # Prepare import settings
-            settings = self._prepare_import_settings(importSettings)
+        # Validate source path exists
+        if not os.path.exists(sourcePath):
+            raise ValidationError(f"Source path does not exist: {sourcePath}")
 
-            # Validate source path
-            if not os.path.exists(sourcePath):
-                return {"success": False, "error": f"Source path does not exist: {sourcePath}"}
+        # Prepare import settings
+        settings = self._prepare_import_settings(importSettings)
 
-            # Ensure target folder exists in content browser
-            self._ensure_content_folder_exists(targetFolder)
+        # Ensure target folder exists in content browser
+        self._ensure_content_folder_exists(targetFolder)
 
-            # Collect files to import
-            files_to_import = self._collect_import_files(sourcePath, assetType, batchImport)
+        # Collect files to import
+        files_to_import = self._collect_import_files(sourcePath, assetType, batchImport)
 
-            if not files_to_import:
-                return {"success": False, "error": "No compatible files found for import"}
+        if not files_to_import:
+            raise ValidationError("No compatible files found for import")
 
-            # Process imports
-            import_results = self._process_imports(files_to_import, targetFolder, settings, assetType)
+        # Process imports
+        import_results = self._process_imports(files_to_import, targetFolder, settings, assetType)
 
-            # Build final result
-            processing_time = (time.time() - start_time) * 1000  # Convert to milliseconds
-            return self._build_import_result(import_results, targetFolder, files_to_import, processing_time)
-
-        except Exception as e:
-            log_error(f"Failed to import assets: {str(e)}")
-            return {"success": False, "error": str(e)}
+        # Build final result
+        processing_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+        return self._build_import_result(import_results, targetFolder, files_to_import, processing_time)
 
     def _prepare_import_settings(self, importSettings):
         """Prepare import settings by merging with defaults.
@@ -622,28 +625,17 @@ class AssetOperations:
         total_size = 0
 
         for file_path in files_to_import:
-            try:
-                result = self._import_single_asset(file_path, targetFolder, settings, assetType)
+            # Import single asset - errors are handled internally
+            result = self._import_single_asset(file_path, targetFolder, settings, assetType)
 
-                if result["status"] == "success":
-                    imported_assets.append(result)
-                    if result.get("size"):
-                        total_size += result["size"]
-                elif result["status"] == "failed":
-                    failed_assets.append(result)
-                elif result["status"] == "skipped":
-                    skipped_assets.append(result)
-
-            except Exception as e:
-                failed_assets.append(
-                    {
-                        "originalPath": file_path,
-                        "targetPath": "",
-                        "assetType": assetType,
-                        "status": "failed",
-                        "error": str(e),
-                    }
-                )
+            if result["status"] == "success":
+                imported_assets.append(result)
+                if result.get("size"):
+                    total_size += result["size"]
+            elif result["status"] == "failed":
+                failed_assets.append(result)
+            elif result["status"] == "skipped":
+                skipped_assets.append(result)
 
         return {
             "imported": imported_assets,
@@ -686,16 +678,12 @@ class AssetOperations:
         Args:
             folder_path: Content browser path (e.g., '/Game/ImportedAssets')
         """
-        try:
-            # Convert to content browser path format
-            if not folder_path.startswith("/Game"):
-                folder_path = f'/Game/{folder_path.lstrip("/")}'
+        # Convert to content browser path format
+        if not folder_path.startswith("/Game"):
+            folder_path = f'/Game/{folder_path.lstrip("/")}'
 
-            # Note: UE will auto-create folders when we import assets
-            pass
-
-        except Exception as e:
-            log_error(f"Error ensuring folder exists: {str(e)}")
+        # Note: UE will auto-create folders when we import assets
+        # No additional action needed
 
     def _collect_import_files(self, source_path: str, asset_type: str, batch_import: bool) -> list:
         """Collect files to import based on source path and settings.
@@ -771,71 +759,71 @@ class AssetOperations:
         """
         from pathlib import Path
 
-        try:
-            file_name = Path(file_path).stem
-            file_ext = Path(file_path).suffix.lower()
-
-            # Determine target path
-            target_path = f"{target_folder}/{file_name}"
-
-            # Check if asset already exists and handle accordingly
-            if not settings.get("overwriteExisting", False):
-                if asset_exists(target_path):
-                    return {
-                        "originalPath": file_path,
-                        "targetPath": target_path,
-                        "assetType": self._detect_asset_type_from_extension(file_ext),
-                        "status": "skipped",
-                        "error": "Asset already exists",
-                    }
-
-            # Setup import task based on file type
-            import_task = self._create_import_task(file_path, target_folder, settings, file_ext)
-
-            if not import_task:
-                return {
-                    "originalPath": file_path,
-                    "targetPath": target_path,
-                    "assetType": self._detect_asset_type_from_extension(file_ext),
-                    "status": "failed",
-                    "error": "Unsupported file type or failed to create import task",
-                }
-
-            # Execute import
-            asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
-            imported_assets = asset_tools.import_asset_tasks([import_task])
-
-            if imported_assets and len(imported_assets) > 0:
-                imported_asset = imported_assets[0]
-
-                # Get asset information
-                asset_info = self._get_imported_asset_info(imported_asset, file_path)
-
-                return {
-                    "originalPath": file_path,
-                    "targetPath": imported_asset.get_path_name(),
-                    "assetType": imported_asset.get_class().get_name(),
-                    "status": "success",
-                    "size": asset_info.get("size", 0),
-                    "vertexCount": asset_info.get("vertexCount"),
-                    "materialCount": asset_info.get("materialCount"),
-                }
-            else:
-                return {
-                    "originalPath": file_path,
-                    "targetPath": target_path,
-                    "assetType": self._detect_asset_type_from_extension(file_ext),
-                    "status": "failed",
-                    "error": "Import task completed but no assets were created",
-                }
-
-        except Exception as e:
+        # Validate file path exists
+        if not os.path.exists(file_path):
             return {
                 "originalPath": file_path,
-                "targetPath": target_path if "target_path" in locals() else "",
-                "assetType": self._detect_asset_type_from_extension(file_ext) if "file_ext" in locals() else "unknown",
+                "targetPath": "",
+                "assetType": "unknown",
                 "status": "failed",
-                "error": str(e),
+                "error": f"Source file does not exist: {file_path}",
+            }
+
+        file_name = Path(file_path).stem
+        file_ext = Path(file_path).suffix.lower()
+
+        # Determine target path
+        target_path = f"{target_folder}/{file_name}"
+
+        # Check if asset already exists and handle accordingly
+        if not settings.get("overwriteExisting", False):
+            if asset_exists(target_path):
+                return {
+                    "originalPath": file_path,
+                    "targetPath": target_path,
+                    "assetType": self._detect_asset_type_from_extension(file_ext),
+                    "status": "skipped",
+                    "error": "Asset already exists",
+                }
+
+        # Setup import task based on file type
+        import_task = self._create_import_task(file_path, target_folder, settings, file_ext)
+
+        if not import_task:
+            return {
+                "originalPath": file_path,
+                "targetPath": target_path,
+                "assetType": self._detect_asset_type_from_extension(file_ext),
+                "status": "failed",
+                "error": "Unsupported file type or failed to create import task",
+            }
+
+        # Execute import
+        asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
+        imported_assets = asset_tools.import_asset_tasks([import_task])
+
+        if imported_assets and len(imported_assets) > 0:
+            imported_asset = imported_assets[0]
+
+            # Get asset information
+            asset_info = self._get_imported_asset_info(imported_asset, file_path)
+
+            return {
+                "originalPath": file_path,
+                "targetPath": imported_asset.get_path_name(),
+                "assetType": imported_asset.get_class().get_name(),
+                "status": "success",
+                "size": asset_info.get("size", 0),
+                "vertexCount": asset_info.get("vertexCount"),
+                "materialCount": asset_info.get("materialCount"),
+            }
+        else:
+            return {
+                "originalPath": file_path,
+                "targetPath": target_path,
+                "assetType": self._detect_asset_type_from_extension(file_ext),
+                "status": "failed",
+                "error": "Import task completed but no assets were created",
             }
 
     def _detect_asset_type_from_extension(self, file_ext: str) -> str:
@@ -874,20 +862,23 @@ class AssetOperations:
         Returns:
             AssetImportTask or None if unsupported
         """
-        try:
-            task = self._create_base_import_task(file_path, target_folder, settings)
-
-            # Configure options based on file type
-            if file_ext in [".fbx", ".obj", ".dae", ".3ds", ".ase", ".ply"]:
-                self._configure_mesh_import(task, settings)
-            elif file_ext in [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".tiff", ".exr", ".hdr"]:
-                self._configure_texture_import(task, settings)
-
-            return task
-
-        except Exception as e:
-            log_error(f"Failed to create import task: {str(e)}")
+        # Validate file path exists before creating task
+        if not os.path.exists(file_path):
+            log_error(f"Cannot create import task - file does not exist: {file_path}")
             return None
+
+        task = self._create_base_import_task(file_path, target_folder, settings)
+        if not task:
+            log_error(f"Failed to create base import task for: {file_path}")
+            return None
+
+        # Configure options based on file type
+        if file_ext in [".fbx", ".obj", ".dae", ".3ds", ".ase", ".ply"]:
+            self._configure_mesh_import(task, settings)
+        elif file_ext in [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".tiff", ".exr", ".hdr"]:
+            self._configure_texture_import(task, settings)
+
+        return task
 
     def _create_base_import_task(self, file_path: str, target_folder: str, settings: dict) -> unreal.AssetImportTask:
         """Create a base import task with common settings.
@@ -966,22 +957,18 @@ class AssetOperations:
 
         info = {}
 
-        try:
-            # Get file size
-            if os.path.exists(original_file_path):
-                info["size"] = os.path.getsize(original_file_path)
+        # Get file size if original file exists
+        if os.path.exists(original_file_path):
+            info["size"] = os.path.getsize(original_file_path)
 
-            # Get mesh-specific info
-            if isinstance(asset, unreal.StaticMesh):
-                # Check if the asset has any LODs before accessing LOD 0
-                if asset.get_num_lods() > 0:
-                    info["vertexCount"] = asset.get_num_vertices(0)
-                    info["materialCount"] = asset.get_num_sections(0)
-                else:
-                    info["vertexCount"] = 0
-                    info["materialCount"] = 0
-
-        except Exception as e:
-            log_error(f"Error getting asset info: {str(e)}")
+        # Get mesh-specific info with validation
+        if isinstance(asset, unreal.StaticMesh):
+            # Check if the asset has any LODs before accessing LOD 0
+            if asset.get_num_lods() > 0:
+                info["vertexCount"] = asset.get_num_vertices(0)
+                info["materialCount"] = asset.get_num_sections(0)
+            else:
+                info["vertexCount"] = 0
+                info["materialCount"] = 0
 
         return info

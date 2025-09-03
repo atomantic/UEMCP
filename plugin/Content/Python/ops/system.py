@@ -23,6 +23,12 @@ from uemcp_command_registry import get_registry
 class SystemOperations:
     """Handles system-level operations like help, connection testing, etc."""
 
+    @validate_inputs({
+        'tool': [TypeRule(str, allow_none=True)],
+        'category': [TypeRule(str, allow_none=True)]
+    })
+    @handle_unreal_errors("get_help")
+    @safe_operation("system")
     def help(self, tool=None, category=None):
         """Get help information about UEMCP tools and commands.
 
@@ -33,7 +39,6 @@ class SystemOperations:
         Returns:
             dict: Help information
         """
-        try:
             # Define tool categories
             tool_categories = {
                 "project": ["project_info"],
@@ -219,10 +224,6 @@ class SystemOperations:
                 },
             }
 
-        except Exception as e:
-            log_error(f"Failed to get help: {str(e)}")
-            return {"success": False, "error": str(e)}
-
     @handle_unreal_errors("test_connection")
     @safe_operation("system")
     def test_connection(self):
@@ -238,6 +239,11 @@ class SystemOperations:
             "unrealVersion": unreal.SystemLibrary.get_engine_version(),
         }
 
+    @validate_inputs({
+        'force': [TypeRule(bool)]
+    })
+    @handle_unreal_errors("restart_listener")
+    @safe_operation("system")
     def restart_listener(self, force=False):
         """Restart the Python listener to reload code changes.
 
@@ -247,7 +253,6 @@ class SystemOperations:
         Returns:
             dict: Restart result
         """
-        try:
             # Import the restart functionality
             try:
                 from uemcp_helpers import restart_listener as helper_restart
@@ -264,10 +269,13 @@ class SystemOperations:
                     "error": "Restart helper not available. Please restart manually from UE Python console.",
                 }
 
-        except Exception as e:
-            log_error(f"Failed to restart listener: {str(e)}")
-            return {"success": False, "error": str(e)}
 
+    @validate_inputs({
+        'project': [TypeRule(str)],
+        'lines': [TypeRule(int)]
+    })
+    @handle_unreal_errors("read_ue_logs")
+    @safe_operation("system")
     def ue_logs(self, project="Home", lines=100):
         """Fetch recent lines from the Unreal Engine log file.
 
@@ -278,7 +286,6 @@ class SystemOperations:
         Returns:
             dict: Log lines
         """
-        try:
             # Construct log file path
             if sys.platform == "darwin":  # macOS
                 log_path = os.path.expanduser(f"~/Library/Logs/Unreal Engine/{project}Editor/{project}.log")
@@ -305,10 +312,13 @@ class SystemOperations:
                 "requestedLines": lines,
             }
 
-        except Exception as e:
-            log_error(f"Failed to read logs: {str(e)}")
-            return {"success": False, "error": str(e)}
 
+    @validate_inputs({
+        'code': [RequiredRule(), TypeRule(str)],
+        'context': [TypeRule(dict, allow_none=True)]
+    })
+    @handle_unreal_errors("execute_python")
+    @safe_operation("system")
     def python_proxy(self, code, context=None):
         """Execute arbitrary Python code in Unreal Engine.
 
@@ -319,7 +329,6 @@ class SystemOperations:
         Returns:
             dict: Execution result
         """
-        try:
             # Set up execution context
             exec_globals = {"unreal": unreal, "math": __import__("math"), "os": os, "sys": sys, "result": None}
 
@@ -337,10 +346,10 @@ class SystemOperations:
             if result is not None:
                 # Handle Unreal types
                 if hasattr(result, "__dict__"):
-                    # Try to convert to dict
-                    try:
+                    # Convert to dict if possible, otherwise stringify
+                    if hasattr(result.__dict__, 'items'):
                         result = {k: v for k, v in result.__dict__.items() if not k.startswith("_")}
-                    except Exception:
+                    else:
                         result = str(result)
                 elif isinstance(result, (list, tuple)):
                     # Convert any Unreal objects in lists
@@ -348,9 +357,6 @@ class SystemOperations:
 
             return {"success": True, "result": result, "message": "Code executed successfully"}
 
-        except Exception as e:
-            log_error(f"Python proxy execution failed: {str(e)}")
-            return {"success": False, "error": str(e), "traceback": __import__("traceback").format_exc()}
 
 
 def register_system_operations():

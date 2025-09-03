@@ -91,6 +91,8 @@ def handle_tool_name(param1: str, param2: int = 0):
 
 **NEVER use try/catch blocks in new MCP tool implementations.** Instead, use the UEMCP error handling framework which provides:
 
+📖 **See [docs/development/error-handling-philosophy.md](../../docs/development/error-handling-philosophy.md) for comprehensive guidance on error handling principles.**
+
 - **@validate_inputs**: Automatic parameter validation with reusable rules
 - **@handle_unreal_errors**: Converts UE-specific errors to meaningful messages  
 - **@safe_operation**: Provides standardized error responses

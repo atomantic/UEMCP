@@ -6,7 +6,22 @@ import unreal
 from typing import Dict, List, Optional, Any
 from utils.general import log_debug as log_info, log_error, log_warning
 
+# Enhanced error handling framework
+from utils.error_handling import (
+    validate_inputs, handle_unreal_errors, safe_operation,
+    RequiredRule, AssetPathRule, TypeRule, ValidationError
+)
 
+
+@validate_inputs({
+    'class_name': [RequiredRule(), TypeRule(str)],
+    'parent_class': [RequiredRule(), TypeRule(str)],
+    'target_folder': [RequiredRule(), TypeRule(str)],
+    'components': [TypeRule(list, allow_none=True)],
+    'variables': [TypeRule(list, allow_none=True)]
+})
+@handle_unreal_errors("create_blueprint")
+@safe_operation("blueprint")
 def create(
     class_name: str,
     parent_class: str = 'Actor',
@@ -27,7 +42,6 @@ def create(
     Returns:
         Dictionary with creation result
     """
-    try:
         # Ensure target folder exists
         if not unreal.EditorAssetLibrary.does_directory_exist(target_folder):
             unreal.EditorAssetLibrary.make_directory(target_folder)
@@ -160,13 +174,6 @@ def create(
 
         return result
 
-    except Exception as e:
-        log_error(f"Error creating Blueprint: {e}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
 
 # NOTE: add_component() has been removed as it cannot be implemented
 # due to Unreal Engine Python API limitations.
@@ -180,6 +187,11 @@ def create(
 # This functionality may be added in future UE versions.
 
 
+@validate_inputs({
+    'blueprint_path': [RequiredRule(), AssetPathRule()]
+})
+@handle_unreal_errors("get_blueprint_info")
+@safe_operation("blueprint")
 def get_info(blueprint_path: str) -> Dict[str, Any]:
     """
     Get detailed information about a Blueprint.
@@ -190,7 +202,6 @@ def get_info(blueprint_path: str) -> Dict[str, Any]:
     Returns:
         Dictionary with Blueprint information
     """
-    try:
         # Load the Blueprint
         blueprint = unreal.EditorAssetLibrary.load_asset(blueprint_path)
         if not blueprint or not isinstance(blueprint, unreal.Blueprint):
@@ -216,10 +227,3 @@ def get_info(blueprint_path: str) -> Dict[str, Any]:
         # limitations in the Python API
 
         return info
-
-    except Exception as e:
-        log_error(f"Error getting Blueprint info: {e}")
-        return {
-            'success': False,
-            'error': str(e)
-        }

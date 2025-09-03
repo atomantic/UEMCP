@@ -189,7 +189,9 @@ class AssetOperations:
 
 #### 1. Use UEMCP Error Handling Framework (REQUIRED)
 
-**ALWAYS use the UEMCP error handling framework instead of manual try/catch blocks:**
+**ALWAYS use the UEMCP error handling framework instead of manual try/catch blocks.**
+
+📖 **See [Error Handling Philosophy](error-handling-philosophy.md) for comprehensive guidance on why we avoid try/except patterns.**
 
 ```python
 # ✅ BEST: Use UEMCP Error Handling Framework 
