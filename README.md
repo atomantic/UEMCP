@@ -367,6 +367,28 @@ python -m pytest      # Python tests
 npm run lint          # Linting
 ```
 
+### Diagnostic Testing
+
+Validate your MCP setup with the diagnostic test scripts:
+
+```bash
+# Quick diagnostic checklist
+node scripts/mcp-diagnostic.js
+
+# Interactive test suite (requires user verification)
+node scripts/diagnostic-test.js
+```
+
+The diagnostic tests validate all MCP functionality including:
+- Connection and project info
+- Asset management (list, info)  
+- Level operations (spawn, modify, delete actors)
+- Viewport control (camera, screenshots, render modes)
+- Material system (list, create, apply)
+- Advanced features (python_proxy, batch operations)
+
+**Expected success rate: 100%** for a properly configured system.
+
 ## 📚 Documentation
 
 - **[Setup Reference](docs/setup.md)** - Manual setup and configuration details

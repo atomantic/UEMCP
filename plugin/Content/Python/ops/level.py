@@ -5,40 +5,51 @@ UEMCP Level Operations - All level and project-related operations
 import unreal
 from utils import get_project_info, get_all_actors, log_error
 
+# Enhanced error handling framework
+from utils.error_handling import (
+    validate_inputs, handle_unreal_errors, safe_operation,
+    RequiredRule, TypeRule, ValidationError, ProcessingError
+)
+
 
 class LevelOperations:
     """Handles all level and project-related operations."""
 
+    @handle_unreal_errors("save_level")
+    @safe_operation("level")
     def save_level(self):
         """Save the current level.
 
         Returns:
             dict: Result with success status
+            
+        Raises:
+            ProcessingError: If level save operation fails
         """
-        try:
-            success = unreal.EditorLevelLibrary.save_current_level()
+        success = unreal.EditorLevelLibrary.save_current_level()
+        if not success:
+            raise ProcessingError("Failed to save level")
+        return {
+            "message": "Level saved successfully"
+        }
 
-            return {"success": success,
-                    "message": "Level saved successfully" if success else "Failed to save level"}
-
-        except Exception as e:
-            log_error(f"Failed to save level: {str(e)}")
-            return {"success": False, "error": str(e)}
-
+    @handle_unreal_errors("get_project_info")
+    @safe_operation("level")
     def get_project_info(self):
         """Get information about the current project.
 
         Returns:
             dict: Project information
         """
-        try:
-            info = get_project_info()
-            return {"success": True, **info}
+        info = get_project_info()
+        return info
 
-        except Exception as e:
-            log_error(f"Failed to get project info: {str(e)}")
-            return {"success": False, "error": str(e)}
-
+    @validate_inputs({
+        'filter': [TypeRule(str, allow_none=True)],
+        'limit': [TypeRule(int)]
+    })
+    @handle_unreal_errors("get_level_actors")
+    @safe_operation("level")
     def get_level_actors(self, filter=None, limit=30):
         """Get all actors in the current level.
 
@@ -49,42 +60,42 @@ class LevelOperations:
         Returns:
             dict: List of actors with properties
         """
-        try:
-            actors = get_all_actors(filter_text=filter, limit=limit)
+        actors = get_all_actors(filter_text=filter, limit=limit)
 
-            # Count total actors
-            editor_actor_subsystem = unreal.get_editor_subsystem(
-                unreal.EditorActorSubsystem)
-            all_actors = editor_actor_subsystem.get_all_level_actors()
+        # Count total actors
+        editor_actor_subsystem = unreal.get_editor_subsystem(
+            unreal.EditorActorSubsystem)
+        all_actors = editor_actor_subsystem.get_all_level_actors()
 
-            if filter:
-                # Count filtered actors
-                filter_lower = filter.lower()
-                total_count = sum(
-                    1
-                    for actor in all_actors
-                    if actor
-                    and hasattr(actor, "get_actor_label")
-                    and (
-                        filter_lower in actor.get_actor_label().lower()
-                        or filter_lower in actor.get_class().get_name().lower()
-                    )
+        if filter:
+            # Count filtered actors
+            filter_lower = filter.lower()
+            total_count = sum(
+                1
+                for actor in all_actors
+                if actor
+                and hasattr(actor, "get_actor_label")
+                and (
+                    filter_lower in actor.get_actor_label().lower()
+                    or filter_lower in actor.get_class().get_name().lower()
                 )
-            else:
-                total_count = len(
-                    [a for a in all_actors if a and hasattr(a, "get_actor_label")])
+            )
+        else:
+            total_count = len(
+                [a for a in all_actors if a and hasattr(a, "get_actor_label")])
 
-            return {
-                "success": True,
-                "actors": actors,
-                "totalCount": total_count,
-                "currentLevel": unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world().get_name(),
-            }
+        return {
+            "actors": actors,
+            "totalCount": total_count,
+            "currentLevel": unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world().get_name(),
+        }
 
-        except Exception as e:
-            log_error(f"Failed to get level actors: {str(e)}")
-            return {"success": False, "error": str(e)}
-
+    @validate_inputs({
+        'showEmpty': [TypeRule(bool)],
+        'maxDepth': [TypeRule(int)]
+    })
+    @handle_unreal_errors("get_outliner_structure")
+    @safe_operation("level")
     def get_outliner_structure(self, showEmpty=False, maxDepth=10):
         """Get the World Outliner folder structure.
 
@@ -95,45 +106,39 @@ class LevelOperations:
         Returns:
             dict: Outliner structure
         """
-        try:
-            # Get all actors
-            editor_actor_subsystem = unreal.get_editor_subsystem(
-                unreal.EditorActorSubsystem)
-            all_actors = editor_actor_subsystem.get_all_level_actors()
+        # Get all actors
+        editor_actor_subsystem = unreal.get_editor_subsystem(
+            unreal.EditorActorSubsystem)
+        all_actors = editor_actor_subsystem.get_all_level_actors()
 
-            # Build folder structure
-            folder_structure, unorganized_actors, organized_count = self._build_folder_structure(
-                all_actors, maxDepth
-            )
+        # Build folder structure
+        folder_structure, unorganized_actors, organized_count = self._build_folder_structure(
+            all_actors, maxDepth
+        )
 
-            # Sort all actors
-            self._sort_folder_actors(folder_structure)
-            unorganized_actors.sort()
+        # Sort all actors
+        self._sort_folder_actors(folder_structure)
+        unorganized_actors.sort()
 
-            # Remove empty folders if requested
-            if not showEmpty:
-                self._remove_empty_folders(folder_structure)
+        # Remove empty folders if requested
+        if not showEmpty:
+            self._remove_empty_folders(folder_structure)
 
-            # Count total folders
-            total_folders = self._count_folders(folder_structure)
+        # Count total folders
+        total_folders = self._count_folders(folder_structure)
 
-            return {
-                "success": True,
-                "outliner": {
-                    "folders": folder_structure,
-                    "unorganized": unorganized_actors,
-                    "stats": {
-                        "totalActors": len(all_actors),
-                        "organizedActors": organized_count,
-                        "unorganizedActors": len(unorganized_actors),
-                        "totalFolders": total_folders,
-                    },
+        return {
+            "outliner": {
+                "folders": folder_structure,
+                "unorganized": unorganized_actors,
+                "stats": {
+                    "totalActors": len(all_actors),
+                    "organizedActors": organized_count,
+                    "unorganizedActors": len(unorganized_actors),
+                    "totalFolders": total_folders,
                 },
-            }
-
-        except Exception as e:
-            log_error(f"Failed to get outliner structure: {str(e)}")
-            return {"success": False, "error": str(e)}
+            },
+        }
 
     def _build_folder_structure(self, all_actors, maxDepth):
         """Build the folder structure from actors.

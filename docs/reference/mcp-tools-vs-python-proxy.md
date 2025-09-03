@@ -964,6 +964,7 @@ result = "🔍 Testing Python listener availability...\\n"
 result += "✅ Python listener is ONLINE\\n\\n"
 
 # Test project info
+# ❌ NOTE: This demonstrates old error handling patterns - avoid in new code
 try:
     project_name = unreal.Paths.get_project_file_path().split('/')[-1].replace('.uproject', '')
     version_info = unreal.SystemLibrary.get_engine_version()
@@ -976,7 +977,8 @@ try:
 except Exception as e:
     result += f"❌ Project info test failed: {e}\\n\\n"
 
-# Test level actors
+# Test level actors  
+# ❌ NOTE: This demonstrates old error handling patterns - avoid in new code
 try:
     actors = unreal.EditorLevelLibrary.get_all_level_actors()
     result += "🎭 Testing level.actors command...\\n"
@@ -1074,6 +1076,7 @@ else:  # Linux
 result = f"📋 Unreal Engine Logs (last 50 lines)\\n"
 result += f"Project: {project_name}\\n\\n"
 
+# ❌ NOTE: This demonstrates acceptable try/catch for file I/O operations
 try:
     with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
         lines = f.readlines()
@@ -1130,6 +1133,8 @@ result
 10. **Discoverability**: Tools are self-documenting with clear names and descriptions
 
 ## When to Use Python Proxy
+
+**⚠️ Important Note on Error Handling:** The `python_proxy` examples in this document contain try/catch blocks that demonstrate **old error handling anti-patterns**. In new UEMCP code, we use the [UEMCP Error Handling Framework](../development/error-handling-philosophy.md) instead of try/catch blocks. These examples are kept for comparison purposes but should not be used as templates for new code.
 
 While MCP tools are ideal for common operations, `python_proxy` is still valuable for:
 

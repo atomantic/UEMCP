@@ -1,9 +1,19 @@
 """
 UEMCP Material Operations - All material creation and management operations
+
+Enhanced with improved error handling framework to eliminate try/catch boilerplate.
 """
 
 import unreal
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
+
+# Enhanced error handling framework
+from utils.error_handling import (
+    validate_inputs, handle_unreal_errors, safe_operation,
+    RequiredRule, TypeRule, AssetPathRule,
+    require_asset, require_actor, ValidationError, ProcessingError
+)
+
 from utils import load_asset, asset_exists, log_error, log_debug
 from utils.general import find_actor_by_name
 
@@ -11,7 +21,14 @@ from utils.general import find_actor_by_name
 class MaterialOperations:
     """Handles all material-related operations."""
 
-    def list_materials(self, path="/Game", pattern="", limit=50):
+    @validate_inputs({
+        'path': [RequiredRule(), TypeRule(str)],
+        'pattern': [TypeRule(str)],
+        'limit': [TypeRule(int)]
+    })
+    @handle_unreal_errors("list_materials")
+    @safe_operation("material")
+    def list_materials(self, path: str = "/Game", pattern: str = "", limit: int = 50):
         """List materials in a given path with optional name filtering.
 
         Args:
@@ -22,32 +39,24 @@ class MaterialOperations:
         Returns:
             dict: Result with material list
         """
-        try:
-            asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
-            all_assets = asset_registry.get_assets_by_path(
-                path, recursive=True)
+        asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
+        all_assets = asset_registry.get_assets_by_path(path, recursive=True)
 
-            # Filter for material types
-            material_assets = self._filter_material_assets(all_assets)
+        # Filter for material types
+        material_assets = self._filter_material_assets(all_assets)
 
-            # Apply pattern filter if specified
-            filtered_assets = self._apply_pattern_filter(
-                material_assets, pattern)
+        # Apply pattern filter if specified
+        filtered_assets = self._apply_pattern_filter(material_assets, pattern)
 
-            # Build material list with limit
-            material_list = self._build_material_list(filtered_assets, limit)
+        # Build material list with limit
+        material_list = self._build_material_list(filtered_assets, limit)
 
-            return {
-                "success": True,
-                "materials": material_list,
-                "totalCount": len(filtered_assets),
-                "path": path,
-                "pattern": pattern if pattern else None,
-            }
-
-        except Exception as e:
-            log_error(f"Failed to list materials: {str(e)}")
-            return {"success": False, "error": str(e)}
+        return {
+            "materials": material_list,
+            "totalCount": len(filtered_assets),
+            "path": path,
+            "pattern": pattern if pattern else None,
+        }
 
     def _filter_material_assets(self, all_assets):
         """Filter assets to only include materials.
@@ -150,29 +159,31 @@ class MaterialOperations:
         Args:
             material_info: Material info dictionary to extend
         """
-        try:
-            material = load_asset(material_info["path"])
-            if not material:
-                return
+        material = load_asset(material_info["path"])
+        if not material:
+            log_debug(f"Could not load material: {material_info['path']}")
+            return
 
-            # Add parent material for instances
-            if isinstance(material, unreal.MaterialInstance):
+        # Add parent material for instances
+        if isinstance(material, unreal.MaterialInstance):
+            if hasattr(material, "get_editor_property"):
                 parent = material.get_editor_property("parent")
                 if parent:
                     material_info["parentMaterial"] = str(
                         parent.get_path_name())
 
-            # Add material domain
-            if hasattr(material, "get_editor_property"):
-                material_info["domain"] = str(
-                    material.get_editor_property("material_domain"))
-            else:
-                material_info["domain"] = "Unknown"
+        # Add material domain
+        if hasattr(material, "get_editor_property"):
+            material_info["domain"] = str(
+                material.get_editor_property("material_domain"))
+        else:
+            material_info["domain"] = "Unknown"
 
-        except Exception as e:
-            log_debug(
-                f"Could not load additional info for material {material_info['path']}: {e}")
-
+    @validate_inputs({
+        'material_path': [RequiredRule(), AssetPathRule()]
+    })
+    @handle_unreal_errors("get_material_info")
+    @safe_operation("material")
     def get_material_info(self, material_path: str) -> Dict[str, Any]:
         """Get detailed information about a material.
 
@@ -182,28 +193,20 @@ class MaterialOperations:
         Returns:
             dict: Material information including parameters, textures, and properties
         """
-        try:
-            # Validate and load material
-            material, error = self._validate_and_load_material(material_path)
-            if error:
-                return error
+        # Load material using error handling framework
+        material = require_asset(material_path)
 
-            # Build basic info
-            info = self._build_basic_material_info(material, material_path)
+        # Build basic info
+        info = self._build_basic_material_info(material, material_path)
 
-            # Add material properties
-            self._add_material_properties(info, material)
+        # Add material properties
+        self._add_material_properties(info, material)
 
-            # Handle Material Instance specific info
-            if isinstance(material, (unreal.MaterialInstance,
-                          unreal.MaterialInstanceConstant)):
-                self._add_material_instance_info(info, material)
+        # Handle Material Instance specific info
+        if isinstance(material, (unreal.MaterialInstance, unreal.MaterialInstanceConstant)):
+            self._add_material_instance_info(info, material)
 
-            return info
-
-        except Exception as e:
-            log_error(f"Failed to get material info: {str(e)}")
-            return {"success": False, "error": str(e)}
+        return info
 
     def _validate_and_load_material(self, material_path):
         """Validate material exists and load it.
@@ -249,18 +252,17 @@ class MaterialOperations:
             info: Material info dictionary
             material: Material object
         """
-        try:
-            if hasattr(material, "get_editor_property"):
-                info["domain"] = str(
-                    material.get_editor_property("material_domain"))
-                info["blendMode"] = str(
-                    material.get_editor_property("blend_mode"))
-                info["shadingModel"] = str(
-                    material.get_editor_property("shading_model"))
-                info["twoSided"] = bool(
-                    material.get_editor_property("two_sided"))
-        except Exception as e:
-            log_debug(f"Could not get basic properties: {e}")
+        if hasattr(material, "get_editor_property"):
+            info["domain"] = str(
+                material.get_editor_property("material_domain"))
+            info["blendMode"] = str(
+                material.get_editor_property("blend_mode"))
+            info["shadingModel"] = str(
+                material.get_editor_property("shading_model"))
+            info["twoSided"] = bool(
+                material.get_editor_property("two_sided"))
+        else:
+            log_debug("Material does not support get_editor_property")
 
     def _add_material_instance_info(self, info, material):
         """Add material instance specific information.
@@ -269,19 +271,16 @@ class MaterialOperations:
             info: Material info dictionary
             material: Material instance object
         """
-        try:
-            # Get parent material
+        # Get parent material
+        if hasattr(material, "get_editor_property"):
             parent = material.get_editor_property("parent")
             if parent:
                 info["parentMaterial"] = str(parent.get_path_name())
 
-            # Get all parameter types
-            info["scalarParameters"] = self._get_scalar_parameters(material)
-            info["vectorParameters"] = self._get_vector_parameters(material)
-            info["textureParameters"] = self._get_texture_parameters(material)
-
-        except Exception as e:
-            log_debug(f"Error getting material instance parameters: {e}")
+        # Get all parameter types
+        info["scalarParameters"] = self._get_scalar_parameters(material)
+        info["vectorParameters"] = self._get_vector_parameters(material)
+        info["textureParameters"] = self._get_texture_parameters(material)
 
     def _get_scalar_parameters(self, material):
         """Get scalar parameters from material.
@@ -293,14 +292,14 @@ class MaterialOperations:
             list: Scalar parameters
         """
         scalar_params = []
-        try:
+        if hasattr(material, 'get_scalar_parameter_names'):
             scalar_param_names = material.get_scalar_parameter_names()
             for param_name in scalar_param_names:
                 value = material.get_scalar_parameter_value(param_name)
                 scalar_params.append(
                     {"name": str(param_name), "value": float(value)})
-        except Exception as e:
-            log_debug(f"Could not get scalar parameters: {e}")
+        else:
+            log_debug("Material does not support scalar parameters")
         return scalar_params
 
     def _get_vector_parameters(self, material):
@@ -313,7 +312,7 @@ class MaterialOperations:
             list: Vector parameters
         """
         vector_params = []
-        try:
+        if hasattr(material, 'get_vector_parameter_names'):
             vector_param_names = material.get_vector_parameter_names()
             for param_name in vector_param_names:
                 value = material.get_vector_parameter_value(param_name)
@@ -328,8 +327,8 @@ class MaterialOperations:
                         },
                     }
                 )
-        except Exception as e:
-            log_debug(f"Could not get vector parameters: {e}")
+        else:
+            log_debug("Material does not support vector parameters")
         return vector_params
 
     def _get_texture_parameters(self, material):
@@ -342,7 +341,7 @@ class MaterialOperations:
             list: Texture parameters
         """
         texture_params = []
-        try:
+        if hasattr(material, 'get_texture_parameter_names'):
             texture_param_names = material.get_texture_parameter_names()
             for param_name in texture_param_names:
                 texture = material.get_texture_parameter_value(param_name)
@@ -350,10 +349,18 @@ class MaterialOperations:
                     {"name": str(param_name), "texture": str(
                         texture.get_path_name()) if texture else None}
                 )
-        except Exception as e:
-            log_debug(f"Could not get texture parameters: {e}")
+        else:
+            log_debug("Material does not support texture parameters")
         return texture_params
 
+    @validate_inputs({
+        'parent_material_path': [RequiredRule(), AssetPathRule()],
+        'instance_name': [RequiredRule(), TypeRule(str)],
+        'target_folder': [TypeRule(str)],
+        'parameters': [TypeRule(dict, allow_none=True)]
+    })
+    @handle_unreal_errors("create_material_instance")
+    @safe_operation("material")
     def create_material_instance(
         self,
         parent_material_path: str,
@@ -372,62 +379,54 @@ class MaterialOperations:
         Returns:
             dict: Creation result with new material instance path
         """
-        try:
-            # Validate parent material exists
-            if not asset_exists(parent_material_path):
-                return {
-                    "success": False, "error": f"Parent material does not exist: {parent_material_path}"}
+        # Validate parent material exists
+        parent_material = require_asset(parent_material_path)
 
-            parent_material = load_asset(parent_material_path)
-            if not parent_material:
-                return {
-                    "success": False, "error": f"Failed to load parent material: {parent_material_path}"}
+        # Create the target path
+        target_path = f"{target_folder}/{instance_name}"
 
-            # Create the target path
-            target_path = f"{target_folder}/{instance_name}"
+        # Check if material instance already exists
+        if asset_exists(target_path):
+            raise ValidationError(f"Material instance already exists: {target_path}")
 
-            # Check if material instance already exists
-            if asset_exists(target_path):
-                return {
-                    "success": False, "error": f"Material instance already exists: {target_path}"}
+        # Create material instance using AssetTools
+        asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
 
-            # Create material instance using AssetTools
-            asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
+        # Create material instance constant
+        material_instance = asset_tools.create_asset(
+            asset_name=instance_name,
+            package_path=target_folder,
+            asset_class=unreal.MaterialInstanceConstant,
+            factory=unreal.MaterialInstanceConstantFactoryNew(),
+        )
 
-            # Create material instance constant
-            material_instance = asset_tools.create_asset(
-                asset_name=instance_name,
-                package_path=target_folder,
-                asset_class=unreal.MaterialInstanceConstant,
-                factory=unreal.MaterialInstanceConstantFactoryNew(),
-            )
+        if not material_instance:
+            raise ProcessingError("Failed to create material instance asset")
 
-            if not material_instance:
-                return {"success": False,
-                        "error": "Failed to create material instance asset"}
+        # Set parent material
+        material_instance.set_editor_property("parent", parent_material)
 
-            # Set parent material
-            material_instance.set_editor_property("parent", parent_material)
+        # Apply parameter overrides if provided
+        if parameters:
+            self._apply_material_parameters(material_instance, parameters)
 
-            # Apply parameter overrides if provided
-            if parameters:
-                self._apply_material_parameters(material_instance, parameters)
+        # Save the asset
+        unreal.EditorAssetLibrary.save_asset(target_path)
 
-            # Save the asset
-            unreal.EditorAssetLibrary.save_asset(target_path)
+        return {
+            "materialInstancePath": target_path,
+            "parentMaterial": parent_material_path,
+            "name": instance_name,
+            "appliedParameters": list(parameters.keys()) if parameters else [],
+        }
 
-            return {
-                "success": True,
-                "materialInstancePath": target_path,
-                "parentMaterial": parent_material_path,
-                "name": instance_name,
-                "appliedParameters": list(parameters.keys()) if parameters else [],
-            }
-
-        except Exception as e:
-            log_error(f"Failed to create material instance: {str(e)}")
-            return {"success": False, "error": str(e)}
-
+    @validate_inputs({
+        'actor_name': [RequiredRule(), TypeRule(str)],
+        'material_path': [RequiredRule(), AssetPathRule()],
+        'slot_index': [TypeRule(int)]
+    })
+    @handle_unreal_errors("apply_material_to_actor")
+    @safe_operation("material")
     def apply_material_to_actor(
             self, actor_name: str, material_path: str, slot_index: int = 0) -> Dict[str, Any]:
         """Apply a material to a specific material slot on an actor.
@@ -440,63 +439,56 @@ class MaterialOperations:
         Returns:
             dict: Application result
         """
-        try:
-            # Find the actor by name
-            actor = find_actor_by_name(actor_name)
-            if not actor:
-                return {"success": False,
-                        "error": f"Actor not found: {actor_name}"}
+        # Find the actor by name
+        actor = require_actor(actor_name)
 
-            # Load the material
-            if not asset_exists(material_path):
-                return {"success": False,
-                        "error": f"Material does not exist: {material_path}"}
+        # Load the material
+        material = require_asset(material_path)
 
-            material = load_asset(material_path)
-            if not material:
-                return {"success": False,
-                        "error": f"Failed to load material: {material_path}"}
+        # Get the static mesh component
+        static_mesh_component = None
 
-            # Get the static mesh component
-            static_mesh_component = None
+        # Try different ways to get the mesh component
+        if hasattr(actor, "static_mesh_component"):
+            static_mesh_component = actor.static_mesh_component
+        elif hasattr(actor, "get_component_by_class"):
+            static_mesh_component = actor.get_component_by_class(
+                unreal.StaticMeshComponent)
+        else:
+            # Get components and find first StaticMeshComponent
+            components = actor.get_components_by_class(
+                unreal.StaticMeshComponent)
+            if components and len(components) > 0:
+                static_mesh_component = components[0]
 
-            # Try different ways to get the mesh component
-            if hasattr(actor, "static_mesh_component"):
-                static_mesh_component = actor.static_mesh_component
-            elif hasattr(actor, "get_component_by_class"):
-                static_mesh_component = actor.get_component_by_class(
-                    unreal.StaticMeshComponent)
-            else:
-                # Get components and find first StaticMeshComponent
-                components = actor.get_components_by_class(
-                    unreal.StaticMeshComponent)
-                if components and len(components) > 0:
-                    static_mesh_component = components[0]
+        if not static_mesh_component:
+            raise ProcessingError(f"No static mesh component found on actor: {actor_name}")
 
-            if not static_mesh_component:
-                return {
-                    "success": False, "error": f"No static mesh component found on actor: {actor_name}"}
+        # Apply the material to the specified slot
+        static_mesh_component.set_material(slot_index, material)
 
-            # Apply the material to the specified slot
-            static_mesh_component.set_material(slot_index, material)
+        # Mark actor as modified
+        editor_actor_subsystem = unreal.get_editor_subsystem(
+            unreal.EditorActorSubsystem)
+        editor_actor_subsystem.set_actor_selection_state(actor, True)
 
-            # Mark actor as modified
-            editor_actor_subsystem = unreal.get_editor_subsystem(
-                unreal.EditorActorSubsystem)
-            editor_actor_subsystem.set_actor_selection_state(actor, True)
+        return {
+            "actorName": actor_name,
+            "materialPath": material_path,
+            "slotIndex": slot_index,
+            "componentName": static_mesh_component.get_name(),
+        }
 
-            return {
-                "success": True,
-                "actorName": actor_name,
-                "materialPath": material_path,
-                "slotIndex": slot_index,
-                "componentName": static_mesh_component.get_name(),
-            }
-
-        except Exception as e:
-            log_error(f"Failed to apply material to actor: {str(e)}")
-            return {"success": False, "error": str(e)}
-
+    @validate_inputs({
+        'material_name': [RequiredRule(), TypeRule(str)],
+        'target_folder': [TypeRule(str)],
+        'base_color': [TypeRule(dict, allow_none=True)],
+        'metallic': [TypeRule((int, float))],
+        'roughness': [TypeRule((int, float))],
+        'emissive': [TypeRule(dict, allow_none=True)]
+    })
+    @handle_unreal_errors("create_simple_material")
+    @safe_operation("material")
     def create_simple_material(
         self,
         material_name: str,
@@ -519,117 +511,109 @@ class MaterialOperations:
         Returns:
             dict: Creation result with new material path
         """
-        try:
-            # Create the target path
-            target_path = f"{target_folder}/{material_name}"
+        # Create the target path
+        target_path = f"{target_folder}/{material_name}"
 
-            # Check if material already exists
-            if asset_exists(target_path):
-                return {"success": False,
-                        "error": f"Material already exists: {target_path}"}
+        # Check if material already exists
+        if asset_exists(target_path):
+            raise ValidationError(f"Material already exists: {target_path}")
 
-            # Create material using AssetTools
-            asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
+        # Create material using AssetTools
+        asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
 
-            material = asset_tools.create_asset(
-                asset_name=material_name,
-                package_path=target_folder,
-                asset_class=unreal.Material,
-                factory=unreal.MaterialFactoryNew(),
+        material = asset_tools.create_asset(
+            asset_name=material_name,
+            package_path=target_folder,
+            asset_class=unreal.Material,
+            factory=unreal.MaterialFactoryNew(),
+        )
+
+        if not material:
+            raise ProcessingError("Failed to create material asset")
+
+        # Set basic material properties
+        material.set_editor_property("two_sided", False)
+
+        # Create and connect material expression nodes if values are
+        # provided
+        material_editor = unreal.MaterialEditingLibrary
+
+        # Base Color
+        if base_color:
+            color_node = unreal.MaterialEditingLibrary.create_material_expression(
+                material, unreal.MaterialExpressionVectorParameter
+            )
+            color_node.set_editor_property("parameter_name", "BaseColor")
+            color_node.set_editor_property(
+                "default_value",
+                unreal.LinearColor(
+                    base_color.get(
+                        "r", 1.0), base_color.get(
+                        "g", 1.0), base_color.get(
+                        "b", 1.0), 1.0
+                ),
             )
 
-            if not material:
-                return {"success": False,
-                        "error": "Failed to create material asset"}
+            # Connect to base color
+            material_editor.connect_material_property(
+                color_node, "", unreal.MaterialProperty.MP_BASE_COLOR)
 
-            # Set basic material properties
-            material.set_editor_property("two_sided", False)
-
-            # Create and connect material expression nodes if values are
-            # provided
-            material_editor = unreal.MaterialEditingLibrary
-
-            # Base Color
-            if base_color:
-                color_node = unreal.MaterialEditingLibrary.create_material_expression(
-                    material, unreal.MaterialExpressionVectorParameter
-                )
-                color_node.set_editor_property("parameter_name", "BaseColor")
-                color_node.set_editor_property(
-                    "default_value",
-                    unreal.LinearColor(
-                        base_color.get(
-                            "r", 1.0), base_color.get(
-                            "g", 1.0), base_color.get(
-                            "b", 1.0), 1.0
-                    ),
-                )
-
-                # Connect to base color
-                material_editor.connect_material_property(
-                    color_node, "", unreal.MaterialProperty.MP_BASE_COLOR)
-
-            # Metallic
-            if metallic != 0.0:
-                metallic_node = unreal.MaterialEditingLibrary.create_material_expression(
-                    material, unreal.MaterialExpressionScalarParameter
-                )
-                metallic_node.set_editor_property("parameter_name", "Metallic")
-                metallic_node.set_editor_property("default_value", metallic)
-
-                material_editor.connect_material_property(
-                    metallic_node, "", unreal.MaterialProperty.MP_METALLIC)
-
-            # Roughness
-            roughness_node = unreal.MaterialEditingLibrary.create_material_expression(
+        # Metallic
+        if metallic != 0.0:
+            metallic_node = unreal.MaterialEditingLibrary.create_material_expression(
                 material, unreal.MaterialExpressionScalarParameter
             )
-            roughness_node.set_editor_property("parameter_name", "Roughness")
-            roughness_node.set_editor_property("default_value", roughness)
+            metallic_node.set_editor_property("parameter_name", "Metallic")
+            metallic_node.set_editor_property("default_value", metallic)
 
             material_editor.connect_material_property(
-                roughness_node, "", unreal.MaterialProperty.MP_ROUGHNESS)
+                metallic_node, "", unreal.MaterialProperty.MP_METALLIC)
 
-            # Emissive
-            if emissive:
-                emissive_node = unreal.MaterialEditingLibrary.create_material_expression(
-                    material, unreal.MaterialExpressionVectorParameter
-                )
-                emissive_node.set_editor_property(
-                    "parameter_name", "EmissiveColor")
-                emissive_node.set_editor_property(
-                    "default_value",
-                    unreal.LinearColor(
-                        emissive.get(
-                            "r", 0.0), emissive.get(
-                            "g", 0.0), emissive.get(
-                            "b", 0.0), 1.0),
-                )
+        # Roughness
+        roughness_node = unreal.MaterialEditingLibrary.create_material_expression(
+            material, unreal.MaterialExpressionScalarParameter
+        )
+        roughness_node.set_editor_property("parameter_name", "Roughness")
+        roughness_node.set_editor_property("default_value", roughness)
 
-                material_editor.connect_material_property(
-                    emissive_node, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+        material_editor.connect_material_property(
+            roughness_node, "", unreal.MaterialProperty.MP_ROUGHNESS)
 
-            # Recompile the material
-            unreal.MaterialEditingLibrary.recompile_material(material)
+        # Emissive
+        if emissive:
+            emissive_node = unreal.MaterialEditingLibrary.create_material_expression(
+                material, unreal.MaterialExpressionVectorParameter
+            )
+            emissive_node.set_editor_property(
+                "parameter_name", "EmissiveColor")
+            emissive_node.set_editor_property(
+                "default_value",
+                unreal.LinearColor(
+                    emissive.get(
+                        "r", 0.0), emissive.get(
+                        "g", 0.0), emissive.get(
+                        "b", 0.0), 1.0),
+            )
 
-            # Save the asset
-            unreal.EditorAssetLibrary.save_asset(target_path)
+            material_editor.connect_material_property(
+                emissive_node, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
 
-            return {
-                "success": True,
-                "materialPath": target_path,
-                "name": material_name,
-                "properties": {
-                    "baseColor": base_color,
-                    "metallic": metallic,
-                    "roughness": roughness,
-                    "emissive": emissive,
-                },
-            }
+        # Recompile the material
+        unreal.MaterialEditingLibrary.recompile_material(material)
 
-        except Exception as e:
-            log_error(f"Failed to create simple material: {str(e)}")
-            return {"success": False, "error": str(e)}
+        # Save the asset
+        unreal.EditorAssetLibrary.save_asset(target_path)
+
+        return {
+            "materialPath": target_path,
+            "name": material_name,
+            "properties": {
+                "baseColor": base_color,
+                "metallic": metallic,
+                "roughness": roughness,
+                "emissive": emissive,
+            },
+        }
 
     def _apply_material_parameters(
             self, material_instance, parameters: Dict[str, Any]):
@@ -639,30 +623,25 @@ class MaterialOperations:
             material_instance: The material instance to modify
             parameters: Dictionary of parameter name -> value mappings
         """
-        try:
-            for param_name, param_value in parameters.items():
-                if isinstance(param_value, (int, float)):
-                    # Scalar parameter
-                    material_instance.set_scalar_parameter_value(
-                        param_name, float(param_value))
-                elif isinstance(param_value, dict) and all(k in param_value for k in ["r", "g", "b"]):
-                    # Vector parameter (color)
-                    color = unreal.LinearColor(
-                        param_value["r"], param_value["g"], param_value["b"], param_value.get(
-                            "a", 1.0)
-                    )
-                    material_instance.set_vector_parameter_value(
-                        param_name, color)
-                elif isinstance(param_value, str) and asset_exists(param_value):
-                    # Texture parameter
-                    texture = load_asset(param_value)
-                    if texture:
-                        material_instance.set_texture_parameter_value(
-                            param_name, texture)
-                else:
-                    log_debug(
-                        f"Unsupported parameter type for {param_name}: {type(param_value)}")
-
-        except Exception as e:
-            log_error(f"Error applying material parameters: {str(e)}")
-            raise
+        for param_name, param_value in parameters.items():
+            if isinstance(param_value, (int, float)):
+                # Scalar parameter
+                material_instance.set_scalar_parameter_value(
+                    param_name, float(param_value))
+            elif isinstance(param_value, dict) and all(k in param_value for k in ["r", "g", "b"]):
+                # Vector parameter (color)
+                color = unreal.LinearColor(
+                    param_value["r"], param_value["g"], param_value["b"], param_value.get(
+                        "a", 1.0)
+                )
+                material_instance.set_vector_parameter_value(
+                    param_name, color)
+            elif isinstance(param_value, str) and asset_exists(param_value):
+                # Texture parameter
+                texture = load_asset(param_value)
+                if texture:
+                    material_instance.set_texture_parameter_value(
+                        param_name, texture)
+            else:
+                log_debug(
+                    f"Unsupported parameter type for {param_name}: {type(param_value)}")

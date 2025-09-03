@@ -1,11 +1,21 @@
 """
 UEMCP System Operations - System-level commands and utilities
+
+Enhanced with improved error handling framework to eliminate try/catch boilerplate.
 """
 
 import unreal
 import os
 import sys
 # import importlib
+from typing import Dict, Any, Optional
+
+# Enhanced error handling framework
+from utils.error_handling import (
+    validate_inputs, handle_unreal_errors, safe_operation,
+    RequiredRule, TypeRule, ValidationError
+)
+
 from utils import log_error
 from uemcp_command_registry import get_registry
 
@@ -13,6 +23,12 @@ from uemcp_command_registry import get_registry
 class SystemOperations:
     """Handles system-level operations like help, connection testing, etc."""
 
+    @validate_inputs({
+        'tool': [TypeRule(str, allow_none=True)],
+        'category': [TypeRule(str, allow_none=True)]
+    })
+    @handle_unreal_errors("get_help")
+    @safe_operation("system")
     def help(self, tool=None, category=None):
         """Get help information about UEMCP tools and commands.
 
@@ -23,40 +39,39 @@ class SystemOperations:
         Returns:
             dict: Help information
         """
-        try:
-            # Define tool categories
-            tool_categories = {
-                "project": ["project_info"],
-                "asset": ["asset_list", "asset_info"],
-                "actor": [
-                    "actor_spawn",
-                    "actor_duplicate",
-                    "actor_delete",
-                    "actor_modify",
-                    "actor_organize",
-                    "actor_snap_to_socket",
-                    "batch_spawn",
-                    "placement_validate",
-                ],
-                "level": ["level_actors", "level_save", "level_outliner"],
-                "viewport": [
-                    "viewport_screenshot",
-                    "viewport_camera",
-                    "viewport_mode",
-                    "viewport_focus",
-                    "viewport_render_mode",
-                    "viewport_bounds",
-                    "viewport_fit",
-                    "viewport_look_at",
-                ],
-                "material": ["material_list", "material_info", "material_create", "material_apply"],
-                "advanced": ["python_proxy"],
-                "system": ["test_connection", "restart_listener", "ue_logs", "help"],
-            }
+        # Define tool categories
+        tool_categories = {
+            "project": ["project_info"],
+            "asset": ["asset_list", "asset_info"],
+            "actor": [
+                "actor_spawn",
+                "actor_duplicate",
+                "actor_delete",
+                "actor_modify",
+                "actor_organize",
+                "actor_snap_to_socket",
+                "batch_spawn",
+                "placement_validate",
+            ],
+            "level": ["level_actors", "level_save", "level_outliner"],
+            "viewport": [
+                "viewport_screenshot",
+                "viewport_camera",
+                "viewport_mode",
+                "viewport_focus",
+                "viewport_render_mode",
+                "viewport_bounds",
+                "viewport_fit",
+                "viewport_look_at",
+            ],
+            "material": ["material_list", "material_info", "material_create", "material_apply"],
+            "advanced": ["python_proxy"],
+            "system": ["test_connection", "restart_listener", "ue_logs", "help"],
+        }
 
-            # Define detailed help for each tool
-            tool_help = {
-                "actor_spawn": {
+        # Define detailed help for each tool
+        tool_help = {
+            "actor_spawn": {
                     "description": "Spawn an actor in the level",
                     "parameters": {
                         "assetPath": "Path to asset (e.g., /Game/Meshes/SM_Wall)",
@@ -162,75 +177,73 @@ class SystemOperations:
                 },
             }
 
-            # If specific tool requested
-            if tool:
-                if tool in tool_help:
-                    return {"success": True, "tool": tool, "help": tool_help[tool]}
-                else:
-                    # Try to get info from command registry
-                    registry = get_registry()
-                    info = registry.get_command_info(tool)
-                    if info:
-                        return {
-                            "success": True,
-                            "tool": tool,
-                            "help": {
-                                "description": info["description"],
-                                "parameters": info["parameters"],
-                                "has_validate": info["has_validate"],
-                            },
-                        }
-                    else:
-                        return {"success": False, "error": f"Unknown tool: {tool}"}
-
-            # If category requested
-            if category:
-                if category in tool_categories:
-                    return {"success": True, "category": category, "tools": tool_categories[category]}
-                else:
+        # If specific tool requested
+        if tool:
+            if tool in tool_help:
+                return {"success": True, "tool": tool, "help": tool_help[tool]}
+            else:
+                # Try to get info from command registry
+                registry = get_registry()
+                info = registry.get_command_info(tool)
+                if info:
                     return {
-                        "success": False,
-                        "error": f'Unknown category: {category}. Valid categories: {", ".join(tool_categories.keys())}',
+                        "success": True,
+                        "tool": tool,
+                        "help": {
+                            "description": info["description"],
+                            "parameters": info["parameters"],
+                            "has_validate": info["has_validate"],
+                        },
                     }
+                else:
+                    return {"success": False, "error": f"Unknown tool: {tool}"}
 
-            # General help
-            return {
-                "success": True,
-                "overview": {
-                    "description": "UEMCP - Unreal Engine Model Context Protocol",
-                    "categories": tool_categories,
-                    "coordinate_system": {"X-": "North", "X+": "South", "Y-": "East", "Y+": "West", "Z+": "Up"},
-                    "rotation": {
-                        "format": "[Roll, Pitch, Yaw] in degrees",
-                        "Roll": "Rotation around forward X axis (tilt sideways)",
-                        "Pitch": "Rotation around right Y axis (look up/down)",
-                        "Yaw": "Rotation around up Z axis (turn left/right)",
-                    },
+        # If category requested
+        if category:
+            if category in tool_categories:
+                return {"success": True, "category": category, "tools": tool_categories[category]}
+            else:
+                return {
+                    "success": False,
+                    "error": f'Unknown category: {category}. Valid categories: {", ".join(tool_categories.keys())}',
+                }
+
+        # General help
+        return {
+            "success": True,
+            "overview": {
+                "description": "UEMCP - Unreal Engine Model Context Protocol",
+                "categories": tool_categories,
+                "coordinate_system": {"X-": "North", "X+": "South", "Y-": "East", "Y+": "West", "Z+": "Up"},
+                "rotation": {
+                    "format": "[Roll, Pitch, Yaw] in degrees",
+                    "Roll": "Rotation around forward X axis (tilt sideways)",
+                    "Pitch": "Rotation around right Y axis (look up/down)",
+                    "Yaw": "Rotation around up Z axis (turn left/right)",
                 },
-            }
+            },
+        }
 
-        except Exception as e:
-            log_error(f"Failed to get help: {str(e)}")
-            return {"success": False, "error": str(e)}
-
+    @handle_unreal_errors("test_connection")
+    @safe_operation("system")
     def test_connection(self):
         """Test the connection to the Python listener.
 
         Returns:
             dict: Connection test result
         """
-        try:
-            return {
-                "success": True,
-                "message": "Connection successful",
-                "version": "1.0.0",
-                "pythonVersion": sys.version.split()[0],
-                "unrealVersion": unreal.SystemLibrary.get_engine_version(),
-            }
-        except Exception as e:
-            log_error(f"Connection test failed: {str(e)}")
-            return {"success": False, "error": str(e)}
+        return {
+            "message": "Connection successful",
+            "version": "1.0.0",
+            "pythonVersion": sys.version.split()[0],
+            "unrealVersion": unreal.SystemLibrary.get_engine_version(),
+        }
 
+    @validate_inputs({
+        'force': [TypeRule(bool)]
+    })
+    @handle_unreal_errors("restart_listener")
+    @safe_operation("system")
     def restart_listener(self, force=False):
         """Restart the Python listener to reload code changes.
 
@@ -240,27 +253,29 @@ class SystemOperations:
         Returns:
             dict: Restart result
         """
+        # Import the restart functionality
         try:
-            # Import the restart functionality
-            try:
-                from uemcp_helpers import restart_listener as helper_restart
+            from uemcp_helpers import restart_listener as helper_restart
 
-                helper_restart()
-                return {
-                    "success": True,
-                    "message": "Listener restart initiated. The listener will restart automatically.",
-                }
-            except ImportError:
-                # Fallback to manual restart
-                return {
-                    "success": False,
-                    "error": "Restart helper not available. Please restart manually from UE Python console.",
+            helper_restart()
+            return {
+                "success": True,
+                "message": "Listener restart initiated. The listener will restart automatically.",
+            }
+        except ImportError:
+            # Fallback to manual restart
+            return {
+                "success": False,
+                "error": "Restart helper not available. Please restart manually from UE Python console.",
                 }
 
-        except Exception as e:
-            log_error(f"Failed to restart listener: {str(e)}")
-            return {"success": False, "error": str(e)}
 
+    @validate_inputs({
+        'project': [TypeRule(str)],
+        'lines': [TypeRule(int)]
+    })
+    @handle_unreal_errors("read_ue_logs")
+    @safe_operation("system")
     def ue_logs(self, project="Home", lines=100):
         """Fetch recent lines from the Unreal Engine log file.
 
@@ -271,37 +286,39 @@ class SystemOperations:
         Returns:
             dict: Log lines
         """
-        try:
-            # Construct log file path
-            if sys.platform == "darwin":  # macOS
-                log_path = os.path.expanduser(f"~/Library/Logs/Unreal Engine/{project}Editor/{project}.log")
-            elif sys.platform == "win32":  # Windows
-                log_path = os.path.join(
-                    os.environ["LOCALAPPDATA"], "UnrealEngine", project, "Saved", "Logs", f"{project}.log"
-                )
-            else:  # Linux
-                log_path = os.path.expanduser(f"~/.config/Epic/UnrealEngine/{project}/Saved/Logs/{project}.log")
+        # Construct log file path
+        if sys.platform == "darwin":  # macOS
+            log_path = os.path.expanduser(f"~/Library/Logs/Unreal Engine/{project}Editor/{project}.log")
+        elif sys.platform == "win32":  # Windows
+            log_path = os.path.join(
+                os.environ["LOCALAPPDATA"], "UnrealEngine", project, "Saved", "Logs", f"{project}.log"
+            )
+        else:  # Linux
+            log_path = os.path.expanduser(f"~/.config/Epic/UnrealEngine/{project}/Saved/Logs/{project}.log")
 
-            if not os.path.exists(log_path):
-                return {"success": False, "error": f"Log file not found: {log_path}"}
+        if not os.path.exists(log_path):
+            return {"success": False, "error": f"Log file not found: {log_path}"}
 
-            # Read last N lines
-            with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
-                all_lines = f.readlines()
-                recent_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+        # Read last N lines
+        with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+            all_lines = f.readlines()
+            recent_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
 
-            return {
-                "success": True,
-                "logPath": log_path,
-                "lines": recent_lines,
-                "totalLines": len(all_lines),
-                "requestedLines": lines,
-            }
+        return {
+            "success": True,
+            "logPath": log_path,
+            "lines": recent_lines,
+            "totalLines": len(all_lines),
+            "requestedLines": lines,
+        }
 
-        except Exception as e:
-            log_error(f"Failed to read logs: {str(e)}")
-            return {"success": False, "error": str(e)}
 
+    @validate_inputs({
+        'code': [RequiredRule(), TypeRule(str)],
+        'context': [TypeRule(dict, allow_none=True)]
+    })
+    @handle_unreal_errors("execute_python")
+    @safe_operation("system")
     def python_proxy(self, code, context=None):
         """Execute arbitrary Python code in Unreal Engine.
 
@@ -312,38 +329,31 @@ class SystemOperations:
         Returns:
             dict: Execution result
         """
-        try:
-            # Set up execution context
-            exec_globals = {"unreal": unreal, "math": __import__("math"), "os": os, "sys": sys, "result": None}
+        # Set up execution context
+        exec_globals = {"unreal": unreal, "math": __import__("math"), "os": os, "sys": sys, "result": None}
 
-            # Add context variables if provided
-            if context:
-                exec_globals.update(context)
+        # Add context variables if provided
+        if context:
+            exec_globals.update(context)
 
-            # Execute the code
-            exec(code, exec_globals)
+        # Execute the code
+        exec(code, exec_globals)
 
-            # Get result
-            result = exec_globals.get("result", None)
+        # Get result
+        result = exec_globals.get("result", None)
 
-            # Convert result to serializable format
-            if result is not None:
-                # Handle Unreal types
-                if hasattr(result, "__dict__"):
-                    # Try to convert to dict
-                    try:
-                        result = {k: v for k, v in result.__dict__.items() if not k.startswith("_")}
-                    except Exception:
-                        result = str(result)
-                elif isinstance(result, (list, tuple)):
-                    # Convert any Unreal objects in lists
-                    result = [str(item) if hasattr(item, "__dict__") else item for item in result]
+        # Convert result to serializable format
+        if result is not None:
+            # Handle Unreal types
+            if hasattr(result, "__dict__"):
+                # Convert to dict - __dict__ is always a dictionary if it exists
+                result = {k: v for k, v in result.__dict__.items() if not k.startswith("_")}
+            elif isinstance(result, (list, tuple)):
+                # Convert any Unreal objects in lists
+                result = [str(item) if hasattr(item, "__dict__") else item for item in result]
 
-            return {"success": True, "result": result, "message": "Code executed successfully"}
+        return {"success": True, "result": result, "message": "Code executed successfully"}
 
-        except Exception as e:
-            log_error(f"Python proxy execution failed: {str(e)}")
-            return {"success": False, "error": str(e), "traceback": __import__("traceback").format_exc()}
 
 
 def register_system_operations():

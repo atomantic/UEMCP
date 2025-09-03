@@ -68,7 +68,12 @@ export class ActorModifyTool extends ActorTool<ActorModifyArgs> {
   }
 
   protected async execute(args: ActorModifyArgs): Promise<ToolResponse> {
-    const result = await this.executePythonCommand('actor.modify', args);
+    // Filter out undefined values to avoid validation issues in Python
+    const cleanArgs = Object.fromEntries(
+      Object.entries(args).filter(([_, value]) => value !== undefined)
+    );
+    
+    const result = await this.executePythonCommand('actor.modify', cleanArgs);
     
     let text = `✓ Modified actor: ${args.actorName}\n`;
     

@@ -1,9 +1,20 @@
 """
 UEMCP Actor Operations - All actor-related operations
+
+Enhanced with improved error handling framework to eliminate try/catch boilerplate.
 """
 
 import unreal
 import time
+from typing import List, Optional, Dict, Any
+
+# Enhanced error handling framework
+from utils.error_handling import (
+    validate_inputs, handle_unreal_errors, safe_operation,
+    RequiredRule, AssetPathRule, ListLengthRule, TypeRule,
+    require_actor, require_asset, ValidationError, ProcessingError
+)
+
 from utils import (
     create_vector, create_rotator, create_transform,
     find_actor_by_name, load_asset, log_debug, log_error
@@ -13,15 +24,25 @@ from utils import (
 class ActorOperations:
     """Handles all actor-related operations."""
 
+    @validate_inputs({
+        'assetPath': [RequiredRule(), AssetPathRule()],
+        'location': [RequiredRule(), ListLengthRule(3)],
+        'rotation': [ListLengthRule(3)],
+        'scale': [ListLengthRule(3)],
+        'name': [TypeRule((str, type(None)))],
+        'folder': [TypeRule((str, type(None)))]
+    })
+    @handle_unreal_errors("spawn_actor")
+    @safe_operation("actor")
     def spawn(
         self,
-        assetPath,
-        location=[0, 0, 100],
-        rotation=[0, 0, 0],
-        scale=[1, 1, 1],
-        name=None,
-        folder=None,
-        validate=True,
+        assetPath: str,
+        location: List[float] = [0, 0, 100],
+        rotation: List[float] = [0, 0, 0],
+        scale: List[float] = [1, 1, 1],
+        name: Optional[str] = None,
+        folder: Optional[str] = None,
+        validate: bool = True,
     ):
         """Spawn an actor in the level.
 
@@ -37,114 +58,108 @@ class ActorOperations:
         Returns:
             dict: Result with success status and actor details
         """
-        try:
-            # Generate name if not provided
-            if not name:
-                name = f"UEMCP_Actor_{int(time.time())}"
+        # Generate name if not provided
+        if not name:
+            name = f"UEMCP_Actor_{int(time.time())}"
 
-            # Create transform
-            ue_location, ue_rotation, ue_scale = create_transform(
-                location, rotation, scale)
+        # Create transform
+        ue_location, ue_rotation, ue_scale = create_transform(
+            location, rotation, scale)
 
-            # Load asset
-            asset = load_asset(assetPath)
-            if not asset:
-                return {"success": False,
-                        "error": f"Could not load asset: {assetPath}"}
+        # Load asset using error handling framework
+        asset = require_asset(assetPath)
 
-            # Spawn based on asset type
-            actor = None
-            if isinstance(asset, unreal.StaticMesh):
-                # Spawn static mesh actor
-                actor = unreal.EditorLevelLibrary.spawn_actor_from_class(
-                    unreal.StaticMeshActor.static_class(), ue_location, ue_rotation
-                )
+        # Spawn based on asset type
+        actor = None
+        if isinstance(asset, unreal.StaticMesh):
+            # Spawn static mesh actor
+            actor = unreal.EditorLevelLibrary.spawn_actor_from_class(
+                unreal.StaticMeshActor.static_class(), ue_location, ue_rotation
+            )
 
-                if actor:
-                    # Set mesh
-                    mesh_comp = actor.get_editor_property(
-                        "static_mesh_component")
-                    mesh_comp.set_static_mesh(asset)
+            if actor:
+                # Set mesh
+                mesh_comp = actor.get_editor_property("static_mesh_component")
+                mesh_comp.set_static_mesh(asset)
 
-            elif isinstance(asset, unreal.Blueprint):
-                # Spawn blueprint actor
-                actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
-                    asset, ue_location, ue_rotation)
-            else:
-                return {
-                    "success": False, "error": f"Unsupported asset type: {type(asset).__name__}"}
+        elif isinstance(asset, unreal.Blueprint):
+            # Spawn blueprint actor
+            actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
+                asset, ue_location, ue_rotation)
+        else:
+            raise ProcessingError(f"Unsupported asset type: {type(asset).__name__}", 
+                           operation="spawn_actor", details={"assetPath": assetPath})
 
-            if not actor:
-                return {"success": False, "error": "Failed to spawn actor"}
+        if not actor:
+            raise ProcessingError("Failed to spawn actor", operation="spawn_actor", 
+                           details={"assetPath": assetPath, "location": location})
 
-            # Configure actor
-            actor.set_actor_label(name)
-            actor.set_actor_scale3d(ue_scale)
+        # Configure actor
+        actor.set_actor_label(name)
+        actor.set_actor_scale3d(ue_scale)
 
-            # Store asset path as metadata for undo support
-            # WARNING: Using tags for metadata storage has known limitations:
-            # 1. Risk of collision with other systems using tags
-            # 2. Tags are user-visible and editable in the editor
-            # 3. Limited to string data only
-            # 4. May be cleared by other operations
-            #
-            # ROADMAP: When upgrading to UE 5.5+, replace with:
-            # - actor.set_metadata_tag() for hidden metadata storage
-            # - Or use custom UActorComponent subclass for persistent data
-            # - Or leverage editor subsystem for operation tracking
-            #
-            # Current mitigation: Using namespaced tags (UEMCP_Asset:)
-            if hasattr(actor, 'tags'):
-                try:
-                    # Use namespaced tag to reduce (but not eliminate) collision risk
-                    actor.tags.append(f'UEMCP_Asset:{assetPath}')
-                    log_debug(f"Tagged actor with asset path: {assetPath}")
-                except (AttributeError, RuntimeError) as e:
-                    log_debug(f"Could not tag actor with asset path: {e}")
-                    # Non-critical failure - undo may not work for this actor
+        # Store asset path as metadata for undo support
+        # WARNING: Using tags for metadata storage has known limitations:
+        # 1. Risk of collision with other systems using tags
+        # 2. Tags are user-visible and editable in the editor
+        # 3. Limited to string data only
+        # 4. May be cleared by other operations
+        #
+        # ROADMAP: When upgrading to UE 5.5+, replace with:
+        # - actor.set_metadata_tag() for hidden metadata storage
+        # - Or use custom UActorComponent subclass for persistent data
+        # - Or leverage editor subsystem for operation tracking
+        #
+        # Current mitigation: Using namespaced tags (UEMCP_Asset:)
+        if hasattr(actor, 'tags') and hasattr(actor.tags, 'append'):
+            # Use namespaced tag to reduce (but not eliminate) collision risk
+            actor.tags.append(f'UEMCP_Asset:{assetPath}')
+            log_debug(f"Tagged actor with asset path: {assetPath}")
+        else:
+            log_debug(f"Actor does not support tags - undo may not work for this actor")
 
-            if folder:
-                actor.set_folder_path(folder)
+        if folder:
+            actor.set_folder_path(folder)
 
-            log_debug(f"Spawned {name} at {location}")
+        log_debug(f"Spawned {name} at {location}")
 
-            # Prepare response
-            result = {
-                "success": True,
-                "actorName": name,
-                "location": location,
-                "rotation": rotation,
-                "scale": scale,
-                "assetPath": assetPath,
-                "message": f"Created {name} at {location}",
-            }
+        # Prepare response
+        result = {
+            "actorName": name,
+            "location": location,
+            "rotation": rotation,
+            "scale": scale,
+            "assetPath": assetPath,
+            "message": f"Created {name} at {location}",
+        }
 
-            # Add validation if requested
-            if validate:
-                from utils import validate_actor_spawn
+        # Add validation if requested
+        if validate:
+            from utils import validate_actor_spawn
 
-                validation_result = validate_actor_spawn(
-                    name,
-                    expected_location=location,
-                    expected_rotation=rotation,
-                    expected_scale=scale,
-                    expected_mesh_path=assetPath if isinstance(
-                        asset, unreal.StaticMesh) else None,
-                    expected_folder=folder,
-                )
-                result["validated"] = validation_result.success
-                if validation_result.errors:
-                    result["validation_errors"] = validation_result.errors
-                if validation_result.warnings:
-                    result["validation_warnings"] = validation_result.warnings
+            validation_result = validate_actor_spawn(
+                name,
+                expected_location=location,
+                expected_rotation=rotation,
+                expected_scale=scale,
+                expected_mesh_path=assetPath if isinstance(
+                    asset, unreal.StaticMesh) else None,
+                expected_folder=folder,
+            )
+            result["validated"] = validation_result.success
+            if validation_result.errors:
+                result["validation_errors"] = validation_result.errors
+            if validation_result.warnings:
+                result["validation_warnings"] = validation_result.warnings
 
-            return result
+        return result
 
-        except Exception as e:
-            log_error(f"Failed to spawn actor: {str(e)}")
-            return {"success": False, "error": str(e)}
-
-    def delete(self, actorName, validate=True):
+    @validate_inputs({
+        'actorName': [RequiredRule(), TypeRule(str)]
+    })
+    @handle_unreal_errors("delete_actor")
+    @safe_operation("actor")
+    def delete(self, actorName: str, validate: bool = True):
         """Delete an actor from the level.
 
         Args:
@@ -154,40 +169,42 @@ class ActorOperations:
         Returns:
             dict: Result with success status
         """
-        try:
-            actor = find_actor_by_name(actorName)
+        # Find actor using error handling framework
+        actor = require_actor(actorName)
 
-            if not actor:
-                return {"success": False,
-                        "error": f"Actor not found: {actorName}"}
+        # Delete the actor
+        unreal.EditorLevelLibrary.destroy_actor(actor)
+        log_debug(f"Deleted actor {actorName}")
 
-            # Delete the actor
-            unreal.EditorLevelLibrary.destroy_actor(actor)
-            log_debug(f"Deleted actor {actorName}")
+        result = {"message": f"Deleted actor: {actorName}"}
 
-            result = {
-                "success": True,
-                "message": f"Deleted actor: {actorName}"}
+        # Add validation if requested
+        if validate:
+            from utils import validate_actor_deleted
 
-            # Add validation if requested
-            if validate:
-                from utils import validate_actor_deleted
+            validation_result = validate_actor_deleted(actorName)
+            result["validated"] = validation_result.success
+            if validation_result.errors:
+                result["validation_errors"] = validation_result.errors
+            if validation_result.warnings:
+                result["validation_warnings"] = validation_result.warnings
 
-                validation_result = validate_actor_deleted(actorName)
-                result["validated"] = validation_result.success
-                if validation_result.errors:
-                    result["validation_errors"] = validation_result.errors
-                if validation_result.warnings:
-                    result["validation_warnings"] = validation_result.warnings
+        return result
 
-            return result
-
-        except Exception as e:
-            log_error(f"Failed to delete actor: {str(e)}")
-            return {"success": False, "error": str(e)}
-
-    def modify(self, actorName, location=None, rotation=None,
-               scale=None, folder=None, mesh=None, validate=True):
+    @validate_inputs({
+        'actorName': [RequiredRule(), TypeRule(str)],
+        'location': [ListLengthRule(3, allow_none=True)],
+        'rotation': [ListLengthRule(3, allow_none=True)],
+        'scale': [ListLengthRule(3, allow_none=True)],
+        'folder': [TypeRule((str, type(None)))],
+        'mesh': [TypeRule((str, type(None)))]
+    })
+    @handle_unreal_errors("modify_actor")
+    @safe_operation("actor")
+    def modify(self, actorName: str, location: Optional[List[float]] = None, 
+               rotation: Optional[List[float]] = None, scale: Optional[List[float]] = None, 
+               folder: Optional[str] = None, mesh: Optional[str] = None, 
+               validate: bool = True):
         """Modify properties of an existing actor.
 
         Args:
@@ -202,33 +219,22 @@ class ActorOperations:
         Returns:
             dict: Result with success status and new properties
         """
-        try:
-            actor = find_actor_by_name(actorName)
-            if not actor:
-                return {"success": False,
-                        "error": f"Actor not found: {actorName}"}
+        # Find actor using error handling framework
+        actor = require_actor(actorName)
 
-            # Apply all modifications
-            modifications = self._apply_actor_modifications(
-                actor, location, rotation, scale, folder, mesh
+        # Apply all modifications
+        self._apply_actor_modifications(actor, location, rotation, scale, folder, mesh)
+
+        # Build result
+        result = self._build_modification_result(actor, actorName)
+
+        # Add validation if requested
+        if validate:
+            self._add_validation_to_result(
+                result, actor, location, rotation, scale, folder, mesh
             )
-            if not modifications["success"]:
-                return modifications
 
-            # Build result
-            result = self._build_modification_result(actor, actorName)
-
-            # Add validation if requested
-            if validate:
-                self._add_validation_to_result(
-                    result, actor, location, rotation, scale, folder, mesh
-                )
-
-            return result
-
-        except Exception as e:
-            log_error(f"Failed to modify actor: {str(e)}")
-            return {"success": False, "error": str(e)}
+        return result
 
     def _apply_actor_modifications(
             self, actor, location, rotation, scale, folder, mesh):
@@ -241,9 +247,6 @@ class ActorOperations:
             scale: New scale or None
             folder: New folder or None
             mesh: New mesh path or None
-
-        Returns:
-            dict: Success status and error if any
         """
         # Apply transform modifications
         if location is not None:
@@ -260,11 +263,7 @@ class ActorOperations:
 
         # Apply mesh modification if needed
         if mesh is not None:
-            mesh_result = self._apply_mesh_modification(actor, mesh)
-            if not mesh_result["success"]:
-                return mesh_result
-
-        return {"success": True}
+            self._apply_mesh_modification(actor, mesh)
 
     def _apply_mesh_modification(self, actor, mesh_path):
         """Apply mesh modification to an actor.
@@ -272,26 +271,18 @@ class ActorOperations:
         Args:
             actor: Actor to modify
             mesh_path: Path to new mesh
-
-        Returns:
-            dict: Success status and error if any
         """
-        mesh_component = actor.get_component_by_class(
-            unreal.StaticMeshComponent)
+        mesh_component = actor.get_component_by_class(unreal.StaticMeshComponent)
         if not mesh_component:
-            return {
-                "success": False,
-                "error": f"Actor {actor.get_actor_label()} does not have a StaticMeshComponent"
-            }
+            raise ProcessingError(
+                f"Actor {actor.get_actor_label()} does not have a StaticMeshComponent",
+                operation="modify_actor",
+                details={"actorName": actor.get_actor_label(), "mesh": mesh_path}
+            )
 
-        new_mesh = load_asset(mesh_path)
-        if not new_mesh:
-            return {"success": False,
-                    "error": f"Could not load mesh: {mesh_path}"}
-
+        new_mesh = require_asset(mesh_path)
         mesh_component.set_static_mesh(new_mesh)
         actor.modify()  # Force update
-        return {"success": True}
 
     def _build_modification_result(self, actor, actor_name):
         """Build the result dictionary after modifications.
@@ -350,6 +341,14 @@ class ActorOperations:
         if validation_result.warnings:
             result["validation_warnings"] = validation_result.warnings
 
+    @validate_inputs({
+        'sourceName': [RequiredRule(), TypeRule(str)],
+        'name': [TypeRule(str, allow_none=True)],
+        'offset': [TypeRule(dict)],
+        'validate': [TypeRule(bool)]
+    })
+    @handle_unreal_errors("duplicate_actor")
+    @safe_operation("actor")
     def duplicate(self, sourceName, name=None, offset={
                   "x": 0, "y": 0, "z": 0}, validate=True):
         """Duplicate an existing actor.
@@ -363,66 +362,61 @@ class ActorOperations:
         Returns:
             dict: Result with success status and new actor details
         """
-        try:
-            source_actor = find_actor_by_name(sourceName)
+        source_actor = require_actor(sourceName)
 
-            if not source_actor:
-                return {"success": False,
-                        "error": f'Source actor "{sourceName}" not found'}
+        # Get source properties
+        source_location = source_actor.get_actor_location()
+        source_rotation = source_actor.get_actor_rotation()
+        source_scale = source_actor.get_actor_scale3d()
 
-            # Get source properties
-            source_location = source_actor.get_actor_location()
-            source_rotation = source_actor.get_actor_rotation()
-            source_scale = source_actor.get_actor_scale3d()
-
-            # Calculate new location with offset
-            new_location = unreal.Vector(
+        # Calculate new location with offset
+        new_location = unreal.Vector(
                 source_location.x + offset.get("x", 0),
                 source_location.y + offset.get("y", 0),
                 source_location.z + offset.get("z", 0),
             )
 
-            # Duplicate based on actor type
-            new_actor = None
-            if hasattr(source_actor, "static_mesh_component"):
-                mesh_component = source_actor.static_mesh_component
-                if mesh_component and mesh_component.static_mesh:
-                    # Spawn new actor with same mesh
-                    new_actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
-                        mesh_component.static_mesh, new_location, source_rotation
-                    )
+        # Duplicate based on actor type
+        new_actor = None
+        if hasattr(source_actor, "static_mesh_component"):
+            mesh_component = source_actor.static_mesh_component
+            if mesh_component and mesh_component.static_mesh:
+                # Spawn new actor with same mesh
+                new_actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
+                    mesh_component.static_mesh, new_location, source_rotation
+                )
 
-            if not new_actor:
-                return {"success": False, "error": "Failed to duplicate actor"}
+        if not new_actor:
+            return {"success": False, "error": "Failed to duplicate actor"}
 
-            # Configure new actor
-            new_actor.set_actor_scale3d(source_scale)
+        # Configure new actor
+        new_actor.set_actor_scale3d(source_scale)
 
-            if name:
-                new_actor.set_actor_label(name)
-            else:
-                new_actor.set_actor_label(f"{sourceName}_Copy")
+        if name:
+            new_actor.set_actor_label(name)
+        else:
+            new_actor.set_actor_label(f"{sourceName}_Copy")
 
-            # Copy folder path
-            source_folder = source_actor.get_folder_path()
-            if source_folder:
-                new_actor.set_folder_path(source_folder)
+        # Copy folder path
+        source_folder = source_actor.get_folder_path()
+        if source_folder:
+            new_actor.set_folder_path(source_folder)
 
-            log_debug(
-                f"Duplicated actor {sourceName} to {new_actor.get_actor_label()}")
+        log_debug(
+            f"Duplicated actor {sourceName} to {new_actor.get_actor_label()}")
 
-            result = {
-                "success": True,
-                "actorName": new_actor.get_actor_label(),
-                "location": {"x": float(new_location.x), "y": float(new_location.y), "z": float(new_location.z)},
-            }
+        result = {
+            "success": True,
+            "actorName": new_actor.get_actor_label(),
+            "location": {"x": float(new_location.x), "y": float(new_location.y), "z": float(new_location.z)},
+        }
 
-            # Add validation if requested
-            if validate:
-                from utils import validate_actor_spawn
+        # Add validation if requested
+        if validate:
+            from utils import validate_actor_spawn
 
-                validation_result = validate_actor_spawn(
-                    new_actor.get_actor_label(),
+            validation_result = validate_actor_spawn(
+                new_actor.get_actor_label(),
                     expected_location=[
                         new_location.x, new_location.y, new_location.z],
                     expected_rotation=[
@@ -434,18 +428,21 @@ class ActorOperations:
                     expected_folder=str(
                         source_folder) if source_folder else None,
                 )
-                result["validated"] = validation_result.success
-                if validation_result.errors:
-                    result["validation_errors"] = validation_result.errors
-                if validation_result.warnings:
-                    result["validation_warnings"] = validation_result.warnings
+            result["validated"] = validation_result.success
+            if validation_result.errors:
+                result["validation_errors"] = validation_result.errors
+            if validation_result.warnings:
+                result["validation_warnings"] = validation_result.warnings
 
-            return result
+        return result
 
-        except Exception as e:
-            log_error(f"Failed to duplicate actor: {str(e)}")
-            return {"success": False, "error": str(e)}
-
+    @validate_inputs({
+        'actors': [TypeRule(list, allow_none=True)],
+        'pattern': [TypeRule(str, allow_none=True)],
+        'folder': [RequiredRule(), TypeRule(str)]
+    })
+    @handle_unreal_errors("organize_actors")
+    @safe_operation("actor")
     def organize(self, actors=None, pattern=None, folder=""):
         """Organize actors into World Outliner folders.
 
@@ -457,26 +454,17 @@ class ActorOperations:
         Returns:
             dict: Result with success status and organized actors
         """
-        try:
-            if not folder:
-                return {"success": False, "error": "Folder path is required"}
+        all_actors = self._get_all_level_actors()
+        organized_actors = self._organize_actors_by_criteria(
+            all_actors, actors, pattern, folder)
+        organized_actors.sort()
 
-            all_actors = self._get_all_level_actors()
-            organized_actors = self._organize_actors_by_criteria(
-                all_actors, actors, pattern, folder)
-            organized_actors.sort()
-
-            return {
-                "success": True,
-                "count": len(organized_actors),
-                "organizedActors": organized_actors,
-                "folder": folder,
-                "message": f"Organized {len(organized_actors)} actors into {folder}",
-            }
-
-        except Exception as e:
-            log_error(f"Failed to organize actors: {str(e)}")
-            return {"success": False, "error": str(e)}
+        return {
+            "count": len(organized_actors),
+            "organizedActors": organized_actors,
+            "folder": folder,
+            "message": f"Organized {len(organized_actors)} actors into {folder}",
+        }
 
     def _get_all_level_actors(self):
         """Get all actors in the level.
@@ -504,20 +492,23 @@ class ActorOperations:
         organized_actors = []
 
         for actor in all_actors:
-            try:
-                if not self._is_valid_actor(actor):
-                    continue
+            if not self._is_valid_actor(actor):
+                continue
 
-                actor_name = actor.get_actor_label()
+            # Safely get actor name
+            if not hasattr(actor, 'get_actor_label'):
+                continue
+            
+            actor_name = actor.get_actor_label()
+            if not actor_name:
+                continue
 
-                # Check if actor matches criteria
-                if self._actor_matches_criteria(
-                        actor_name, actor_names, pattern):
+            # Check if actor matches criteria
+            if self._actor_matches_criteria(actor_name, actor_names, pattern):
+                # Safely set folder path
+                if hasattr(actor, 'set_folder_path'):
                     actor.set_folder_path(folder)
                     organized_actors.append(actor_name)
-
-            except Exception:
-                continue
 
         return organized_actors
 
@@ -549,7 +540,13 @@ class ActorOperations:
             return pattern in actor_name
         return False
 
-    def batch_spawn(self, actors, commonFolder=None, validate=True):
+    @validate_inputs({
+        'actors': [RequiredRule(), TypeRule(list)]
+    })
+    @handle_unreal_errors("batch_spawn_actors")
+    @safe_operation("actor")
+    def batch_spawn(self, actors: List[Dict[str, Any]], commonFolder: Optional[str] = None, 
+                   validate: bool = True):
         """Spawn multiple actors efficiently in a single operation.
 
         Args:
@@ -572,31 +569,28 @@ class ActorOperations:
         # Manage viewport for performance
         viewport_disabled = self._try_disable_viewport()
 
-        try:
-            # Spawn each actor
-            for actor_config in actors:
-                result = self._spawn_single_batch_actor(
-                    actor_config, commonFolder)
-                if result["success"]:
-                    spawned_actors.append(result["actor_data"])
-                else:
-                    failed_spawns.append(result["error_data"])
-
-        finally:
-            self._restore_viewport(viewport_disabled)
+        # Spawn each actor with viewport cleanup guaranteed
+        # Note: Framework handles errors, but we need viewport cleanup regardless
+        spawning_error = None
+        spawning_error = self._spawn_actors_batch_loop(actors, commonFolder, spawned_actors, failed_spawns)
+        
+        # Always restore viewport
+        self._restore_viewport(viewport_disabled)
+        
+        # Re-raise any framework errors after cleanup
+        if spawning_error:
+            raise spawning_error
 
         execution_time = time.time() - start_time
 
         # Validate and clean up results
         if validate and spawned_actors:
-            spawned_actors, validation_failures = self._validate_spawned_actors(
-                spawned_actors)
+            spawned_actors, validation_failures = self._validate_spawned_actors(spawned_actors)
             failed_spawns.extend(validation_failures)
         else:
             spawned_actors = self._clean_actor_refs(spawned_actors)
 
         return {
-            "success": True,
             "spawnedActors": spawned_actors,
             "failedSpawns": failed_spawns,
             "totalRequested": len(actors),
@@ -609,11 +603,12 @@ class ActorOperations:
         Returns:
             bool: True if viewport was disabled
         """
-        try:
+        # Check if method exists before calling
+        if hasattr(unreal.EditorLevelLibrary, 'set_level_viewport_realtime'):
             unreal.EditorLevelLibrary.set_level_viewport_realtime(False)
             return True
-        except (AttributeError, RuntimeError, Exception) as e:
-            log_debug(f"Could not disable viewport updates: {str(e)}")
+        else:
+            log_debug("Viewport realtime control not available")
             return False
 
     def _restore_viewport(self, was_disabled):
@@ -622,11 +617,35 @@ class ActorOperations:
         Args:
             was_disabled: Whether viewport was disabled
         """
-        if was_disabled:
-            try:
-                unreal.EditorLevelLibrary.set_level_viewport_realtime(True)
-            except Exception as e:
-                log_error(f"Failed to re-enable viewport updates: {str(e)}")
+        if was_disabled and hasattr(unreal.EditorLevelLibrary, 'set_level_viewport_realtime'):
+            unreal.EditorLevelLibrary.set_level_viewport_realtime(True)
+
+    def _spawn_actors_batch_loop(self, actors, commonFolder, spawned_actors, failed_spawns):
+        """Spawn actors in a loop, collecting results without framework interference.
+
+        Args:
+            actors: List of actor configurations
+            commonFolder: Common folder for all actors
+            spawned_actors: List to collect successful spawns
+            failed_spawns: List to collect failed spawns
+
+        Returns:
+            Exception or None: Any error that should be re-raised
+        """
+        for actor_config in actors:
+            result = self._spawn_single_batch_actor(actor_config, commonFolder)
+            if result["success"]:
+                spawned_actors.append(result["actor_data"])
+            else:
+                failed_spawns.append(result["error_data"])
+        
+        if failed_spawns:
+            return ProcessingError(
+                message=f"Failed to spawn {len(failed_spawns)} actors",
+                operation="batch_spawn_actors", 
+                details={"failed_spawns": failed_spawns}
+            )
+        return None
 
     def _spawn_single_batch_actor(self, actor_config, common_folder):
         """Spawn a single actor from batch configuration.
@@ -638,17 +657,16 @@ class ActorOperations:
         Returns:
             dict: Result with success status and actor data or error
         """
-        try:
-            # Validate and load asset
-            asset_path = actor_config.get("assetPath")
-            if not asset_path:
-                return {"success": False, "error_data": {
-                    "assetPath": "Unknown", "error": "Missing required assetPath"}}
+        # Validate and load asset
+        asset_path = actor_config.get("assetPath")
+        if not asset_path:
+            return {"success": False, "error_data": {
+                "assetPath": "Unknown", "error": "Missing required assetPath"}}
 
-            asset = load_asset(asset_path)
-            if not asset:
-                return {"success": False, "error_data": {
-                    "assetPath": asset_path, "error": f"Failed to load asset: {asset_path}"}}
+        asset = load_asset(asset_path)
+        if not asset:
+            return {"success": False, "error_data": {
+                "assetPath": asset_path, "error": f"Failed to load asset: {asset_path}"}}
 
             # Spawn actor
             spawned_actor = self._spawn_actor_with_params(asset, actor_config)
@@ -676,10 +694,6 @@ class ActorOperations:
                     "_actor_ref": spawned_actor,
                 }
             }
-
-        except Exception as e:
-            return {"success": False, "error_data": {
-                "assetPath": actor_config.get("assetPath", "Unknown"), "error": str(e)}}
 
     def _spawn_actor_with_params(self, asset, actor_config):
         """Spawn an actor with given parameters.
@@ -728,13 +742,11 @@ class ActorOperations:
         # Store asset path as metadata for undo support
         asset_path = actor_config.get("assetPath")
         # WARNING: Using tags for metadata - see detailed warning in spawn() method
-        if asset_path and hasattr(spawned_actor, 'tags'):
-            try:
-                spawned_actor.tags.append(f'UEMCP_Asset:{asset_path}')
-                log_debug(f"Tagged batch actor with asset path: {asset_path}")
-            except (AttributeError, RuntimeError) as e:
-                log_debug(f"Could not tag batch actor: {e}")
-                # Non-critical - undo may not work for this actor
+        if asset_path and hasattr(spawned_actor, 'tags') and hasattr(spawned_actor.tags, 'append'):
+            spawned_actor.tags.append(f'UEMCP_Asset:{asset_path}')
+            log_debug(f"Tagged batch actor with asset path: {asset_path}")
+        elif asset_path:
+            log_debug(f"Could not tag batch actor - tags not available")
 
         return actor_name
 
@@ -782,6 +794,14 @@ class ActorOperations:
         return [{k: v for k, v in actor_data.items() if k != "_actor_ref"}
                 for actor_data in spawned_actors]
 
+    @validate_inputs({
+        'actors': [RequiredRule(), TypeRule(list)],
+        'tolerance': [TypeRule(float)],
+        'checkAlignment': [TypeRule(bool)],
+        'modularSize': [TypeRule(float)]
+    })
+    @handle_unreal_errors("validate_placement")
+    @safe_operation("actor")
     def placement_validate(self, actors, tolerance=10.0,
                            checkAlignment=True, modularSize=300.0):
         """Validate placement of modular building components.
@@ -803,11 +823,10 @@ class ActorOperations:
         start_time = time.time()
         GAP_THRESHOLD = 3  # Maximum number of gaps before marking as major issues
 
-        try:
-            # Gather and validate actors
-            actor_data, error = self._gather_actor_data(actors)
-            if error:
-                return {"success": False, "error": error}
+        # Gather and validate actors
+        actor_data, error = self._gather_actor_data(actors)
+        if error:
+            raise ValidationError(f"Actor data gathering failed: {error}")
 
             # Detect placement issues
             gaps, overlaps = self._detect_placement_issues(
@@ -827,10 +846,6 @@ class ActorOperations:
                 gaps, overlaps, alignment_issues,
                 overall_status, len(actors), execution_time
             )
-
-        except Exception as e:
-            log_error(f"Failed to validate placement: {str(e)}")
-            return {"success": False, "error": str(e)}
 
     def _gather_actor_data(self, actor_names):
         """Gather actor objects and their bounds data.
@@ -879,31 +894,35 @@ class ActorOperations:
         Returns:
             dict or None: Actor bounds information
         """
-        try:
-            location = actor.get_actor_location()
-            bounds = actor.get_actor_bounds(only_colliding_components=False)
-            box_extent = bounds[1]  # bounds[1] is the extent (half-size)
-
-            return {
-                "actor": actor,
-                "name": actor.get_actor_label(),
-                "location": [location.x, location.y, location.z],
-                "bounds_min": [
-                    location.x - box_extent.x,
-                    location.y - box_extent.y,
-                    location.z - box_extent.z
-                ],
-                "bounds_max": [
-                    location.x + box_extent.x,
-                    location.y + box_extent.y,
-                    location.z + box_extent.z
-                ],
-                "size": [box_extent.x * 2, box_extent.y * 2, box_extent.z * 2],
-            }
-        except Exception as e:
-            log_error(
-                f"Failed to get bounds for actor {actor.get_actor_label()}: {str(e)}")
+        if not actor or not hasattr(actor, 'get_actor_location'):
             return None
+            
+        location = actor.get_actor_location()
+        if not hasattr(actor, 'get_actor_bounds'):
+            return None
+            
+        bounds = actor.get_actor_bounds(only_colliding_components=False)
+        if not bounds or len(bounds) < 2:
+            return None
+            
+        box_extent = bounds[1]  # bounds[1] is the extent (half-size)
+
+        return {
+            "actor": actor,
+            "name": actor.get_actor_label(),
+            "location": [location.x, location.y, location.z],
+            "bounds_min": [
+                location.x - box_extent.x,
+                location.y - box_extent.y,
+                location.z - box_extent.z
+            ],
+            "bounds_max": [
+                location.x + box_extent.x,
+                location.y + box_extent.y,
+                location.z + box_extent.z
+            ],
+            "size": [box_extent.x * 2, box_extent.y * 2, box_extent.z * 2],
+        }
 
     def _detect_placement_issues(self, actor_data, tolerance, modular_size):
         """Detect gaps and overlaps between actors.
@@ -1212,6 +1231,16 @@ class ActorOperations:
 
         return None
 
+    @validate_inputs({
+        'sourceActor': [RequiredRule(), TypeRule(str)],
+        'targetActor': [RequiredRule(), TypeRule(str)],
+        'targetSocket': [RequiredRule(), TypeRule(str)],
+        'sourceSocket': [TypeRule(str, allow_none=True)],
+        'offset': [ListLengthRule(3)],
+        'validate': [TypeRule(bool)]
+    })
+    @handle_unreal_errors("snap_to_socket")
+    @safe_operation("actor")
     def snap_to_socket(
         self, sourceActor, targetActor, targetSocket, sourceSocket=None, offset=[0, 0, 0], validate=True
     ):
@@ -1228,47 +1257,39 @@ class ActorOperations:
         Returns:
             dict: Result with new location and rotation
         """
-        try:
-            # Find the actors
-            source, target, error = self._find_source_and_target_actors(
-                sourceActor, targetActor)
-            if error:
-                return error
+        # Find the actors using require_actor for automatic error handling
+        source = require_actor(sourceActor)
+        target = require_actor(targetActor)
 
-            # Get the target socket transform
-            socket_transform, error = self._get_target_socket_transform(
-                target, targetActor, targetSocket)
-            if error:
-                return error
+        # Get the target socket transform
+        socket_transform, error = self._get_target_socket_transform(
+            target, targetActor, targetSocket)
+        if error:
+            return error
 
-            # Calculate new transform for source actor
-            new_location, new_rotation = self._calculate_snap_transform(
-                socket_transform, offset, source, sourceSocket
-            )
+        # Calculate new transform for source actor
+        new_location, new_rotation = self._calculate_snap_transform(
+            socket_transform, offset, source, sourceSocket
+        )
 
-            # Apply the new transform to the source actor
-            source.set_actor_location(new_location, sweep=False, teleport=True)
-            source.set_actor_rotation(new_rotation)
-            log_debug(
-                f"Snapped {sourceActor} to {targetActor}'s socket '{targetSocket}'")
+        # Apply the new transform to the source actor
+        source.set_actor_location(new_location, sweep=False, teleport=True)
+        source.set_actor_rotation(new_rotation)
+        log_debug(
+            f"Snapped {sourceActor} to {targetActor}'s socket '{targetSocket}'")
 
-            # Build result
-            result = self._build_snap_result(
-                sourceActor, targetActor, targetSocket, sourceSocket,
-                new_location, new_rotation
-            )
+        # Build result
+        result = self._build_snap_result(
+            sourceActor, targetActor, targetSocket, sourceSocket,
+            new_location, new_rotation
+        )
 
-            # Add validation if requested
-            if validate:
-                result["validation"] = self._validate_snap(
-                    source, new_location)
+        # Add validation if requested
+        if validate:
+            result["validation"] = self._validate_snap(
+                source, new_location)
 
-            return result
-
-        except Exception as e:
-            log_error(f"Error in snap_to_socket: {str(e)}")
-            return {"success": False,
-                    "error": f"Failed to snap actor: {str(e)}"}
+        return result
 
     def _find_source_and_target_actors(self, sourceActor, targetActor):
         """Find source and target actors.
@@ -1434,6 +1455,11 @@ class ActorOperations:
                 "message": "Actor successfully snapped to socket"
             }
 
+    @validate_inputs({
+        'actor_name': [RequiredRule(), TypeRule(str)]
+    })
+    @handle_unreal_errors("get_actor_state")
+    @safe_operation("actor")
     def get_actor_state(self, actor_name):
         """Get the current state of an actor for undo support.
 
@@ -1443,76 +1469,58 @@ class ActorOperations:
         Returns:
             dict: Actor state including location, rotation, scale, mesh, folder
         """
-        try:
-            actor = find_actor_by_name(actor_name)
+        actor = require_actor(actor_name)
 
-            if not actor:
-                return {
-                    "success": False,
-                    "error": f'Actor "{actor_name}" not found'
-                }
+        # Get transform
+        location = actor.get_actor_location()
+        rotation = actor.get_actor_rotation()
+        scale = actor.get_actor_scale3d()
 
-            # Get transform
-            location = actor.get_actor_location()
-            rotation = actor.get_actor_rotation()
-            scale = actor.get_actor_scale3d()
+        # Get folder path
+        folder = actor.get_folder_path() if hasattr(actor, 'get_folder_path') else None
 
-            # Get folder path
-            folder = actor.get_folder_path() if hasattr(actor, 'get_folder_path') else None
+        # Get mesh if it's a static mesh actor
+        mesh = None
+        if actor.get_class().get_name() == "StaticMeshActor":
+            mesh_comp = actor.get_component_by_class(unreal.StaticMeshComponent)
+            if mesh_comp:
+                static_mesh = mesh_comp.get_editor_property('static_mesh')
+                if static_mesh:
+                    mesh = static_mesh.get_path_name()
 
-            # Get mesh if it's a static mesh actor
-            mesh = None
-            if actor.get_class().get_name() == "StaticMeshActor":
-                mesh_comp = actor.get_component_by_class(unreal.StaticMeshComponent)
-                if mesh_comp:
-                    static_mesh = mesh_comp.get_editor_property('static_mesh')
-                    if static_mesh:
-                        mesh = static_mesh.get_path_name()
+        # Get the asset path (what was spawned)
+        asset_path = None
+        # Try to determine the original asset from tags
+        if hasattr(actor, 'tags'):
+            for tag in actor.tags:
+                # Look for our custom tag format first
+                # Using string slicing instead of replace for more reliable parsing
+                prefix = 'UEMCP_Asset:'
+                if tag.startswith(prefix):
+                    asset_path = tag[len(prefix):]
+                    break
+                # Fallback to old method
+                elif tag.startswith('/Game/'):
+                    asset_path = tag
 
-            # Get the asset path (what was spawned)
-            asset_path = None
-            # Try to determine the original asset from tags
-            if hasattr(actor, 'tags'):
-                for tag in actor.tags:
-                    # Look for our custom tag format first
-                    # Using string slicing instead of replace for more reliable parsing
-                    prefix = 'UEMCP_Asset:'
-                    if tag.startswith(prefix):
-                        asset_path = tag[len(prefix):]
-                        break
-                    # Fallback to old method
-                    elif tag.startswith('/Game/'):
-                        asset_path = tag
+        # If no tag found, try to get from static mesh component
+        if not asset_path and isinstance(actor, unreal.StaticMeshActor):
+            if hasattr(actor, 'get_editor_property'):
+                mesh_comp = actor.get_editor_property("static_mesh_component")
+                if mesh_comp and hasattr(mesh_comp, 'get_editor_property'):
+                    static_mesh = mesh_comp.get_editor_property("static_mesh")
+                    if static_mesh and hasattr(static_mesh, 'get_path_name'):
+                        asset_path = static_mesh.get_path_name().split('.')[0]
 
-            # If no tag found, try to get from static mesh component
-            if not asset_path and isinstance(actor, unreal.StaticMeshActor):
-                try:
-                    mesh_comp = actor.get_editor_property(
-                        "static_mesh_component"
-                    )
-                    if mesh_comp:
-                        static_mesh = mesh_comp.get_editor_property(
-                            "static_mesh"
-                        )
-                        if static_mesh:
-                            asset_path = static_mesh.get_path_name().split('.')[0]
-                except (AttributeError, RuntimeError):
-                    pass
-
-            return {
-                "success": True,
-                "actor_name": actor_name,
-                "location": [location.x, location.y, location.z],
-                "rotation": [rotation.roll, rotation.pitch, rotation.yaw],
-                "scale": [scale.x, scale.y, scale.z],
-                "mesh": mesh,
-                "folder": folder,
+        return {
+            "actor_name": actor_name,
+            "location": [location.x, location.y, location.z],
+            "rotation": [rotation.roll, rotation.pitch, rotation.yaw],
+            "scale": [scale.x, scale.y, scale.z],
+            "mesh": mesh,
+            "folder": folder,
                 "asset_path": asset_path
             }
-
-        except Exception as e:
-            log_error(f"Failed to get actor state: {str(e)}")
-            return {"success": False, "error": str(e)}
 
     def _validate_tag_integrity(self, actor, expected_asset_path=None):
         """Validate that actor tags haven't been corrupted.
