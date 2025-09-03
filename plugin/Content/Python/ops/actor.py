@@ -668,32 +668,32 @@ class ActorOperations:
             return {"success": False, "error_data": {
                 "assetPath": asset_path, "error": f"Failed to load asset: {asset_path}"}}
 
-            # Spawn actor
-            spawned_actor = self._spawn_actor_with_params(asset, actor_config)
-            if not spawned_actor:
-                return {"success": False, "error_data": {
-                    "assetPath": asset_path, "error": "Spawn failed - check location for collisions"}}
+        # Spawn actor
+        spawned_actor = self._spawn_actor_with_params(asset, actor_config)
+        if not spawned_actor:
+            return {"success": False, "error_data": {
+                "assetPath": asset_path, "error": "Spawn failed - check location for collisions"}}
 
-            # Configure spawned actor
-            actor_name = self._configure_spawned_actor(
-                spawned_actor, actor_config, common_folder)
+        # Configure spawned actor
+        actor_name = self._configure_spawned_actor(
+            spawned_actor, actor_config, common_folder)
 
-            # Build actor data
-            location = actor_config.get("location", [0, 0, 0])
-            rotation = actor_config.get("rotation", [0, 0, 0])
-            scale = actor_config.get("scale", [1, 1, 1])
+        # Build actor data
+        location = actor_config.get("location", [0, 0, 0])
+        rotation = actor_config.get("rotation", [0, 0, 0])
+        scale = actor_config.get("scale", [1, 1, 1])
 
-            return {
-                "success": True,
-                "actor_data": {
-                    "name": actor_name,
-                    "assetPath": asset_path,
-                    "location": location,
-                    "rotation": rotation,
-                    "scale": scale,
-                    "_actor_ref": spawned_actor,
-                }
+        return {
+            "success": True,
+            "actor_data": {
+                "name": actor_name,
+                "assetPath": asset_path,
+                "location": location,
+                "rotation": rotation,
+                "scale": scale,
+                "_actor_ref": spawned_actor,
             }
+        }
 
     def _spawn_actor_with_params(self, asset, actor_config):
         """Spawn an actor with given parameters.
