@@ -1,4 +1,4 @@
-import { ActorTool } from '../base/actor-tool.js';
+import { BaseTool } from '../base/base-tool.js';
 import { ToolResponse } from '../../utils/response-formatter.js';
 import { ToolDefinition, PythonResult } from '../base/base-tool.js';
 
@@ -30,7 +30,7 @@ interface BatchOperationsResult extends PythonResult {
 /**
  * Tool for executing multiple operations in a single HTTP request
  */
-export class BatchOperationsTool extends ActorTool<BatchOperationsArgs> {
+export class BatchOperationsTool extends BaseTool<BatchOperationsArgs> {
   get definition(): ToolDefinition {
     return {
       name: 'batch_operations',

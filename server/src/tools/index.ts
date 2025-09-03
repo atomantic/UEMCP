@@ -11,7 +11,6 @@ export {
   actorDuplicateTool,
   actorOrganizeTool,
   batchSpawnTool,
-  batchOperationsTool,
   placementValidateTool,
   actorSnapToSocketTool,
 } from './actors/index.js';
@@ -68,6 +67,7 @@ export {
   historyListTool,
   checkpointCreateTool,
   checkpointRestoreTool,
+  batchOperationsTool,
 } from './system/index.js';
 
 // Re-export everything together for convenience
