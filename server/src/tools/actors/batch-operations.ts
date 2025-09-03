@@ -4,7 +4,7 @@ import { ToolDefinition, PythonResult } from '../base/base-tool.js';
 
 interface BatchOperation {
   operation: string;
-  params: Record<string, any>;
+  params: Record<string, unknown>;
   id?: string;
 }
 
@@ -16,7 +16,7 @@ interface BatchOperationResult {
   id: string;
   operation: string;
   success: boolean;
-  result?: any;
+  result?: unknown;
   error?: string;
 }
 
