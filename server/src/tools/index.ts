@@ -11,6 +11,7 @@ export {
   actorDuplicateTool,
   actorOrganizeTool,
   batchSpawnTool,
+  batchOperationsTool,
   placementValidateTool,
   actorSnapToSocketTool,
 } from './actors/index.js';

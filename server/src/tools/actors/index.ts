@@ -9,5 +9,6 @@ export { actorModifyTool } from './modify.js';
 export { actorDuplicateTool } from './duplicate.js';
 export { actorOrganizeTool } from './organize.js';
 export { batchSpawnTool } from './batch-spawn.js';
+export { batchOperationsTool } from './batch-operations.js';
 export { placementValidateTool } from './placement-validate.js';
 export { actorSnapToSocketTool } from './snap-to-socket.js';
