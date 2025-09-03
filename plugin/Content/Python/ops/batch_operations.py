@@ -149,24 +149,19 @@ class BatchOperationManager:
                 'error': f"Method {method_name} not found for operation {operation}"
             }
         
-        # Execute the method with parameter validation
+        # Execute the method with upfront parameter validation
         # The framework ensures we always get back a dict with success/error status
-        try:
-            # Validate params is a dictionary and safe to unpack
-            if not isinstance(params, dict):
-                return {
-                    'success': False,
-                    'error': f"Invalid params type for {operation}: expected dict, got {type(params).__name__}"
-                }
-            
-            # Execute the method - let the method's own validation handle parameter specifics
-            return method(**params)
-        except TypeError as e:
-            # Catch parameter mismatch errors (unexpected keyword arguments, missing required args)
+        
+        # Validate params is a dictionary and safe to unpack
+        if not isinstance(params, dict):
             return {
                 'success': False,
-                'error': f"Parameter error for {operation}: {str(e)}"
+                'error': f"Invalid params type for {operation}: expected dict, got {type(params).__name__}"
             }
+        
+        # Execute the method - let the method's own validation handle parameter specifics
+        # The underlying method will handle its own parameter validation and return proper error dict
+        return method(**params)
 
 
 # Global batch manager instance
