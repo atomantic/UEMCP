@@ -193,9 +193,9 @@ class ActorOperations:
 
     @validate_inputs({
         'actorName': [RequiredRule(), TypeRule(str)],
-        'location': [ListLengthRule(3)],
-        'rotation': [ListLengthRule(3)],
-        'scale': [ListLengthRule(3)],
+        'location': [ListLengthRule(3, allow_none=True)],
+        'rotation': [ListLengthRule(3, allow_none=True)],
+        'scale': [ListLengthRule(3, allow_none=True)],
         'folder': [TypeRule((str, type(None)))],
         'mesh': [TypeRule((str, type(None)))]
     })
