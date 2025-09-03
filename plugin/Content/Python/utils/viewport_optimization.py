@@ -113,9 +113,9 @@ class ViewportManager:
     
     def _get_safe_values(self) -> tuple:
         """Get safe integer values for console commands."""
-        bulk_fps = self._get_safe_int_value("bulk_operation_fps", self.bulk_operation_fps, 60)
-        bulk_screen = self._get_safe_int_value("bulk_operation_screen_percentage", self.bulk_operation_screen_percentage, 100)
-        normal_fps = self._get_safe_int_value("normal_fps", self.normal_fps, 60)  
+        bulk_fps = self._get_safe_int_value("bulk_operation_fps", self.bulk_operation_fps, 10)
+        bulk_screen = self._get_safe_int_value("bulk_operation_screen_percentage", self.bulk_operation_screen_percentage, 50)
+        normal_fps = self._get_safe_int_value("normal_fps", self.normal_fps, 120)  
         normal_screen = self._get_safe_int_value("normal_screen_percentage", self.normal_screen_percentage, 100)
         return bulk_fps, bulk_screen, normal_fps, normal_screen
 

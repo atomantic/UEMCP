@@ -104,8 +104,12 @@ export class BatchOperationsTool extends BaseTool<BatchOperationsArgs> {
     // Add timing information if available
     if (result.executionTime !== undefined) {
       text += `\nTotal execution time: ${result.executionTime.toFixed(2)}s`;
-      const avgTime = result.executionTime / totalCount;
-      text += ` (avg: ${avgTime.toFixed(3)}s per operation)`;
+      if (totalCount > 0) {
+        const avgTime = result.executionTime / totalCount;
+        text += ` (avg: ${avgTime.toFixed(3)}s per operation)`;
+      } else {
+        text += ` (avg: N/A per operation)`;
+      }
     }
 
     return {

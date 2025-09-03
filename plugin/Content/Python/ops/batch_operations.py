@@ -170,13 +170,23 @@ class BatchOperationManager:
             }
         
         # Validate parameter names to prevent parameter injection
-        if operation in expected_params:
-            invalid_params = set(params.keys()) - expected_params[operation]
-            if invalid_params:
-                return {
-                    'success': False,
-                    'error': f"Invalid parameters for {operation}: {', '.join(sorted(invalid_params))}"
-                }
+        # Use explicit allowlist approach - reject ANY unexpected parameters
+        if operation not in expected_params:
+            return {
+                'success': False,
+                'error': f"Unknown operation '{operation}' - parameter validation not defined"
+            }
+        
+        # Strict parameter validation - only allow explicitly expected parameters
+        allowed_params = expected_params[operation]
+        provided_params = set(params.keys())
+        invalid_params = provided_params - allowed_params
+        
+        if invalid_params:
+            return {
+                'success': False,
+                'error': f"Invalid parameters for {operation}: {', '.join(sorted(invalid_params))}. Allowed: {', '.join(sorted(allowed_params))}"
+            }
         
         # Execute the method - let the method's own validation handle parameter specifics
         # The underlying method will handle its own parameter validation and return proper error dict
