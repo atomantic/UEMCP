@@ -638,6 +638,10 @@ class ActorOperations:
                 spawned_actors.append(result["actor_data"])
             else:
                 failed_spawns.append(result["error_data"])
+        
+        if failed_spawns:
+            return ProcessingError(f"Failed to spawn {len(failed_spawns)} actors",
+                                   failed_spawns)
         return None
 
     def _spawn_single_batch_actor(self, actor_config, common_folder):
