@@ -8,7 +8,7 @@ from utils import get_project_info, get_all_actors, log_error
 # Enhanced error handling framework
 from utils.error_handling import (
     validate_inputs, handle_unreal_errors, safe_operation,
-    RequiredRule, TypeRule, ValidationError
+    RequiredRule, TypeRule, ValidationError, ProcessingError
 )
 
 
@@ -22,10 +22,15 @@ class LevelOperations:
 
         Returns:
             dict: Result with success status
+            
+        Raises:
+            ProcessingError: If level save operation fails
         """
         success = unreal.EditorLevelLibrary.save_current_level()
+        if not success:
+            raise ProcessingError("Failed to save level")
         return {
-            "message": "Level saved successfully" if success else "Failed to save level"
+            "message": "Level saved successfully"
         }
 
     @handle_unreal_errors("get_project_info")
