@@ -110,7 +110,7 @@ class BatchOperationManager:
         Returns:
             Operation result dictionary with success/error status
         """
-        # Validate operation is supported
+        # Validate operation is supported and define expected parameters
         supported_operations = {
             'actor_spawn': ('ops.actor', 'ActorOperations', 'spawn_actor'),
             'actor_modify': ('ops.actor', 'ActorOperations', 'modify_actor'),
@@ -118,6 +118,16 @@ class BatchOperationManager:
             'actor_duplicate': ('ops.actor', 'ActorOperations', 'duplicate_actor'),
             'viewport_camera': ('ops.viewport', 'ViewportOperations', 'set_camera'),
             'viewport_screenshot': ('ops.viewport', 'ViewportOperations', 'take_screenshot'),
+        }
+        
+        # Expected parameter names for each operation (for security validation)
+        expected_params = {
+            'actor_spawn': {'assetPath', 'location', 'rotation', 'scale', 'name', 'folder', 'validate'},
+            'actor_modify': {'actorName', 'location', 'rotation', 'scale', 'mesh', 'folder', 'validate'},
+            'actor_delete': {'actorName', 'validate'},
+            'actor_duplicate': {'sourceName', 'name', 'offset', 'validate'},
+            'viewport_camera': {'location', 'rotation', 'distance', 'focusActor'},
+            'viewport_screenshot': {'width', 'height', 'compress', 'quality', 'screenPercentage'},
         }
         
         if operation not in supported_operations:
@@ -158,6 +168,15 @@ class BatchOperationManager:
                 'success': False,
                 'error': f"Invalid params type for {operation}: expected dict, got {type(params).__name__}"
             }
+        
+        # Validate parameter names to prevent parameter injection
+        if operation in expected_params:
+            invalid_params = set(params.keys()) - expected_params[operation]
+            if invalid_params:
+                return {
+                    'success': False,
+                    'error': f"Invalid parameters for {operation}: {', '.join(sorted(invalid_params))}"
+                }
         
         # Execute the method - let the method's own validation handle parameter specifics
         # The underlying method will handle its own parameter validation and return proper error dict

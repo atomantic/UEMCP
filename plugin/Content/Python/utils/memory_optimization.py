@@ -90,7 +90,12 @@ class MemoryManager:
             original_pool_size = self._get_streaming_pool_size()
             execute_console_command("r.Streaming.PoolSize 0")
             time.sleep(1)  # Allow time for memory cleanup to take effect
-            execute_console_command(f"r.Streaming.PoolSize {original_pool_size}")  # Reset to original
+            
+            # Validate original_pool_size before resetting
+            if isinstance(original_pool_size, int) and original_pool_size > 0:
+                execute_console_command(f"r.Streaming.PoolSize {original_pool_size}")  # Reset to original
+            else:
+                log_warning(f"Invalid streaming pool size '{original_pool_size}' - skipping reset.")
             
             # Memory after cleanup if psutil is available
             if HAS_PSUTIL and 'memory_before_mb' in cleanup_stats and cleanup_stats['memory_before_mb'] != 'unavailable':

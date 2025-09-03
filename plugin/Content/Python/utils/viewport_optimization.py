@@ -3,7 +3,7 @@ UEMCP Viewport Optimization - Disable viewport updates during bulk operations
 """
 
 import unreal
-from typing import Optional
+from typing import Optional, Any
 from contextlib import contextmanager
 from utils import log_debug, execute_console_command
 
@@ -35,12 +35,12 @@ class ViewportManager:
                 log_debug("Could not get editor subsystem")
                 return
             
-            # Validate values before use
-            self._validate_current_values()
+            # Get safe validated values for console commands
+            bulk_fps, bulk_screen, _, _ = self._get_safe_values()
             
             # Disable real-time rendering in all viewports
-            execute_console_command(f"r.MaxFPS {int(self.bulk_operation_fps)}")  # Reduce FPS during bulk ops
-            execute_console_command(f"r.ScreenPercentage {int(self.bulk_operation_screen_percentage)}")  # Reduce render quality
+            execute_console_command(f"r.MaxFPS {bulk_fps}")  # Reduce FPS during bulk ops
+            execute_console_command(f"r.ScreenPercentage {bulk_screen}")  # Reduce render quality
             
             # Store that we're optimized
             self.is_optimized = True
@@ -57,12 +57,12 @@ class ViewportManager:
         try:
             log_debug("Restoring viewport after bulk operation")
             
-            # Validate values before use
-            self._validate_current_values()
+            # Get safe validated values for console commands
+            _, _, normal_fps, normal_screen = self._get_safe_values()
             
             # Restore normal rendering
-            execute_console_command(f"r.MaxFPS {int(self.normal_fps)}")  # Restore normal FPS
-            execute_console_command(f"r.ScreenPercentage {int(self.normal_screen_percentage)}")  # Restore render quality
+            execute_console_command(f"r.MaxFPS {normal_fps}")  # Restore normal FPS
+            execute_console_command(f"r.ScreenPercentage {normal_screen}")  # Restore render quality
             
             # Force viewport refresh
             execute_console_command("r.Invalidate")
@@ -103,21 +103,21 @@ class ViewportManager:
                 raise ValueError(f"normal_screen_percentage must be a positive integer between 1 and 200, got {normal_screen_percentage}")
             self.normal_screen_percentage = normal_screen_percentage
     
-    def _validate_current_values(self) -> None:
-        """Validate current values before using in console commands."""
-        # Validate current values are safe integers
-        for name, value in [
-            ("bulk_operation_fps", self.bulk_operation_fps),
-            ("bulk_operation_screen_percentage", self.bulk_operation_screen_percentage),
-            ("normal_fps", self.normal_fps),
-            ("normal_screen_percentage", self.normal_screen_percentage)
-        ]:
-            if not isinstance(value, (int, float)) or value <= 0:
-                log_debug(f"Invalid {name}: {value}, resetting to safe default")
-                if "fps" in name:
-                    setattr(self, name, 60)  # Safe FPS default
-                else:
-                    setattr(self, name, 100)  # Safe screen percentage default
+    def _get_safe_int_value(self, name: str, value: Any, default: int) -> int:
+        """Get a safe integer value, using default if value is invalid."""
+        if isinstance(value, (int, float)) and value > 0:
+            return int(value)
+        else:
+            log_debug(f"Invalid {name}: {value}, using safe default {default}")
+            return default
+    
+    def _get_safe_values(self) -> tuple:
+        """Get safe integer values for console commands."""
+        bulk_fps = self._get_safe_int_value("bulk_operation_fps", self.bulk_operation_fps, 60)
+        bulk_screen = self._get_safe_int_value("bulk_operation_screen_percentage", self.bulk_operation_screen_percentage, 100)
+        normal_fps = self._get_safe_int_value("normal_fps", self.normal_fps, 60)  
+        normal_screen = self._get_safe_int_value("normal_screen_percentage", self.normal_screen_percentage, 100)
+        return bulk_fps, bulk_screen, normal_fps, normal_screen
 
 
 # Global viewport manager instance
