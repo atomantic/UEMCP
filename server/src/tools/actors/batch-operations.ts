@@ -92,7 +92,7 @@ export class BatchOperationsTool extends ActorTool<BatchOperationsArgs> {
     const failureCount = result.failureCount || 0;
     const totalCount = successCount + failureCount;
 
-    let text = `Batch Operations Results: ${successCount}/${totalCount} operations completed successfully\\n\\n`;
+    let text = `Batch Operations Results: ${successCount}/${totalCount} operations completed successfully\n\n`;
 
     // List operation results
     if (result.operations && result.operations.length > 0) {
@@ -102,13 +102,13 @@ export class BatchOperationsTool extends ActorTool<BatchOperationsArgs> {
         if (!op.success && op.error) {
           text += `: ${op.error}`;
         }
-        text += '\\n';
+        text += '\n';
       });
     }
 
     // Add timing information if available
     if (result.executionTime !== undefined) {
-      text += `\\nTotal execution time: ${result.executionTime.toFixed(2)}s`;
+      text += `\nTotal execution time: ${result.executionTime.toFixed(2)}s`;
       const avgTime = result.executionTime / totalCount;
       text += ` (avg: ${avgTime.toFixed(3)}s per operation)`;
     }
