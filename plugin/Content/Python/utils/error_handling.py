@@ -135,6 +135,19 @@ class AssetPathRule(ValidationRule):
         return None
 
 
+class FileExistsRule(ValidationRule):
+    """Validates that a file or directory path exists on the filesystem."""
+    
+    def validate(self, value: Any, field_name: str) -> Optional[str]:
+        import os
+        
+        if not isinstance(value, str):
+            return f"{field_name} must be a string"
+        if not os.path.exists(value):
+            return f"{field_name} path does not exist: {value}"
+        return None
+
+
 def validate_inputs(validation_schema: Dict[str, List[ValidationRule]]):
     """
     Decorator that validates function inputs against a schema.

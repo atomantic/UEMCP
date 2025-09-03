@@ -11,7 +11,7 @@ from typing import Dict, Any, List, Optional
 # Enhanced error handling framework
 from utils.error_handling import (
     validate_inputs, handle_unreal_errors, safe_operation,
-    RequiredRule, TypeRule, AssetPathRule,
+    RequiredRule, TypeRule, AssetPathRule, FileExistsRule,
     require_asset, ValidationError, ProcessingError
 )
 
@@ -523,7 +523,7 @@ class AssetOperations:
         }
 
     @validate_inputs({
-        'sourcePath': [RequiredRule(), TypeRule(str)],
+        'sourcePath': [RequiredRule(), TypeRule(str), FileExistsRule()],
         'targetFolder': [RequiredRule(), TypeRule(str)],
         'assetType': [TypeRule(str)],
         'batchImport': [TypeRule(bool)],
@@ -551,14 +551,9 @@ class AssetOperations:
         Returns:
             dict: Import results with statistics and asset information
         """
-        import os
         import time
 
         start_time = time.time()
-
-        # Validate source path exists
-        if not os.path.exists(sourcePath):
-            raise ValidationError(f"Source path does not exist: {sourcePath}")
 
         # Prepare import settings
         settings = self._prepare_import_settings(importSettings)
