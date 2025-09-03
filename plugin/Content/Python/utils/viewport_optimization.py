@@ -111,7 +111,7 @@ class ViewportManager:
     
     def _get_safe_int_value(self, name: str, value: Any, default: int) -> int:
         """Get a safe integer value, using default if value is invalid. Warn if float conversion loses precision."""
-        if isinstance(value, (int, float)) and value > 0:
+        if isinstance(value, (int, float)) and value >= 0:
             if isinstance(value, float) and not value.is_integer():
                 log_debug(f"Warning: {name} value {value} is a float and will be truncated to {int(value)}. Precision loss may occur.")
             return int(value)
