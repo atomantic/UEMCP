@@ -71,24 +71,33 @@ class RequiredRule(ValidationRule):
 class TypeRule(ValidationRule):
     """Validates that a value is of the expected type."""
     
-    def __init__(self, expected_type: Union[type, tuple]):
+    def __init__(self, expected_type: Union[type, tuple], allow_none: bool = False):
         self.expected_type = expected_type
+        self.allow_none = allow_none
     
     def validate(self, value: Any, field_name: str) -> Optional[str]:
+        if value is None and self.allow_none:
+            return None
         if not isinstance(value, self.expected_type):
             expected_name = getattr(self.expected_type, '__name__', str(self.expected_type))
             actual_name = type(value).__name__
-            return f"{field_name} must be {expected_name}, got {actual_name}"
+            if self.allow_none:
+                return f"{field_name} must be {expected_name} or None, got {actual_name}"
+            else:
+                return f"{field_name} must be {expected_name}, got {actual_name}"
         return None
 
 
 class ListLengthRule(ValidationRule):
     """Validates that a list has the expected length."""
     
-    def __init__(self, expected_length: int):
+    def __init__(self, expected_length: int, allow_none: bool = False):
         self.expected_length = expected_length
+        self.allow_none = allow_none
     
     def validate(self, value: Any, field_name: str) -> Optional[str]:
+        if value is None and self.allow_none:
+            return None
         if not isinstance(value, (list, tuple)):
             return f"{field_name} must be a list or tuple"
         if len(value) != self.expected_length:
