@@ -12,12 +12,13 @@ import {
 import { logger } from '../utils/logger.js';
 import { ToolRegistry } from './tool-registry.js';
 import { ConfigManager } from './config-manager.js';
+import { ToolResponse } from '../utils/response-formatter.js';
 
 export interface ServerOptions {
   name?: string;
   version?: string;
   capabilities?: {
-    tools?: {};
+    tools?: Record<string, never>;
   };
 }
 
@@ -88,14 +89,15 @@ export class ServerManager {
         arguments: unknown 
       };
       
-      return this.handleToolCall(name, args);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+      return this.handleToolCall(name, args) as any;
     });
   }
 
   /**
    * Handle individual tool calls with logging and error handling
    */
-  private async handleToolCall(name: string, args: unknown): Promise<any> {
+  private async handleToolCall(name: string, args: unknown): Promise<ToolResponse> {
     logger.info(`Tool called: ${name}`, { arguments: args });
     const startTime = Date.now();
 
@@ -208,7 +210,7 @@ export class ServerManager {
     isRunning: boolean;
     tools: number;
     categories: Record<string, number>;
-    config: any;
+    config: unknown;
   } {
     const toolStats = this.toolRegistry.getStats();
     
@@ -224,7 +226,7 @@ export class ServerManager {
    * Setup graceful shutdown handlers
    */
   public setupShutdownHandlers(): void {
-    const shutdown = async (signal: string) => {
+    const shutdown = async (signal: string): Promise<void> => {
       logger.info(`Received ${signal}, shutting down gracefully...`);
       
       try {
@@ -238,8 +240,8 @@ export class ServerManager {
       }
     };
     
-    process.on('SIGINT', () => shutdown('SIGINT'));
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => void shutdown('SIGINT'));
+    process.on('SIGTERM', () => void shutdown('SIGTERM'));
   }
 
   /**

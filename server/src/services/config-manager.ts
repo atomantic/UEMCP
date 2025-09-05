@@ -163,7 +163,8 @@ export class ConfigManager {
    * Update configuration value
    */
   public updateConfig(key: keyof ServerConfig, value: string | number): void {
-    (this.config as any)[key] = value;
+    // Use type assertion with proper constraint to ensure type safety
+    (this.config as unknown as Record<string, unknown>)[key] = value;
     logger.info(`Configuration updated: ${key} = ${value}`);
   }
 
