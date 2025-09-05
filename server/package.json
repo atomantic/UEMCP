@@ -15,7 +15,7 @@
     "test:python": "cd tests/python && python -m pytest -v",
     "test:python:coverage": "cd tests/python && python -m pytest --cov=ops --cov=utils --cov-report=term-missing --cov-report=html:coverage/python",
     "test:integration:old": "jest --config jest.config.js tests/tools/ tests/services/",
-    "test:coverage": "npm run test:unit -- --coverage && npm run test:python:coverage",
+    "test:coverage": "npm run lint && npm run typecheck && npm run test:unit -- --coverage && npm run test:python:coverage",
     "test:watch": "jest --config jest.config.unit.js --watch",
     "version:bump": "node ../scripts/bump-version.js",
     "version:major": "node ../scripts/bump-version.js --type=major",
