@@ -32,9 +32,6 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "workspaces": [
-    "server"
-  ],
   "devDependencies": {},
   "dependencies": {}
 }
