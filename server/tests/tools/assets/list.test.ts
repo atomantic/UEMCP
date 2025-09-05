@@ -8,6 +8,8 @@ jest.mock('../../../src/services/python-bridge.js', () => ({
 }));
 
 import { AssetListTool } from '../../../src/tools/assets/list.js';
+// Also test the barrel export
+import { assetListTool } from '../../../src/tools/assets/index.js';
 
 describe('AssetListTool', () => {
   let tool: AssetListTool;
@@ -360,6 +362,13 @@ describe('AssetListTool', () => {
       expect(result.content[0].text).toContain('/Game/ModularOldTown/Materials');
       expect(result.content[0].text).toContain('M_Stone');
       expect(result.content[0].text).toContain('M_Wood');
+    });
+  });
+
+  describe('barrel export', () => {
+    it('should export assetListTool from index', () => {
+      expect(assetListTool).toBeDefined();
+      expect(assetListTool.definition.name).toBe('asset_list');
     });
   });
 });

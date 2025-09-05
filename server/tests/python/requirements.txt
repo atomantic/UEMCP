@@ -1,0 +1,11 @@
+# Python testing requirements
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+pytest-xdist>=3.0.0  # For parallel test execution
+coverage>=7.0.0
+
+# Development utilities
+black>=23.0.0  # Code formatting
+flake8>=6.0.0  # Linting
+mypy>=1.0.0    # Type checking

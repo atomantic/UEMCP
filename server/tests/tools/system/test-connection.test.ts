@@ -110,11 +110,12 @@ describe('TestConnectionTool', () => {
         error: 'System test failed',
       });
 
-      // Should still report as online since isUnrealEngineAvailable returned true
+      // When executePythonCommand fails, it throws an error which goes to the catch block
       const result = await tool.toMCPTool().handler({});
 
-      expect(result.content[0].text).toContain('✅ Python listener is ONLINE');
-      expect(result.content[0].text).toContain('Version: Unknown');
+      expect(result.content[0].text).toContain('🔍 Testing Python listener availability...');
+      expect(result.content[0].text).toContain('❌ Python listener is OFFLINE');
+      expect(result.content[0].text).toContain('Make sure Unreal Engine is running with the UEMCP plugin');
     });
 
     it('should handle network timeout scenarios', async () => {

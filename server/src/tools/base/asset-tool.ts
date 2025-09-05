@@ -57,7 +57,8 @@ interface ComponentInfo {
 }
 
 export interface EnhancedAssetInfo {
-  assetType?: string;
+  success: boolean;
+  assetType: string;
   bounds?: BoundsInfo;
   pivot?: PivotInfo;
   collision?: CollisionInfo;
@@ -73,13 +74,14 @@ export interface EnhancedAssetInfo {
 
 // Type guard to validate enhanced asset info structure
 export function isEnhancedAssetInfo(obj: unknown): obj is EnhancedAssetInfo {
-  if (!obj || typeof obj !== 'object') return false;
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
   
   // Cast to Record to access properties
   const data = obj as Record<string, unknown>;
   
-  // Check optional properties have correct types when present
-  if (data.assetType !== undefined && typeof data.assetType !== 'string') return false;
+  // For enhanced asset info, we need success=true and assetType to be defined
+  if (data.success !== true) return false;
+  if (!data.assetType || typeof data.assetType !== 'string') return false;
   if (data.numVertices !== undefined && typeof data.numVertices !== 'number') return false;
   if (data.numTriangles !== undefined && typeof data.numTriangles !== 'number') return false;
   if (data.numLODs !== undefined && typeof data.numLODs !== 'number') return false;
@@ -210,7 +212,7 @@ export abstract class AssetTool<TArgs = unknown> extends BaseTool<TArgs> {
       if (info.collision.numCollisionPrimitives !== undefined && info.collision.numCollisionPrimitives > 0) {
         textParts.push(`  Collision Primitives: ${info.collision.numCollisionPrimitives}\n`);
       }
-      if (info.collision.collisionComplexity) {
+      if (info.collision.collisionComplexity && info.collision.collisionComplexity !== 'none') {
         textParts.push(`  Complexity: ${info.collision.collisionComplexity}\n`);
       }
     }

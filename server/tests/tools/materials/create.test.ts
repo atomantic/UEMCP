@@ -77,10 +77,18 @@ describe('MaterialCreateTool', () => {
       const result = await tool.toMCPTool().handler(args);
 
       expect(mockExecuteCommand).toHaveBeenCalledWith({
-        type: 'material.create',
-        params: args
+        type: 'material.create_simple_material',
+        params: {
+          material_name: 'M_Test_Material',
+          target_folder: undefined,
+          base_color: undefined,
+          metallic: undefined,
+          roughness: undefined,
+          emissive: undefined
+        }
       });
-      expect(result.content[0].text).toContain('✓ Created material: M_Test_Material');
+      expect(result.content[0].text).toContain('Material created successfully!');
+      expect(result.content[0].text).toContain('Name: M_Test_Material');
       expect(result.content[0].text).toContain('Path: /Game/Materials/M_Test_Material');
     });
 
@@ -104,8 +112,9 @@ describe('MaterialCreateTool', () => {
 
       const result = await tool.toMCPTool().handler(args);
 
-      expect(result.content[0].text).toContain('✓ Created material: M_Red_Material');
-      expect(result.content[0].text).toContain('Base Color: [1, 0, 0]');
+      expect(result.content[0].text).toContain('Material created successfully!');
+      expect(result.content[0].text).toContain('Name: M_Red_Material');
+      expect(result.content[0].text).toContain('baseColor: RGB(1, 0, 0)');
     });
 
     it('should create a material with metallic and roughness properties', async () => {
@@ -131,8 +140,8 @@ describe('MaterialCreateTool', () => {
       const result = await tool.toMCPTool().handler(args);
 
       expect(result.content[0].text).toContain('M_Metal_Material');
-      expect(result.content[0].text).toContain('Metallic: 1');
-      expect(result.content[0].text).toContain('Roughness: 0.2');
+      expect(result.content[0].text).toContain('metallic: 1');
+      expect(result.content[0].text).toContain('roughness: 0.2');
     });
 
     it('should create a material with emissive properties', async () => {
@@ -157,7 +166,7 @@ describe('MaterialCreateTool', () => {
       const result = await tool.toMCPTool().handler(args);
 
       expect(result.content[0].text).toContain('M_Glowing_Material');
-      expect(result.content[0].text).toContain('Emissive: [0, 1, 0]');
+      expect(result.content[0].text).toContain('emissive: RGB(0, 1, 0)');
     });
 
     it('should create a material in a custom folder', async () => {
@@ -191,21 +200,23 @@ describe('MaterialCreateTool', () => {
 
       mockExecuteCommand.mockResolvedValue({
         success: true,
-        materialPath: '/Game/Materials/MI_Test_Instance',
-        instanceName: 'MI_Test_Instance',
-        type: 'MaterialInstance',
-        parentMaterial: '/Game/Materials/M_Base_Material',
-        parameters: {},
+        materialInstancePath: '/Game/Materials/MI_Test_Instance'
       });
 
       const result = await tool.toMCPTool().handler(args);
 
       expect(mockExecuteCommand).toHaveBeenCalledWith({
-        type: 'material.create',
-        params: args
+        type: 'material.create_material_instance',
+        params: {
+          parent_material_path: '/Game/Materials/M_Base_Material',
+          instance_name: 'MI_Test_Instance',
+          target_folder: undefined,
+          parameters: undefined
+        }
       });
-      expect(result.content[0].text).toContain('✓ Created material instance: MI_Test_Instance');
-      expect(result.content[0].text).toContain('Parent: M_Base_Material');
+      expect(result.content[0].text).toContain('Material created successfully!');
+      expect(result.content[0].text).toContain('Name: MI_Test_Instance');
+      expect(result.content[0].text).toContain('Parent Material: /Game/Materials/M_Base_Material');
     });
 
     it('should create a material instance with custom parameters', async () => {
@@ -221,23 +232,14 @@ describe('MaterialCreateTool', () => {
 
       mockExecuteCommand.mockResolvedValue({
         success: true,
-        materialPath: '/Game/Materials/MI_Custom_Instance',
-        instanceName: 'MI_Custom_Instance',
-        type: 'MaterialInstance',
-        parentMaterial: '/Game/Materials/M_Base_Material',
-        parameters: {
-          BaseColor: { r: 0.8, g: 0.2, b: 0.2 },
-          Roughness: 0.8,
-          Metallic: 0.1,
-        },
+        materialInstancePath: '/Game/Materials/MI_Custom_Instance'
       });
 
       const result = await tool.toMCPTool().handler(args);
 
-      expect(result.content[0].text).toContain('✓ Created material instance: MI_Custom_Instance');
-      expect(result.content[0].text).toContain('BaseColor');
-      expect(result.content[0].text).toContain('Roughness');
-      expect(result.content[0].text).toContain('Metallic');
+      expect(result.content[0].text).toContain('Material created successfully!');
+      expect(result.content[0].text).toContain('Name: MI_Custom_Instance');
+      expect(result.content[0].text).toContain('Parent Material: /Game/Materials/M_Base_Material');
     });
 
     it('should create a material instance in a custom folder', async () => {
@@ -249,16 +251,13 @@ describe('MaterialCreateTool', () => {
 
       mockExecuteCommand.mockResolvedValue({
         success: true,
-        materialPath: '/Game/MyProject/MaterialInstances/MI_Custom_Folder_Instance',
-        instanceName: 'MI_Custom_Folder_Instance',
-        type: 'MaterialInstance',
-        parentMaterial: '/Game/Materials/M_Base_Material',
-        parameters: {},
+        materialInstancePath: '/Game/MyProject/MaterialInstances/MI_Custom_Folder_Instance'
       });
 
       const result = await tool.toMCPTool().handler(args);
 
-      expect(result.content[0].text).toContain('Path: /Game/MyProject/MaterialInstances/MI_Custom_Folder_Instance');
+      expect(result.content[0].text).toContain('Name: MI_Custom_Folder_Instance');
+      expect(result.content[0].text).toContain('Parent Material: /Game/Materials/M_Base_Material');
     });
 
     it('should create a material instance with complex parameters', async () => {
@@ -276,19 +275,14 @@ describe('MaterialCreateTool', () => {
 
       mockExecuteCommand.mockResolvedValue({
         success: true,
-        materialPath: '/Game/Materials/MI_Complex_Instance',
-        instanceName: 'MI_Complex_Instance',
-        type: 'MaterialInstance',
-        parentMaterial: '/Game/Materials/M_Master_Material',
-        parameters: args.parameters,
+        materialInstancePath: '/Game/Materials/MI_Complex_Instance'
       });
 
       const result = await tool.toMCPTool().handler(args);
 
-      expect(result.content[0].text).toContain('MI_Complex_Instance');
-      expect(result.content[0].text).toContain('DiffuseColor');
-      expect(result.content[0].text).toContain('NormalStrength');
-      expect(result.content[0].text).toContain('TexturePath');
+      expect(result.content[0].text).toContain('Material created successfully!');
+      expect(result.content[0].text).toContain('Name: MI_Complex_Instance');
+      expect(result.content[0].text).toContain('Parent Material: /Game/Materials/M_Master_Material');
     });
   });
 

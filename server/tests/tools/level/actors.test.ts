@@ -8,6 +8,8 @@ jest.mock('../../../src/services/python-bridge.js', () => ({
 }));
 
 import { LevelActorsTool } from '../../../src/tools/level/actors.js';
+// Also test the barrel export
+import { levelActorsTool } from '../../../src/tools/level/index.js';
 
 describe('LevelActorsTool', () => {
   let tool: LevelActorsTool;
@@ -302,6 +304,13 @@ describe('LevelActorsTool', () => {
 
       expect(result.content[0].text).toContain('Found 1 actor');
       expect(result.content[0].text).toContain('Wall_ModularOldTown_01');
+    });
+  });
+
+  describe('barrel export', () => {
+    it('should export levelActorsTool from index', () => {
+      expect(levelActorsTool).toBeDefined();
+      expect(levelActorsTool.definition.name).toBe('level_actors');
     });
   });
 });

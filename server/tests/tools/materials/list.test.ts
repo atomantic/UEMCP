@@ -8,6 +8,8 @@ jest.mock('../../../src/services/python-bridge.js', () => ({
 }));
 
 import { MaterialListTool } from '../../../src/tools/materials/list.js';
+// Also test the barrel export
+import { materialListTool } from '../../../src/tools/materials/index.js';
 
 describe('MaterialListTool', () => {
   let tool: MaterialListTool;
@@ -275,6 +277,13 @@ describe('MaterialListTool', () => {
       expect(result.content[0].text).toContain('M_Master_Material');
       expect(result.content[0].text).toContain('MI_Child_Instance');
       expect(result.content[0].text).toContain('MI_Grandchild_Instance');
+    });
+  });
+
+  describe('barrel export', () => {
+    it('should export materialListTool from index', () => {
+      expect(materialListTool).toBeDefined();
+      expect(materialListTool.definition.name).toBe('material_list');
     });
   });
 });

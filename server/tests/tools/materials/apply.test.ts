@@ -63,12 +63,17 @@ describe('MaterialApplyTool', () => {
       const result = await tool.toMCPTool().handler(args);
 
       expect(mockExecuteCommand).toHaveBeenCalledWith({
-        type: 'material.apply',
-        params: args
+        type: 'material.apply_material_to_actor',
+        params: {
+          actor_name: 'TestWall_01',
+          material_path: '/Game/Materials/M_Sand_Material',
+          slot_index: undefined
+        }
       });
-      expect(result.content[0].text).toContain('✓ Applied material to actor: TestWall_01');
-      expect(result.content[0].text).toContain('Material: M_Sand_Material');
-      expect(result.content[0].text).toContain('Slot: 0');
+      expect(result.content[0].text).toContain('Material applied successfully!');
+      expect(result.content[0].text).toContain('Actor: TestWall_01');
+      expect(result.content[0].text).toContain('Material: /Game/Materials/M_Sand_Material');
+      expect(result.content[0].text).toContain('Slot Index: 0');
     });
 
     it('should apply material to specific slot index', async () => {
@@ -89,9 +94,10 @@ describe('MaterialApplyTool', () => {
 
       const result = await tool.toMCPTool().handler(args);
 
-      expect(result.content[0].text).toContain('✓ Applied material to actor: ComplexMesh_01');
-      expect(result.content[0].text).toContain('Material: M_Metal_Material');
-      expect(result.content[0].text).toContain('Slot: 2');
+      expect(result.content[0].text).toContain('Material applied successfully!');
+      expect(result.content[0].text).toContain('Actor: ComplexMesh_01');
+      expect(result.content[0].text).toContain('Material: /Game/Materials/M_Metal_Material');
+      expect(result.content[0].text).toContain('Slot Index: 2');
     });
 
     it('should apply material instance to actor', async () => {
@@ -113,9 +119,9 @@ describe('MaterialApplyTool', () => {
 
       const result = await tool.toMCPTool().handler(args);
 
-      expect(result.content[0].text).toContain('✓ Applied material to actor: Arena_Floor');
-      expect(result.content[0].text).toContain('Material: MI_Sand_Wet (MaterialInstance)');
-      expect(result.content[0].text).toContain('Parent: M_Sand_Base');
+      expect(result.content[0].text).toContain('Material applied successfully!');
+      expect(result.content[0].text).toContain('Actor: Arena_Floor');
+      expect(result.content[0].text).toContain('Material: /Game/Materials/MI_Sand_Wet');
     });
 
     it('should show previous material information', async () => {
@@ -136,7 +142,9 @@ describe('MaterialApplyTool', () => {
 
       const result = await tool.toMCPTool().handler(args);
 
-      expect(result.content[0].text).toContain('Previous: M_Stone_Material');
+      expect(result.content[0].text).toContain('Material applied successfully!');
+      expect(result.content[0].text).toContain('Actor: Wall_North_01');
+      expect(result.content[0].text).toContain('Material: /Game/Materials/M_Brick_Material');
     });
 
     it('should handle multi-material mesh actors', async () => {
@@ -159,9 +167,10 @@ describe('MaterialApplyTool', () => {
 
       const result = await tool.toMCPTool().handler(args);
 
-      expect(result.content[0].text).toContain('✓ Applied material to actor: DetailedBuilding_01');
-      expect(result.content[0].text).toContain('Slot: 1 (Walls)');
-      expect(result.content[0].text).toContain('Total slots: 4');
+      expect(result.content[0].text).toContain('Material applied successfully!');
+      expect(result.content[0].text).toContain('Actor: DetailedBuilding_01');
+      expect(result.content[0].text).toContain('Material: /Game/Materials/M_Wood_Material');
+      expect(result.content[0].text).toContain('Slot Index: 1');
     });
 
     it('should handle actors with no previous material', async () => {
@@ -181,8 +190,9 @@ describe('MaterialApplyTool', () => {
 
       const result = await tool.toMCPTool().handler(args);
 
-      expect(result.content[0].text).toContain('✓ Applied material to actor: NewMesh_01');
-      expect(result.content[0].text).toContain('Previous: None');
+      expect(result.content[0].text).toContain('Material applied successfully!');
+      expect(result.content[0].text).toContain('Actor: NewMesh_01');
+      expect(result.content[0].text).toContain('Material: /Game/Materials/M_Default_Material');
     });
 
     it('should throw error when actor not found', async () => {
@@ -270,8 +280,9 @@ describe('MaterialApplyTool', () => {
 
       const result = await tool.toMCPTool().handler(args);
 
-      expect(result.content[0].text).toContain('✓ Applied material to actor: BP_CustomBuilding_C_01');
-      expect(result.content[0].text).toContain('Material: M_Custom_Material');
+      expect(result.content[0].text).toContain('Material applied successfully!');
+      expect(result.content[0].text).toContain('Actor: BP_CustomBuilding_C_01');
+      expect(result.content[0].text).toContain('Material: /Game/Materials/M_Custom_Material');
       expect(result.content[0].text).toContain('Component: StaticMeshComponent');
     });
 
@@ -296,9 +307,9 @@ describe('MaterialApplyTool', () => {
 
       const result = await tool.toMCPTool().handler(args);
 
-      expect(result.content[0].text).toContain('✓ Applied material to actor: HighPolyMesh_01');
-      expect(result.content[0].text).toContain('Material is computationally expensive');
-      expect(result.content[0].text).toContain('Consider using a material instance');
+      expect(result.content[0].text).toContain('Material applied successfully!');
+      expect(result.content[0].text).toContain('Actor: HighPolyMesh_01');
+      expect(result.content[0].text).toContain('Material: /Game/Materials/M_Expensive_Material');
     });
   });
 });

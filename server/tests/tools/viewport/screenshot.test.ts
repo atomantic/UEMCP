@@ -8,6 +8,8 @@ jest.mock('../../../src/services/python-bridge.js', () => ({
 }));
 
 import { ViewportScreenshotTool } from '../../../src/tools/viewport/screenshot.js';
+// Also test the barrel export
+import { viewportScreenshotTool } from '../../../src/tools/viewport/index.js';
 
 describe('ViewportScreenshotTool', () => {
   let tool: ViewportScreenshotTool;
@@ -259,6 +261,13 @@ describe('ViewportScreenshotTool', () => {
       if (result.content[0]?.text?.includes('ms')) {
         expect(result.content[0].text).toMatch(/\d+ms/);
       }
+    });
+  });
+
+  describe('barrel export', () => {
+    it('should export viewportScreenshotTool from index', () => {
+      expect(viewportScreenshotTool).toBeDefined();
+      expect(viewportScreenshotTool.definition.name).toBe('viewport_screenshot');
     });
   });
 });

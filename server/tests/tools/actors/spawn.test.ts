@@ -8,6 +8,8 @@ jest.mock('../../../src/services/python-bridge.js', () => ({
 }));
 
 import { ActorSpawnTool } from '../../../src/tools/actors/spawn.js';
+// Also test the barrel export
+import { actorSpawnTool } from '../../../src/tools/actors/index.js';
 
 describe('ActorSpawnTool', () => {
   let tool: ActorSpawnTool;
@@ -191,6 +193,13 @@ describe('ActorSpawnTool', () => {
         params: args
       });
       expect(result.content[0].text).toContain('✓ Spawned actor:');
+    });
+  });
+
+  describe('barrel export', () => {
+    it('should export actorSpawnTool from index', () => {
+      expect(actorSpawnTool).toBeDefined();
+      expect(actorSpawnTool.definition.name).toBe('actor_spawn');
     });
   });
 });
