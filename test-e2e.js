@@ -268,16 +268,52 @@ import unreal
 # Get the world outliner subsystem
 outliner_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
 
-# Since UE doesn't have direct folder deletion API, we just ensure all actors are gone
-# The folder structure will automatically clean up when empty
+# Force cleanup by moving any remaining actors out of Test folder paths
+all_actors = outliner_subsystem.get_all_level_actors()
+test_folder_actors = []
 
-print("Folder cleanup: All test actors removed, empty folders will auto-cleanup")
-result = {"success": True, "message": "Test folder structure cleaned"}
+for actor in all_actors:
+    if actor and hasattr(actor, 'get_folder_path'):
+        folder_path = str(actor.get_folder_path())
+        if folder_path and folder_path.startswith('Test'):
+            test_folder_actors.append(actor.get_actor_label())
+            # Move actor to root level (no folder)
+            actor.set_folder_path("")
+
+# Force multiple operations to try to clear folder structure
+unreal.EditorLevelLibrary.save_current_level()
+
+# Try additional cleanup approaches
+try:
+    # Force garbage collection to clean up references
+    import gc
+    gc.collect()
+    
+    # Try to force outliner refresh by accessing level info
+    world = unreal.EditorLevelLibrary.get_editor_world()
+    level_name = world.get_name()
+    
+    # Save again after garbage collection
+    unreal.EditorLevelLibrary.save_current_level()
+    
+    print("Applied additional cleanup: garbage collection + double save")
+except Exception as cleanup_error:
+    print(f"Additional cleanup warning: {cleanup_error}")
+
+if test_folder_actors:
+    print(f"Moved {len(test_folder_actors)} actors out of Test folders: {test_folder_actors}")
+else:
+    print("No actors found in Test folders")
+
+print("Folder cleanup completed - Note: Empty folder removal depends on UE internal cleanup")
+print("If folders persist, they are empty and will not affect functionality")
+result = {"success": True, "message": "Test folder cleanup completed (UE API limitation for empty folder removal)", "moved_actors": len(test_folder_actors)}
 `
               });
               
               if (folderCleanupResult.success) {
-                this.log('✓ Test folder structure cleanup completed', 'success');
+                const movedCount = folderCleanupResult.result?.moved_actors || 0;
+                this.log(`✓ Test folder cleanup completed (moved ${movedCount} actors)`, 'success');
               } else {
                 this.log('⚠️  Test folder cleanup had issues but actors are removed', 'warning');
               }

@@ -287,11 +287,13 @@ class ViewportOperations:
         elif mode == "unlit":
             execute_console_command("viewmode unlit", world)
         elif mode == "lit":
-            # Reset all show flags when going back to lit mode
+            # Reset all show flags when going back to lit mode - order matters!
+            execute_console_command("viewmode lit", world)
             execute_console_command("ShowFlag.Wireframe 0", world)
             execute_console_command("ShowFlag.Materials 1", world)
             execute_console_command("ShowFlag.Lighting 1", world)
-            execute_console_command("viewmode lit", world)
+            # Ensure lighting is fully restored
+            execute_console_command("r.ForceDebugViewModes 0", world)
         elif mode == "detail_lighting":
             execute_console_command("viewmode lit_detaillighting", world)
         elif mode == "lighting_only":
