@@ -203,6 +203,70 @@ class E2ETestRunner {
     }
   }
 
+  async cleanupTestActors() {
+    this.log('🧹 Cleaning up all test actors and folders...', 'info');
+    
+    try {
+      const { MCPClient } = require('./tests/utils/mcp-client.js');
+      const client = new MCPClient();
+      
+      // Get current level outliner to see folder structure
+      const outlinerResult = await client.callTool('level_outliner', {});
+      
+      let totalDeleted = 0;
+      
+      if (outlinerResult.success) {
+        this.log('Checking for Test folder structure...', 'info');
+        
+        // Get all actors
+        const levelResult = await client.callTool('level_actors', {});
+        
+        if (levelResult.success && levelResult.actors) {
+          // Find all actors in Test folder or with test names
+          const testActorPatterns = [
+            'Wall1', 'Wall2', 'Door1',           // Legacy names
+            'Foundation', 'WallSegment_',        // Comprehensive test actors
+            'BuildingWall', 'DoorFrame', 'CornerPiece', // Socket test assets
+            'Complex_Wall', 'Complex_Door', 'Complex_Window', 'Complex_Corner' // Complex socket test
+          ];
+          
+          const actorsToClean = levelResult.actors.filter(actor => 
+            testActorPatterns.some(pattern => actor.name.includes(pattern))
+          );
+          
+          if (actorsToClean.length > 0) {
+            this.log(`Found ${actorsToClean.length} test actors to clean up`, 'info');
+            
+            // Delete each actor
+            for (const actor of actorsToClean) {
+              try {
+                const deleteResult = await client.callTool('actor_delete', {
+                  actorName: actor.name
+                });
+                
+                if (deleteResult.success) {
+                  totalDeleted++;
+                  this.log(`  ✓ Deleted ${actor.name}`);
+                } else {
+                  this.log(`  ✗ Failed to delete ${actor.name}`, 'warning');
+                }
+              } catch (error) {
+                this.log(`  ✗ Error deleting ${actor.name}: ${error.message}`, 'warning');
+              }
+            }
+            
+            this.log(`Successfully cleaned up ${totalDeleted}/${actorsToClean.length} test actors`, 'success');
+          } else {
+            this.log('No test actors found to clean up', 'success');
+          }
+        }
+      }
+      
+    } catch (error) {
+      this.log(`Failed to clean test actors: ${error.message}`, 'warning');
+    }
+  }
+
   async checkUELogs() {
     this.log('🔍 Checking Unreal Engine logs for errors...', 'info');
     
@@ -328,6 +392,9 @@ class E2ETestRunner {
     if (this.config.coverage) {
       await this.generateCoverageReport();
     }
+    
+    // Clean up all test actors before checking logs
+    await this.cleanupTestActors();
     
     // Check UE logs for errors
     await this.checkUELogs();

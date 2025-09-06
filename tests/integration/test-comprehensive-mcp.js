@@ -398,7 +398,8 @@ result = {
         assetPath: '/Engine/BasicShapes/Cube',
         location: [0, 0, 0],
         scale: [10, 10, 1],
-        name: 'Foundation'
+        name: 'Foundation',
+        folder: 'Test'
       });
       if (!this.isSuccessResponse(result)) {
         throw new Error('Actor spawn failed');
@@ -416,7 +417,7 @@ result = {
           location: [i * 300, 0, 150],
           scale: [3, 1, 3],
           name: `WallSegment_${i + 1}`,
-          folder: 'Building/Walls'
+          folder: 'Test/Building/Walls'
         });
       }
       
@@ -451,7 +452,7 @@ result = {
       const result = await this.client.callTool('actor_modify', {
         actorName: 'Foundation',
         scale: [12, 12, 1],
-        folder: 'Building/Foundation'
+        folder: 'Test/Building/Foundation'
       });
       if (!this.isSuccessResponse(result)) {
         throw new Error('Actor modify failed');
@@ -475,7 +476,7 @@ result = {
     await this.testTool('actor_organize', 'Organize wall actors', async () => {
       const result = await this.client.callTool('actor_organize', {
         actors: ['WallSegment_1', 'WallSegment_2', 'WallSegment_3', 'WallSegment_4', 'WallSegment_5'],
-        folder: 'Building/Walls'
+        folder: 'Test/Building/Walls'
       });
       if (!this.isSuccessResponse(result)) {
         throw new Error('Actor organize failed');

@@ -74,25 +74,34 @@ class SocketSnappingTest {
     // Phase 2: Basic Actor Spawning (using actor_spawn)
     console.log('\n🎭 Phase 2: Spawning building actors...');
     
+    // Generate unique names for this test run to avoid conflicts
+    const timestamp = Date.now();
+    const wall1Name = `Wall1_${timestamp}`;
+    const wall2Name = `Wall2_${timestamp}`;
+    const door1Name = `Door1_${timestamp}`;
+    
     const wall1 = await this.client.callTool('actor_spawn', {
       assetPath: '/Engine/BasicShapes/Cube',
       location: [0, 0, 0],
-      name: 'Wall1'
+      name: wall1Name,
+      folder: 'Test/SocketTest'
     });
     
     const wall2 = await this.client.callTool('actor_spawn', {
       assetPath: '/Engine/BasicShapes/Cube', 
       location: [500, 0, 0],
-      name: 'Wall2'
+      name: wall2Name,
+      folder: 'Test/SocketTest'
     });
     
     const door = await this.client.callTool('actor_spawn', {
       assetPath: '/Engine/BasicShapes/Cube',
       location: [1000, 0, 0], 
-      name: 'Door1'
+      name: door1Name,
+      folder: 'Test/SocketTest'
     });
     
-    this.testActors.push('Wall1', 'Wall2', 'Door1');
+    this.testActors.push(wall1Name, wall2Name, door1Name);
     
     const spawnSuccess = this.isSuccessResponse(wall1) && this.isSuccessResponse(wall2) && this.isSuccessResponse(door);
     this.updateTestResult('Actor Spawning', spawnSuccess, 
@@ -103,7 +112,7 @@ class SocketSnappingTest {
     
     // Test 3a: Basic socket snapping
     const snapResult1 = await this.client.callTool('actor_snap_to_socket', {
-      sourceActor: 'Wall2',
+      sourceActor: wall2Name,
       targetActor: 'BuildingWall',
       targetSocket: 'SocketRight',
       validate: true
@@ -115,7 +124,7 @@ class SocketSnappingTest {
     
     // Test 3b: Socket snapping with offset
     const snapResult2 = await this.client.callTool('actor_snap_to_socket', {
-      sourceActor: 'Door1', 
+      sourceActor: door1Name, 
       targetActor: 'DoorFrame',
       targetSocket: 'SocketLeft',
       offset: [0, 0, 50],
@@ -128,7 +137,7 @@ class SocketSnappingTest {
     
     // Test 3c: Error handling for non-existent socket
     const snapResult3 = await this.client.callTool('actor_snap_to_socket', {
-      sourceActor: 'Wall1',
+      sourceActor: wall1Name,
       targetActor: 'BuildingWall', 
       targetSocket: 'NonExistentSocket'
     });
@@ -149,7 +158,7 @@ class SocketSnappingTest {
     console.log('\n✅ Phase 4: Validating building placement...');
     
     const validationResult = await this.client.callTool('placement_validate', {
-      actors: ['BuildingWall', 'DoorFrame', 'Wall1', 'Wall2', 'Door1'],
+      actors: ['BuildingWall', 'DoorFrame', wall1Name, wall2Name, door1Name],
       checkAlignment: true,
       tolerance: 10,
       modularSize: 300
