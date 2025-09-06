@@ -459,7 +459,7 @@ UEMCP provides comprehensive automation with **39 production-ready MCP tools**:
 
 ### Current MCP Tool Limitations
 - **Blueprint Graph Editing**: Cannot programmatically edit Blueprint node graphs (visual scripting logic)
-- **Animation Blueprints**: No direct animation state machine or blend tree manipulation  
+- **Animation Blueprints**: No direct animation state machine or blend tree manipulation
 - **Level Streaming**: No dynamic level loading/unloading control
 
 ### Python API Issues
