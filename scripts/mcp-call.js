@@ -11,6 +11,14 @@ const path = require('path');
 const STARTUP_DELAY_MS = 500;
 const TIMEOUT_MS = 15000;
 
+// Server startup detection patterns (configurable for different server implementations)
+const SERVER_READY_PATTERNS = [
+  /Ready to receive MCP requests/i,
+  /UEMCP Server started/i,
+  /MCP server listening/i,
+  /Server initialized successfully/i
+];
+
 const toolName = process.argv[2];
 const argJson = process.argv[3] || '{}';
 
@@ -31,6 +39,32 @@ try {
 const defaultServerPath = path.join(__dirname, '..', 'server', 'dist', 'index.js');
 const serverPath = process.env.UEMCP_SERVER_PATH || defaultServerPath;
 
+// Security: Validate server path
+function validateServerPath(serverPath) {
+  const resolvedPath = path.resolve(serverPath);
+  const projectRoot = path.resolve(__dirname, '..');
+  
+  // Allow paths within project directory or absolute paths to known safe locations
+  if (resolvedPath.startsWith(projectRoot)) {
+    return true; // Within project - safe
+  }
+  
+  // For external paths, require they end with a reasonable server filename
+  const basename = path.basename(resolvedPath);
+  const validServerNames = ['index.js', 'server.js', 'mcp-server.js', 'uemcp-server.js'];
+  if (validServerNames.includes(basename)) {
+    return true; // External but reasonable filename
+  }
+  
+  return false; // Potentially unsafe
+}
+
+if (!validateServerPath(serverPath)) {
+  console.error(`Invalid server path: ${serverPath}`);
+  console.error('Server path must be within project directory or have a valid server filename');
+  process.exit(1);
+}
+
 // Check if server file exists
 if (!fs.existsSync(serverPath)) {
   console.error(`MCP server not found at: ${serverPath}`);
@@ -46,6 +80,7 @@ const server = spawn('node', [serverPath], { stdio: ['pipe', 'pipe', 'pipe'] });
 let received = '';
 let sent = false;
 let initialized = false;
+let serverTerminated = false;
 
 function sendInitializeRequest() {
   const initReq = {
@@ -72,6 +107,35 @@ function sendToolCallRequest() {
     }
   };
   server.stdin.write(JSON.stringify(req) + '\n');
+}
+
+// Enhanced process termination with fallback mechanisms
+function terminateServer(reason = 'unknown') {
+  if (serverTerminated) {
+    return;
+  }
+  serverTerminated = true;
+  
+  console.log(`[Terminating server: ${reason}]`);
+  
+  // Stage 1: Graceful SIGTERM
+  server.kill('SIGTERM');
+  
+  // Stage 2: Force kill after timeout if still running
+  setTimeout(() => {
+    if (!server.killed && server.exitCode === null) {
+      console.log('[Server still running, sending SIGKILL...]');
+      server.kill('SIGKILL');
+      
+      // Stage 3: Final check and manual process termination
+      setTimeout(() => {
+        if (!server.killed && server.exitCode === null) {
+          console.error('[CRITICAL: Server process may still be lingering]');
+          console.error(`[Process PID: ${server.pid}]`);
+        }
+      }, 1000);
+    }
+  }, 2000);
 }
 
 // Combined stdout handler for initialization and response parsing
@@ -101,13 +165,14 @@ server.stdout.on('data', (data) => {
       else if (msg.id === 1 && (msg.result || msg.error)) {
         console.log(`\n[MCP response]`);
         console.log(JSON.stringify(msg, null, 2));
-        server.kill();
+        terminateServer('successful completion');
         process.exit(0);
       }
     } catch (_) {
-      // Check for server ready messages as fallback
-      if (!sent && /Ready to receive MCP requests|UEMCP Server started/i.test(s)) {
+      // Check for server ready messages as fallback using configurable patterns
+      if (!sent && SERVER_READY_PATTERNS.some(pattern => pattern.test(s))) {
         sent = true;
+        console.log(`[Server ready signal detected: "${s.trim()}"]`);
         setTimeout(() => {
           sendInitializeRequest();
         }, STARTUP_DELAY_MS);
@@ -117,22 +182,43 @@ server.stdout.on('data', (data) => {
 });
 
 server.stderr.on('data', (data) => {
-  process.stderr.write(`[server:err] ${data.toString()}`);
+  const text = data.toString();
+  process.stderr.write(`[server:err] ${text}`);
+  
+  // Also check stderr for server ready messages (in case they're logged to stderr)
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const s = line.trim();
+    if (!s) continue;
+    
+    // Check for server ready messages using configurable patterns
+    if (!sent && SERVER_READY_PATTERNS.some(pattern => pattern.test(s))) {
+      sent = true;
+      console.log(`[Server ready signal detected in stderr: "${s}"]`);
+      setTimeout(() => {
+        sendInitializeRequest();
+      }, STARTUP_DELAY_MS);
+      break;
+    }
+  }
 });
 
 server.on('error', (err) => {
   console.error('Failed to start MCP server:', err.message);
+  terminateServer('server error');
   process.exit(1);
 });
 
-// Safety timeout
+server.on('close', (code, signal) => {
+  if (!serverTerminated) {
+    console.log(`[Server closed with code ${code}, signal ${signal}]`);
+  }
+});
+
+// Safety timeout with enhanced termination
 setTimeout(() => {
   console.error('Timed out waiting for MCP response');
-  try { 
-    server.kill(); 
-  } catch (err) { 
-    console.error('Failed to terminate server process during timeout:', err.message); 
-  }
+  terminateServer('timeout');
   process.exit(2);
 }, TIMEOUT_MS);
 
