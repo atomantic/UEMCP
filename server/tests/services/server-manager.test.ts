@@ -119,7 +119,7 @@ describe('ServerManager', () => {
       const options: ServerOptions = {
         name: 'custom-server',
         version: '2.0.0',
-        capabilities: { tools: { custom: true } },
+        capabilities: { tools: { custom: true } as any },
       };
 
       const customManager = new ServerManager(
@@ -147,7 +147,7 @@ describe('ServerManager', () => {
       const options: ServerOptions = {
         name: 'custom-name',
         version: '2.0.0',
-        capabilities: { tools: { custom: true } },
+        capabilities: { tools: { custom: true } as any },
       };
 
       const customManager = new ServerManager(
@@ -514,7 +514,14 @@ describe('ServerManager', () => {
         .find(call => call[0] === 'SIGINT')[1];
 
       await sigintHandler();
+      
+      // Give time for async shutdown to complete
+      await new Promise(resolve => setTimeout(resolve, 10));
 
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Error stopping server',
+        { error: 'Shutdown failed' }
+      );
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Error during shutdown',
         { error: 'Shutdown failed' }
@@ -532,7 +539,14 @@ describe('ServerManager', () => {
         .find(call => call[0] === 'SIGINT')[1];
 
       await sigintHandler();
+      
+      // Give time for async shutdown to complete
+      await new Promise(resolve => setTimeout(resolve, 10));
 
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Error stopping server',
+        { error: 'Shutdown string error' }
+      );
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Error during shutdown',
         { error: 'Shutdown string error' }
