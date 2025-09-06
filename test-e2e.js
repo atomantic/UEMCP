@@ -206,6 +206,9 @@ class E2ETestRunner {
   async checkUELogs() {
     this.log('🔍 Checking Unreal Engine logs for errors...', 'info');
     
+    // Constants for log reading configuration
+    const LOG_BUFFER_SIZE = 50000; // 50KB buffer for recent log content
+    
     try {
       // Read UE log file directly (more reliable than going through MCP tools)
       const logPath = path.join(os.homedir(), 'Library', 'Logs', 'Unreal Engine', 'HomeEditor', 'Home.log');
@@ -214,14 +217,19 @@ class E2ETestRunner {
       if (fs.existsSync(logPath)) {
         const logStats = fs.statSync(logPath);
         const fileSize = logStats.size;
-        const readFromPos = Math.max(0, fileSize - 50000); // Last ~50KB
+        const readFromPos = Math.max(0, fileSize - LOG_BUFFER_SIZE);
         
-        const fd = fs.openSync(logPath, 'r');
-        const buffer = Buffer.alloc(50000);
-        const bytesRead = fs.readSync(fd, buffer, 0, 50000, readFromPos);
-        fs.closeSync(fd);
-        
-        logContent = buffer.toString('utf8', 0, bytesRead);
+        let fd;
+        try {
+          fd = fs.openSync(logPath, 'r');
+          const buffer = Buffer.alloc(LOG_BUFFER_SIZE);
+          const bytesRead = fs.readSync(fd, buffer, 0, LOG_BUFFER_SIZE, readFromPos);
+          logContent = buffer.toString('utf8', 0, bytesRead);
+        } finally {
+          if (fd !== undefined) {
+            fs.closeSync(fd);
+          }
+        }
       } else {
         this.log('⚠️  UE log file not found at expected location', 'warning');
         return;
