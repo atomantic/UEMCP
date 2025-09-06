@@ -216,15 +216,34 @@ def execute_on_main_thread(command):
             "viewport.fit": "viewport_fit_actors",
             "viewport.look_at": "viewport_look_at_target",
             "python.execute": "python_proxy",
+            "python.proxy": "python_proxy",  # Alternative mapping
             "system.restart": "restart_listener",
             "system.help": "help",
             "system.test": "test_connection",
+            "system.test_connection": "test_connection",  # Alternative mapping
             "system.logs": "ue_logs",
+            "system.ue_logs": "ue_logs",  # Alternative mapping
+            # Note: undo/redo/history/checkpoint tools exist only in MCP server layer
+            # These operations are handled by the MCP server's operation history system
+            # and don't need Python plugin implementations
+            "system.undo": "not_implemented_python_layer",
+            "system.redo": "not_implemented_python_layer", 
+            "system.history_list": "not_implemented_python_layer",
+            "system.checkpoint_create": "not_implemented_python_layer",
+            "system.checkpoint_restore": "not_implemented_python_layer",
+            "placement.validate": "not_implemented_python_layer",
         }
 
         # Get the new command name
         new_command = command_map.get(cmd_type)
         if new_command:
+            # Check for server-layer-only commands
+            if new_command == "not_implemented_python_layer":
+                return {
+                    "success": False,
+                    "error": f"Command '{cmd_type}' is handled by MCP server layer, not Python plugin",
+                    "note": "This command should be called through the MCP server API, not directly to the Python listener"
+                }
             # Dispatch through the registry
             return dispatch_command(new_command, params)
         else:

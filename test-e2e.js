@@ -203,6 +203,74 @@ class E2ETestRunner {
     }
   }
 
+  async checkUELogs() {
+    this.log('🔍 Checking Unreal Engine logs for errors...', 'info');
+    
+    try {
+      // Read UE log file directly (more reliable than going through MCP tools)
+      const logPath = path.join(os.homedir(), 'Library', 'Logs', 'Unreal Engine', 'HomeEditor', 'Home.log');
+      
+      let logContent = '';
+      if (fs.existsSync(logPath)) {
+        const logStats = fs.statSync(logPath);
+        const fileSize = logStats.size;
+        const readFromPos = Math.max(0, fileSize - 50000); // Last ~50KB
+        
+        const fd = fs.openSync(logPath, 'r');
+        const buffer = Buffer.alloc(50000);
+        const bytesRead = fs.readSync(fd, buffer, 0, 50000, readFromPos);
+        fs.closeSync(fd);
+        
+        logContent = buffer.toString('utf8', 0, bytesRead);
+      } else {
+        this.log('⚠️  UE log file not found at expected location', 'warning');
+        return;
+      }
+      
+      const logLines = logContent.split('\n').filter(line => line.trim());
+      const errorLines = [];
+      const criticalPatterns = [
+        /LogPython.*Error:/i,
+        /LogPython.*UEMCP.*Failed/i,
+        /LogCore.*Error:/i,
+        /LogUObjectGlobals.*Error:/i,
+        /LogScript.*Error:/i,
+        /Fatal error/i,
+        /Assertion failed/i,
+      ];
+      
+      // Scan for critical errors
+      for (const line of logLines) {
+        for (const pattern of criticalPatterns) {
+          if (pattern.test(line)) {
+            errorLines.push(line);
+            break;
+          }
+        }
+      }
+      
+      if (errorLines.length > 0) {
+        this.log('❌ Critical errors found in UE logs:', 'error');
+        errorLines.slice(0, 10).forEach(line => {
+          console.log(`   ${line.trim()}`);
+        });
+        
+        if (errorLines.length > 10) {
+          console.log(`   ... and ${errorLines.length - 10} more errors`);
+        }
+        
+        // Add to results
+        this.results.e2e.ueLogErrors = errorLines.length;
+      } else {
+        this.log('✅ No critical errors found in UE logs', 'success');
+        this.results.e2e.ueLogErrors = 0;
+      }
+      
+    } catch (error) {
+      this.log(`⚠️  Failed to check UE logs: ${error.message}`, 'warning');
+    }
+  }
+
   printResults() {
     const { unit, integration, e2e, total } = this.results;
     
@@ -252,6 +320,9 @@ class E2ETestRunner {
     if (this.config.coverage) {
       await this.generateCoverageReport();
     }
+    
+    // Check UE logs for errors
+    await this.checkUELogs();
     
     this.results.total.duration = Date.now() - startTime;
     
