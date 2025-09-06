@@ -1,0 +1,37 @@
+{
+  "name": "uemcp",
+  "version": "0.9.0",
+  "description": "Unreal Engine Model Context Protocol - AI Assistant Integration",
+  "keywords": [
+    "unreal-engine",
+    "mcp", 
+    "model-context-protocol",
+    "ai-assistant",
+    "claude",
+    "game-development"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/atomantic/UEMCP.git"
+  },
+  "scripts": {
+    "test": "node test-e2e.js",
+    "test:unit": "cd server && npm run test",
+    "test:integration": "node tests/integration/test-mcp-integration.js",
+    "test:e2e": "COVERAGE=false node test-e2e.js",
+    "test:e2e:coverage": "COVERAGE=true node test-e2e.js",
+    "test:verbose": "VERBOSE=true node test-e2e.js",
+    "test:ci": "COVERAGE=true node test-e2e.js",
+    "setup": "./setup.sh",
+    "build": "cd server && npm run build",
+    "dev": "cd server && npm run dev",
+    "lint": "cd server && npm run lint",
+    "typecheck": "cd server && npm run typecheck"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

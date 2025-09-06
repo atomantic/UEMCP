@@ -1,7 +1,7 @@
 {
   "FileVersion": 3,
   "Version": 0,
-  "VersionName": "0.9.0",
+  "VersionName": "1.0.0",
   "FriendlyName": "Unreal Engine Model Context Protocol",
   "Description": "MCP integration for AI-assisted Unreal Engine development",
   "Category": "Developer Tools",

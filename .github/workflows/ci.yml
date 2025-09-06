@@ -21,10 +21,19 @@ jobs:
         cache: 'npm'
         cache-dependency-path: server/package-lock.json
     
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: server/tests/python/requirements.txt
+    
     - name: Install dependencies
       run: |
         cd server
         npm ci
+        # Install Python test dependencies
+        pip install -r tests/python/requirements.txt
     
     - name: Run linter
       run: |

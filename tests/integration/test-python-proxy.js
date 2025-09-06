@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { PythonBridge } from './server/dist/services/python-bridge.js';
+import { PythonBridge } from '../../server/dist/services/python-bridge.js';
 
 async function testPythonProxy() {
   console.log('Testing Python Proxy functionality...\n');
@@ -54,7 +54,7 @@ position = unreal.Vector(x, y, z)
 actors = unreal.EditorLevelLibrary.get_all_level_actors()
 nearby = []
 for actor in actors:
-    distance = (actor.get_actor_location() - position).size()
+    distance = (actor.get_actor_location() - position).length()
     if distance < radius:
         nearby.append({
             'name': actor.get_actor_label(),

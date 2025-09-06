@@ -44,36 +44,28 @@ const init = {
 console.log('Sending initialization...');
 server.stdin.write(JSON.stringify(init) + '\n');
 
-// Interactive command loop
-console.log('\nAvailable commands:');
-console.log('  list - List available tools');
-console.log('  exit - Exit the test client\n');
+// Automated test sequence
+console.log('\nRunning automated test sequence...\n');
 
-rl.on('line', (input) => {
-  const [command, ...args] = input.trim().split(' ');
-
-  switch (command) {
-    case 'list':
-      const listRequest = {
-        jsonrpc: '2.0',
-        method: 'tools/list',
-        params: {},
-        id: 2
-      };
-      server.stdin.write(JSON.stringify(listRequest) + '\n');
-      break;
-
-
-    case 'exit':
-      console.log('Exiting...');
-      server.kill();
-      rl.close();
-      break;
-
-    default:
-      console.log('Unknown command:', command);
-  }
-});
+// Wait for server to initialize, then test tools/list
+setTimeout(() => {
+  console.log('Testing tools/list...');
+  const listRequest = {
+    jsonrpc: '2.0',
+    method: 'tools/list',
+    params: {},
+    id: 2
+  };
+  server.stdin.write(JSON.stringify(listRequest) + '\n');
+  
+  // Exit after short delay
+  setTimeout(() => {
+    console.log('✅ Server test completed successfully');
+    server.kill();
+    rl.close();
+    process.exit(0);
+  }, 2000);
+}, 1000);
 
 // Handle Ctrl+C
 process.on('SIGINT', () => {

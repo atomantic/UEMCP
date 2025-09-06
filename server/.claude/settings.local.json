@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/antic/github.com/atomantic/UEMCP/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

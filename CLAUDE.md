@@ -561,6 +561,51 @@ viewport_render_mode({ mode: 'lit' })
 - No trailing whitespace
 - Files should end with a single newline
 
+### Exception Handling Philosophy
+
+**CRITICAL**: Minimize use of try/catch and try/except blocks:
+
+- **Avoid try/catch unless absolutely necessary** - Only use for extreme cases like `JSON.parse()` when you really don't trust the JSON being parsed
+- **Prefer data validation and error handling** for predictable failure cases
+- **Use type guards and validation** instead of catching exceptions
+- **Handle expected errors explicitly** rather than wrapping in try/catch
+
+**Good practices:**
+```typescript
+// ✅ GOOD: Validate data structure before use
+if (!isValidConfig(config)) {
+  throw new Error('Invalid configuration structure');
+}
+
+// ✅ GOOD: Check for expected conditions
+if (port < 1 || port > 65535) {
+  throw new Error(`Invalid port: ${port}`);
+}
+```
+
+**Avoid these patterns:**
+```typescript
+// ❌ AVOID: Try/catch for predictable validation
+try {
+  const result = processData(data);
+} catch (error) {
+  throw new Error('Data processing failed');
+}
+
+// ❌ AVOID: Broad exception handling
+try {
+  // complex logic
+} catch (error) {
+  // generic error handling
+}
+```
+
+**Acceptable use cases for try/catch:**
+- Parsing untrusted JSON with `JSON.parse()`
+- File system operations that may fail
+- Network requests that may timeout
+- Third-party library calls that may throw unpredictably
+
 ### TypeScript Code Standards
 
 **CRITICAL**: Follow these standards to avoid common code review issues:
@@ -653,20 +698,31 @@ viewport_render_mode({ mode: 'lit' })
    ```
 
 2. **Exception Handling**:
-   - **NEVER use bare `except:`** or `except Exception:`
-   - Catch specific exceptions
-   - Log errors with context
+   - **AVOID try/except whenever possible** - Use data validation and proper error handling instead
+   - Only use try/except in extreme cases like JSON.parse when you really don't trust the data being parsed
+   - When you must use try/except, **NEVER use bare `except:`** or `except Exception:`
+   - Catch specific exceptions and log errors with context
+   - Prefer proactive validation over reactive exception handling
    
    ```python
-   # ❌ WRONG
+   # ❌ WRONG - Using try/except for normal flow control
+   try:
+       result = some_operation(data)
    except Exception:
-       pass
+       result = None
    
-   # ✅ RIGHT
-   except AttributeError as e:
-       log_error(f"AttributeError accessing asset properties: {e}")
-   except RuntimeError as e:
-       log_error(f"RuntimeError in Unreal Engine: {e}")
+   # ✅ BETTER - Validate first, then operate
+   if not is_valid_data(data):
+       log_error(f"Invalid data provided: {data}")
+       return None
+   result = some_operation(data)
+   
+   # ✅ ACCEPTABLE - Only for truly unpredictable external data
+   try:
+       parsed = json.loads(untrusted_json_string)
+   except json.JSONDecodeError as e:
+       log_error(f"Failed to parse JSON: {e}")
+       return None
    ```
 
 3. **Line Continuations**:

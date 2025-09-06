@@ -4,8 +4,9 @@
 
 set -e  # Exit on first error
 
-echo "🧪 Running local CI tests..."
-echo "================================"
+echo "🧪 Running UEMCP Comprehensive CI Tests..."
+echo "This includes unit, integration, and e2e tests"
+echo "================================================"
 
 # Colors for output
 RED='\033[0;31m'
@@ -72,6 +73,21 @@ run_test "Flake8 Linting" "flake8 . --count --select=E9,F63,F7,F82 --show-source
 run_test "Flake8 Style" "flake8 . --count --exit-zero --max-complexity=15 --max-line-length=120 --statistics"
 
 cd ../../..
+
+# Comprehensive Test Suite (Unit + Integration + E2E)
+echo -e "\n${YELLOW}=== Comprehensive Test Suite ===${NC}"
+echo "Running unified test runner with all test levels..."
+
+# Check if the comprehensive test runner is available
+if [ -f "test-e2e.js" ]; then
+    echo "Using comprehensive test runner..."
+    run_test "Unit + Integration + E2E Tests" "COVERAGE=true node test-e2e.js"
+else
+    echo -e "${YELLOW}ℹ️  Running legacy server tests only${NC}"
+    cd server
+    run_test "Server Tests" "npm test"
+    cd ..
+fi
 
 # Summary
 echo -e "\n${YELLOW}=== Summary ===${NC}"
