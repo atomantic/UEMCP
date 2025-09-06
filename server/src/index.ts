@@ -36,6 +36,9 @@ async function main(): Promise<void> {
     // Initialize server manager
     const serverManager = new ServerManager(toolRegistry, configManager);
     
+    // Initialize MCP server before validation to avoid false negatives
+    serverManager.initializeServer();
+    
     // Validate server setup
     const serverValidation = serverManager.validateSetup();
     if (!serverValidation.valid) {
@@ -59,7 +62,6 @@ async function main(): Promise<void> {
     }
     
     // Initialize and start the MCP server
-    serverManager.initializeServer();
     serverManager.setupShutdownHandlers();
     
     logger.info(`Starting MCP server with ${toolRegistry.getToolCount()} tools...`);

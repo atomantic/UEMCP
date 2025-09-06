@@ -91,7 +91,48 @@ Milestone 5: Test Config & Docs Cleanup
   - Edit: `server/TESTING_STRATEGY.md`
   - Do: Reflect opt‑in E2E, updated thresholds, coverage upload, and folder taxonomy.
   - Validate: Docs match code + CI behavior.
-  - Done when: New contributors can follow the doc to run the full stack.
+- Done when: New contributors can follow the doc to run the full stack.
+
+Milestone 6: MCP Interop & Server Simplification
+- Task: Add optional alternate transports (HTTP/WebSocket) behind env flags.
+  - Edit: `server/src/index.ts`, new transport wiring as needed.
+  - Do:
+    - Introduce `MCP_TRANSPORT` env var with values `stdio` (default), `http`, `ws`.
+    - If SDK supports, initialize corresponding transport; otherwise, add a thin HTTP wrapper to expose `tools/list` and `tools/call` JSON-RPC over HTTP for non-stdio clients.
+  - Validate: Local smoke test succeeds for selected transport; stdio remains default.
+  - Done when: Non-stdio clients can optionally connect; stdio behavior unchanged.
+
+- Task: Return richer MCP content types for media/file outputs.
+  - Edit: `server/src/utils/response-formatter.ts`, `server/src/tools/viewport/screenshot.ts`.
+  - Do:
+    - Extend ResponseFormatter to support `image`/`file` entries with path/uri and metadata.
+    - Update `viewport_screenshot` to include an `image` content item alongside text.
+  - Validate: Tool returns both human-readable text and a usable media entry.
+  - Done when: Clients can render screenshots directly when supported.
+
+- Task: Replace `node-fetch` with native `fetch` in PythonBridge.
+  - Edit: `server/src/services/python-bridge.ts`, tests.
+  - Do: Remove dependency on `node-fetch`, use global `fetch`, adjust timeouts and error handling.
+  - Validate: All PythonBridge tests pass; no regressions.
+  - Done when: Dependency removed and behavior equivalent or better.
+
+- Task: Create a generic tool forwarder to reduce boilerplate.
+  - Edit: Add helper in `server/src/tools/base` and refactor simple tools.
+  - Do: Implement a factory that maps `{ name, description, inputSchema, pythonType }` to a tool with standard execution and error handling.
+  - Validate: At least 2-3 simple tools (e.g., `level_save`, `project_info`) refactored with identical behavior and cleaner code.
+  - Done when: Boilerplate reduced; tests remain green.
+
+- Task: Add MCP smoke test for stdio lifecycle.
+  - Edit: Add a script under `scripts/` or a Jest test under `server/tests/integration`.
+  - Do: Spawn `node dist/index.js`, call `list_tools`, then `call_tool` for `test_connection` or a no-op; assert JSON-RPC success.
+  - Validate: Runs in CI (stdio only) and exits cleanly.
+  - Done when: CI enforces MCP handshake correctness.
+
+- Task: Document client invocation patterns.
+  - Edit: `server/TESTING_STRATEGY.md` or `docs/*`.
+  - Do: Add a section for invoking UEMCP via Codex (mcp__uemcp__*), Claude Desktop, and optional HTTP/WebSocket transport.
+  - Validate: Docs match actual behavior; examples work.
+  - Done when: Users can choose transport and call tools confidently.
 
 Validation Checklist (Run Locally)
 - `cd server && npm ci && npm run lint && npm run typecheck && npm run test:coverage` passes.
@@ -104,4 +145,4 @@ Definition of Done
 - Python tests measure real plugin logic (with shim) and pass coverage gates.
 - Resiliency and property‑based tests increase robustness of error paths and validators.
 - Test configuration and documentation are clear and consistent.
-
+- Optional transports and richer content outputs improve interoperability without breaking stdio defaults.
