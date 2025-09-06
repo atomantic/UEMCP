@@ -658,6 +658,17 @@ result = {'success': True, 'message': 'Socket test actors created'}
       return result;
     });
 
+    // Switch back to lit mode for proper final screenshot
+    await this.testTool('viewport_render_mode', 'Switch back to lit mode', async () => {
+      const result = await this.client.callTool('viewport_render_mode', {
+        mode: 'lit'
+      });
+      if (!this.isSuccessResponse(result)) {
+        throw new Error('Viewport render mode (lit) failed');
+      }
+      return result;
+    });
+
     // Take final documentation screenshot
     const result = await this.client.callTool('viewport_screenshot', {
       width: 1024,
