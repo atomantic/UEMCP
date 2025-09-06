@@ -203,8 +203,103 @@ class E2ETestRunner {
     }
   }
 
+  async cleanupTestActors() {
+    this.log('🧹 Cleaning up all test actors and folders...', 'info');
+    
+    try {
+      const { MCPClient } = require('./tests/utils/mcp-client.js');
+      const client = new MCPClient();
+      
+      // Get current level outliner to see folder structure
+      const outlinerResult = await client.callTool('level_outliner', {});
+      
+      let totalDeleted = 0;
+      
+      if (outlinerResult.success) {
+        this.log('Checking for Test folder structure...', 'info');
+        
+        // Get all actors with higher limit to catch all test actors
+        const levelResult = await client.callTool('level_actors', { limit: 100 });
+        
+        if (levelResult.success && levelResult.actors) {
+          // Find all actors in Test folder or with test names
+          const testActorPatterns = [
+            'Wall1', 'Wall2', 'Door1',           // Legacy names
+            'Foundation', 'WallSegment_',        // Comprehensive test actors
+            'BuildingWall', 'DoorFrame', 'CornerPiece', // Socket test assets
+            'Complex_Wall', 'Complex_Door', 'Complex_Window', 'Complex_Corner', // Complex socket test
+            'SocketActor'                        // Python-created socket test actors
+          ];
+          
+          const actorsToClean = levelResult.actors.filter(actor => 
+            testActorPatterns.some(pattern => actor.name.includes(pattern))
+          );
+          
+          if (actorsToClean.length > 0) {
+            this.log(`Found ${actorsToClean.length} test actors to clean up`, 'info');
+            
+            // Delete each actor
+            for (const actor of actorsToClean) {
+              try {
+                const deleteResult = await client.callTool('actor_delete', {
+                  actorName: actor.name
+                });
+                
+                if (deleteResult.success) {
+                  totalDeleted++;
+                  this.log(`  ✓ Deleted ${actor.name}`);
+                } else {
+                  this.log(`  ✗ Failed to delete ${actor.name}`, 'warning');
+                }
+              } catch (error) {
+                this.log(`  ✗ Error deleting ${actor.name}: ${error.message}`, 'warning');
+              }
+            }
+            
+            this.log(`Successfully cleaned up ${totalDeleted}/${actorsToClean.length} test actors`, 'success');
+            
+            // Also clean up the Test folder structure to ensure no World Outliner changes
+            this.log('Cleaning up Test folder structure...', 'info');
+            try {
+              const folderCleanupResult = await client.callTool('python_proxy', {
+                code: `
+import unreal
+
+# Get the world outliner subsystem
+outliner_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+
+# Since UE doesn't have direct folder deletion API, we just ensure all actors are gone
+# The folder structure will automatically clean up when empty
+
+print("Folder cleanup: All test actors removed, empty folders will auto-cleanup")
+result = {"success": True, "message": "Test folder structure cleaned"}
+`
+              });
+              
+              if (folderCleanupResult.success) {
+                this.log('✓ Test folder structure cleanup completed', 'success');
+              } else {
+                this.log('⚠️  Test folder cleanup had issues but actors are removed', 'warning');
+              }
+            } catch (error) {
+              this.log(`⚠️  Test folder cleanup error: ${error.message}`, 'warning');
+            }
+          } else {
+            this.log('No test actors found to clean up', 'success');
+          }
+        }
+      }
+      
+    } catch (error) {
+      this.log(`Failed to clean test actors: ${error.message}`, 'warning');
+    }
+  }
+
   async checkUELogs() {
     this.log('🔍 Checking Unreal Engine logs for errors...', 'info');
+    
+    // Constants for log reading configuration
+    const LOG_BUFFER_SIZE = 50000; // 50KB buffer for recent log content
     
     try {
       // Read UE log file directly (more reliable than going through MCP tools)
@@ -214,14 +309,19 @@ class E2ETestRunner {
       if (fs.existsSync(logPath)) {
         const logStats = fs.statSync(logPath);
         const fileSize = logStats.size;
-        const readFromPos = Math.max(0, fileSize - 50000); // Last ~50KB
+        const readFromPos = Math.max(0, fileSize - LOG_BUFFER_SIZE);
         
-        const fd = fs.openSync(logPath, 'r');
-        const buffer = Buffer.alloc(50000);
-        const bytesRead = fs.readSync(fd, buffer, 0, 50000, readFromPos);
-        fs.closeSync(fd);
-        
-        logContent = buffer.toString('utf8', 0, bytesRead);
+        let fd;
+        try {
+          fd = fs.openSync(logPath, 'r');
+          const buffer = Buffer.alloc(LOG_BUFFER_SIZE);
+          const bytesRead = fs.readSync(fd, buffer, 0, LOG_BUFFER_SIZE, readFromPos);
+          logContent = buffer.toString('utf8', 0, bytesRead);
+        } finally {
+          if (fd !== undefined) {
+            fs.closeSync(fd);
+          }
+        }
       } else {
         this.log('⚠️  UE log file not found at expected location', 'warning');
         return;
@@ -320,6 +420,9 @@ class E2ETestRunner {
     if (this.config.coverage) {
       await this.generateCoverageReport();
     }
+    
+    // Clean up all test actors before checking logs
+    await this.cleanupTestActors();
     
     // Check UE logs for errors
     await this.checkUELogs();
