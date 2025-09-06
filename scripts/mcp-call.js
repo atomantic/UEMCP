@@ -5,6 +5,11 @@
 
 const { spawn } = require('child_process');
 
+// Configuration constants
+const STARTUP_DETECTION_PATTERN = /Ready to receive MCP requests|UEMCP Server started/i;
+const STARTUP_DELAY_MS = 500;
+const TIMEOUT_MS = 15000;
+
 const toolName = process.argv[2];
 const argJson = process.argv[3] || '{}';
 
@@ -27,11 +32,13 @@ const server = spawn('node', [serverPath], { stdio: ['pipe', 'pipe', 'pipe'] });
 let received = '';
 let sent = false;
 
+// Combined stdout handler for both startup detection and response parsing
 server.stdout.on('data', (data) => {
   const text = data.toString();
   process.stdout.write(`[server] ${text}`);
+  
   // Send request shortly after startup logs appear
-  if (!sent && /Ready to receive MCP requests|UEMCP Server started/i.test(text)) {
+  if (!sent && STARTUP_DETECTION_PATTERN.test(text)) {
     sent = true;
     setTimeout(() => {
       const req = {
@@ -44,23 +51,11 @@ server.stdout.on('data', (data) => {
         }
       };
       server.stdin.write(JSON.stringify(req) + '\n');
-    }, 500);
+    }, STARTUP_DELAY_MS);
   }
-});
-
-server.stderr.on('data', (data) => {
-  process.stderr.write(`[server:err] ${data.toString()}`);
-});
-
-server.on('error', (err) => {
-  console.error('Failed to start MCP server:', err.message);
-  process.exit(1);
-});
-
-// Capture response lines from server stdout
-server.stdout.on('data', (data) => {
-  received += data.toString();
-  // Try to parse JSON-RPC responses in the stream
+  
+  // Accumulate response data and try to parse JSON-RPC responses
+  received += text;
   const lines = received.split('\n');
   // Keep last partial line in buffer
   received = lines.pop() || '';
@@ -81,10 +76,23 @@ server.stdout.on('data', (data) => {
   }
 });
 
+server.stderr.on('data', (data) => {
+  process.stderr.write(`[server:err] ${data.toString()}`);
+});
+
+server.on('error', (err) => {
+  console.error('Failed to start MCP server:', err.message);
+  process.exit(1);
+});
+
 // Safety timeout
 setTimeout(() => {
   console.error('Timed out waiting for MCP response');
-  try { server.kill(); } catch {}
+  try { 
+    server.kill(); 
+  } catch (err) { 
+    console.error('Error killing server:', err.message); 
+  }
   process.exit(2);
-}, 15000);
+}, TIMEOUT_MS);
 
