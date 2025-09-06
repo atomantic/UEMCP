@@ -444,20 +444,27 @@ The diagnostic tests validate all MCP functionality including:
 
 While UEMCP provides comprehensive UE control, there are some current limitations:
 
-### MCP Tool Limitations
-- **No Asset Snapping**: Manual coordinate calculation required (no automated socket-based placement)
-- **Blueprint Graph Editing**: Can spawn Blueprint actors but cannot programmatically edit Blueprint node graphs
-- **No Undo/Redo**: Operations cannot be undone programmatically
+### ✅ MCP Tool Capabilities
+
+UEMCP provides comprehensive automation with **39 production-ready MCP tools**:
+
+- ✅ **Asset Snapping**: `actor_snap_to_socket` provides precise modular placement with automated socket-based positioning
+- ✅ **Undo/Redo System**: Full operation history with `undo`, `redo`, `history_list`, `checkpoint_create`, and `checkpoint_restore`
+- ✅ **Blueprint Creation**: `blueprint_create` generates Blueprint classes with components and variables
+- ✅ **Material Management**: Complete material workflow via `material_create`, `material_apply`, `material_info`, `material_list`
+- ✅ **Placement Validation**: Gap/overlap detection via `placement_validate` tool
+- ✅ **Asset Information**: Complete bounds, pivot, socket, and collision data via enhanced `asset_info`
+- ✅ **Batch Operations**: Execute multiple operations with 80-90% performance improvement
+- ✅ **Viewport Control**: Complete camera, rendering, and screenshot management
+
+### Current MCP Tool Limitations
+- **Blueprint Graph Editing**: Cannot programmatically edit Blueprint node graphs (visual scripting logic)
+- **Animation Blueprints**: No direct animation state machine or blend tree manipulation
+- **Level Streaming**: No dynamic level loading/unloading control
 
 ### Python API Issues
 - **Actor References**: `get_actor_reference()` doesn't work with display names (workaround implemented)
 - **Viewport Methods**: Several deprecated (see [Python API Workarounds](docs/python-api-workarounds.md))
-
-### Recently Resolved ✅
-These limitations have been addressed in recent updates:
-- ✅ **Material Creation & Editing**: Full material management via `material_create`, `material_apply`, etc.
-- ✅ **Placement Validation**: Gap/overlap detection via `placement_validate` tool
-- ✅ **Asset Information**: Complete bounds, pivot, socket, and collision data via enhanced `asset_info`
 
 ### Workarounds Available
 Most remaining limitations can be worked around using the `python_proxy` tool. See our documentation:
@@ -465,14 +472,6 @@ Most remaining limitations can be worked around using the `python_proxy` tool. S
 - [House Building Experiment](docs/house-building-experiment.md) - Real-world solutions
 
 ## 🗺️ Roadmap
-
-### Released
-- **v0.7.0** - Socket-based building, batch operations, FAB import
-- **v0.8.0** - Blueprint creation, undo/redo system
-
-### Upcoming
-- **v0.9.0** - Performance optimizations, production readiness
-- **v1.0.0** - Production release with full feature set
 
 See [PLAN.md](PLAN.md) for detailed roadmap and release criteria.
 
