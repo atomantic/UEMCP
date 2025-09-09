@@ -6,7 +6,7 @@
 
 UEMCP bridges AI assistants with Unreal Engine, enabling intelligent control of game development workflows through the Model Context Protocol (MCP).
 
-![UEMCP Demo](https://github.com/atomantic/UEMCP/releases/download/v1.0.0/uemcp-demo.gif)
+<img src="https://github.com/atomantic/UEMCP/releases/download/v1.0.0/uemcp-demo.gif" alt="UEMCP Demo" width="100%">
 
 
 ## 🚀 Quick Start (2 minutes)
