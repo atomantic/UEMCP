@@ -13,6 +13,16 @@ jest.mock('../../../src/services/python-bridge.js', () => ({
   }))
 }));
 
+// Mock logger to prevent console noise in tests
+jest.mock('../../../src/utils/logger.js', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }
+}));
+
 import { AssetListTool } from '../../../src/tools/assets/list.js';
 import { ASSET_LIST_RESPONSE } from '../fixtures/python-responses.js';
 
