@@ -1,22 +1,61 @@
-# UEMCP Work Plan (Next Steps)
+# UEMCP Development Roadmap
 
-**Purpose**: Focused, executable plan to improve testing, reliability, and CI safety. Optimized for step-by-step execution by an AI agent.
+**Purpose**: Comprehensive development roadmap for UEMCP (Unreal Engine Model Context Protocol). Prioritized feature development, testing improvements, and infrastructure enhancements.
 
-## Scope
+## Current Focus: Blueprint System Support
 
-- Increase meaningful coverage and align thresholds with CI/Codecov
-- Make integration/E2E tests opt-in and CI-safe
-- Exercise real Python plugin logic without Unreal Engine
-- Harden error/resiliency paths and validators
-- Clarify test configuration and developer workflow
+The next major development milestone focuses on comprehensive Blueprint editing, creation, and documentation capabilities to enable AI-assisted Blueprint workflows.
 
 ## Prerequisites
 
 - Node >= 18, npm
-- Python 3.11 available in CI (local ok with 3.10+ but prefer 3.11)
+- Python 3.11+ (local ok with 3.10+ but prefer 3.11)
+- Unreal Engine 5.4+ for full Blueprint functionality
 - No network access required beyond CI artifact uploads
 
-## Milestone 1: Coverage Gates & CI Alignment
+## Milestone 1: Blueprint System Support (Priority #1)
+
+### Task: Create complex Blueprint test system in Demo project
+
+- **Edit**: Create test Blueprint hierarchy in `/Game/TestBlueprints/`
+- **Do**:
+  - Interactive door Blueprint with proximity detection and animation
+  - Inventory system with item pickup/drop mechanics  
+  - Character controller with custom input handling
+  - UI system with dynamic menu generation
+  - Game state manager with save/load functionality
+  - Interconnected Blueprint communication system
+- **Validate**: All Blueprints compile, function correctly, and demonstrate complex interactions
+- **Done when**: Rich Blueprint ecosystem exists for testing documentation tools
+
+### Task: Add comprehensive Blueprint MCP tools
+
+- **Edit**: Add new tools in `server/src/tools/blueprint/` directory
+- **Do**:
+  - `blueprint_create` - Create new Blueprint classes with components/variables/functions
+  - `blueprint_modify` - Edit Blueprint properties, components, and event graphs  
+  - `blueprint_list` - List Blueprints with filtering and metadata
+  - `blueprint_info` - Get detailed Blueprint structure (components, variables, functions, events)
+  - `blueprint_compile` - Compile Blueprint and report compilation status/errors
+  - `blueprint_component_add` - Add components to existing Blueprints
+  - `blueprint_variable_set` - Set Blueprint variable values and properties
+  - `blueprint_event_create` - Create custom events and bind functions
+- **Validate**: All tools work with test Blueprints in Demo project; compilation succeeds
+- **Done when**: Full Blueprint creation/editing workflow supported via MCP tools
+
+### Task: Add Blueprint documentation generation
+
+- **Edit**: Add `blueprint_document` tool and documentation utilities
+- **Do**:
+  - Generate markdown documentation for Blueprint structure
+  - Include component hierarchy, variable descriptions, function signatures
+  - Export event graph flow diagrams as text/ASCII art
+  - Support batch documentation of multiple Blueprints
+  - Include Blueprint dependencies and references
+- **Validate**: Generated docs accurately reflect Blueprint structure and are human-readable
+- **Done when**: Complex Blueprint systems can be fully documented automatically
+
+## Milestone 2: Testing & CI Infrastructure
 
 ### Task: Raise Jest global threshold and add per-path gates
 
@@ -40,7 +79,7 @@
 - **Validate**: Codecov PR comment shows both flags; project status uses both
 - **Done when**: Codecov displays unified coverage with two flags
 
-## Milestone 2: CI-Safe Integration/E2E
+## Milestone 3: CI-Safe Integration/E2E
 
 ### Task: Gate tests that write local config or require UE
 
@@ -52,7 +91,7 @@
 - **Validate**: In CI (without env vars) these tests are skipped and return success; locally they run when env vars set
 - **Done when**: CI does not modify developer environments and still runs unit/contract tests
 
-## Milestone 3: Python Tests Against Real Modules (No UE)
+## Milestone 4: Python Tests Against Real Modules (No UE)
 
 ### Task: Import real plugin logic with an Unreal shim
 
@@ -71,7 +110,7 @@
 - **Validate**: Pytest imports fixtures successfully
 - **Done when**: No syntax/import errors from conftest
 
-## Milestone 4: Resiliency & Property Testing
+## Milestone 5: Resiliency & Property Testing
 
 ### Task: Expand PythonBridge resiliency tests
 
@@ -91,7 +130,7 @@
 - **Validate**: Tests run quickly and catch malformed shapes; no flakes
 - **Done when**: Validator robustness demonstrably increases
 
-## Milestone 5: Test Config & Docs Cleanup
+## Milestone 6: Test Config & Docs Cleanup
 
 ### Task: Normalize Jest configs and folder taxonomy
 
@@ -109,7 +148,7 @@
 - **Validate**: Docs match code + CI behavior
 - **Done when**: New contributors can follow the doc to run the full stack
 
-## Milestone 6: MCP Interop & Server Simplification
+## Milestone 7: MCP Interop & Server Simplification
 
 ### Task: Add optional alternate transports (HTTP/WebSocket) behind env flags
 
@@ -157,6 +196,30 @@
 - **Validate**: Docs match actual behavior; examples work
 - **Done when**: Users can choose transport and call tools confidently
 
+## Future Roadmap (Post-Blueprint)
+
+### Milestone 8: Advanced UE Features
+- Animation Blueprint support
+- Material graph editing and node manipulation
+- Niagara particle system integration
+- Audio system tools (Wwise/MetaSounds)
+- Landscape and terrain manipulation
+- Physics constraint and simulation tools
+
+### Milestone 9: AI/ML Integration
+- Training data generation from UE scenes
+- Procedural content generation using AI
+- Behavior tree learning and optimization
+- Asset classification and tagging
+- Performance profiling and optimization suggestions
+
+### Milestone 10: Collaboration & Workflow
+- Multi-user editing support
+- Version control integration (Perforce/Git)
+- Asset dependency tracking and visualization
+- Automated testing of gameplay mechanics
+- Build pipeline integration and automation
+
 ## Validation Checklist (Run Locally)
 
 - `cd server && npm ci && npm run lint && npm run typecheck && npm run test:coverage` passes
@@ -177,11 +240,19 @@ Successfully diagnosed and fixed skydome/sky material error in Calibration level
 
 **Result**: Complete level debugging workflow achieved with existing MCP tool coverage. No additional tooling needed.
 
-## Definition of Done
+## Definition of Done (Current Milestone)
 
-- Jest and Codecov thresholds are aligned and enforced; CI is green
-- Integration/E2E tests are opt-in with clear env guards; CI safe by default
+### Blueprint System Support:
+- Complex Blueprint test system created and functional in Demo project
+- All 8+ Blueprint MCP tools implemented and tested
+- Blueprint documentation generation produces comprehensive, readable docs
+- AI can create, modify, and document Blueprint systems end-to-end
+- Integration with existing level editing and asset management tools
+
+### Testing & Infrastructure (Ongoing):
+- Jest and Codecov thresholds aligned and enforced; CI green
+- Integration/E2E tests opt-in with clear env guards; CI safe by default
 - Python tests measure real plugin logic (with shim) and pass coverage gates
-- Resiliency and property-based tests increase robustness of error paths and validators
-- Test configuration and documentation are clear and consistent
-- Optional transports and richer content outputs improve interoperability without breaking stdio defaults
+- Resiliency and property-based tests increase robustness of error paths
+- Test configuration and documentation clear and consistent
+- Optional transports and richer content outputs improve interoperability
