@@ -187,6 +187,8 @@ class DemoCoverageTest {
         params: {
           assetPath: '/Engine/BasicShapes/Cube',
           location: [500, 500, 100],
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
           name: 'CoverageTestCube'
         }
       });
