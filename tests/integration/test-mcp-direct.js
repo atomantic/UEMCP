@@ -6,7 +6,7 @@ const http = require('http');
 async function testConnection() {
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify({
-      type: 'test.connection',
+      type: 'test_connection',
       params: {}
     });
 

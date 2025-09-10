@@ -59,7 +59,7 @@ async function testLiveConnection() {
         // 2. Get project info
         console.log('2️⃣ Getting project information...');
         const projectInfo = await sendCommand({
-            type: 'project.info',
+            type: 'level_get_project_info',
             params: {}
         });
         console.log('✅ Project info retrieved:', projectInfo);
@@ -67,7 +67,7 @@ async function testLiveConnection() {
         // 3. List some assets
         console.log('\n3️⃣ Listing game assets...');
         const assets = await sendCommand({
-            type: 'asset.list',
+            type: 'asset_list_assets',
             params: { path: '/Game', limit: 5 }
         });
         console.log(`✅ Found ${assets.totalCount} assets. First 5:`);
@@ -78,9 +78,9 @@ async function testLiveConnection() {
         // 4. Create a test actor
         console.log('\n4️⃣ Creating a test cube in the level...');
         const actor = await sendCommand({
-            type: 'actor.create',
+            type: 'actor_spawn',
             params: {
-                type: 'cube',
+                assetPath: '/Engine/BasicShapes/Cube',
                 location: [200, 0, 100],
                 name: 'Claude_TestCube'
             }

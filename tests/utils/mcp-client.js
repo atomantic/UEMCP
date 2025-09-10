@@ -69,58 +69,60 @@ class MCPClient {
    */
   mapToolName(toolName) {
     const mapping = {
-      // System tools
-      'python_proxy': 'python.proxy',
-      'project_info': 'project.info',
-      'test_connection': 'system.test_connection',
-      'help': 'system.help',
-      'ue_logs': 'system.ue_logs',
-      'restart_listener': 'system.restart_listener',
-      'undo': 'system.undo',
-      'redo': 'system.redo',
-      'history_list': 'system.history_list',
-      'checkpoint_create': 'system.checkpoint_create',
-      'checkpoint_restore': 'system.checkpoint_restore',
-      'batch_operations': 'system.batch_operations',
+      // System tools - these use custom registrations
+      'python_proxy': 'python_proxy',
+      'test_connection': 'test_connection',
+      'help': 'help',
+      'ue_logs': 'ue_logs',
+      'restart_listener': 'restart_listener',
+      'undo': 'undo',
+      'redo': 'redo', 
+      'history_list': 'history_list',
+      'checkpoint_create': 'checkpoint_create',
+      'checkpoint_restore': 'checkpoint_restore',
+      'batch_operations': 'batch_operations',
       
-      // Actor tools
-      'actor_spawn': 'actor.spawn',
-      'actor_delete': 'actor.delete',
-      'actor_modify': 'actor.modify',
-      'actor_duplicate': 'actor.duplicate',
-      'actor_organize': 'actor.organize',
-      'actor_snap_to_socket': 'actor.snap_to_socket',
-      'batch_spawn': 'actor.batch_spawn',
-      'placement_validate': 'placement.validate',
+      // Project tools - from LevelOperations class
+      'project_info': 'level_get_project_info',
       
-      // Asset tools
-      'asset_list': 'asset.list',
-      'asset_info': 'asset.info',
-      'asset_import': 'asset.import',
+      // Actor tools - from ActorOperations class
+      'actor_spawn': 'actor_spawn',
+      'actor_delete': 'actor_delete', 
+      'actor_modify': 'actor_modify',
+      'actor_duplicate': 'actor_duplicate',
+      'actor_organize': 'actor_organize',
+      'actor_snap_to_socket': 'actor_snap_to_socket',
+      'batch_spawn': 'batch_spawn',
+      'placement_validate': 'placement_validate',
       
-      // Material tools
-      'material_list': 'material.list',
-      'material_info': 'material.info',
-      'material_create': 'material.create',
-      'material_apply': 'material.apply',
+      // Asset tools - from AssetOperations class  
+      'asset_list': 'asset_list_assets',
+      'asset_info': 'asset_get_info',
+      'asset_import': 'asset_import_assets',
+      
+      // Material tools - from MaterialOperations class
+      'material_list': 'material_list_materials',
+      'material_info': 'material_get_info',
+      'material_create': 'material_create_material',
+      'material_apply': 'material_apply_to_actor',
       
       // Blueprint tools
-      'blueprint_create': 'blueprint.create',
+      'blueprint_create': 'blueprint_create',
       
-      // Level tools
-      'level_actors': 'level.actors',
-      'level_save': 'level.save',
-      'level_outliner': 'level.outliner',
+      // Level tools - from LevelOperations class
+      'level_actors': 'level_get_level_actors',
+      'level_save': 'level_save_level',
+      'level_outliner': 'level_get_outliner',
       
-      // Viewport tools
-      'viewport_screenshot': 'viewport.screenshot',
-      'viewport_camera': 'viewport.camera',
-      'viewport_mode': 'viewport.mode',
-      'viewport_focus': 'viewport.focus',
-      'viewport_render_mode': 'viewport.render_mode',
-      'viewport_bounds': 'viewport.bounds',
-      'viewport_fit': 'viewport.fit',
-      'viewport_look_at': 'viewport.look_at'
+      // Viewport tools - from ViewportOperations class
+      'viewport_screenshot': 'viewport_take_screenshot',
+      'viewport_camera': 'viewport_set_camera',
+      'viewport_mode': 'viewport_set_mode',
+      'viewport_focus': 'viewport_focus_on_actor',
+      'viewport_render_mode': 'viewport_set_render_mode',
+      'viewport_bounds': 'viewport_get_bounds',
+      'viewport_fit': 'viewport_fit_actors',
+      'viewport_look_at': 'viewport_look_at_target'
     };
     
     return mapping[toolName] || toolName;
