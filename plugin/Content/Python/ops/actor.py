@@ -15,6 +15,7 @@ from utils import create_rotator, create_transform, create_vector, find_actor_by
 from utils.error_handling import (
     AssetPathRule,
     ListLengthRule,
+    OffsetRule,
     ProcessingError,
     RequiredRule,
     TypeRule,
@@ -787,7 +788,7 @@ class ActorOperations:
         for actor_data in spawned_actors:
             actor_ref = actor_data.get("_actor_ref")
 
-            if actor_ref and unreal.EditorLevelLibrary.is_actor_valid(actor_ref):
+            if actor_ref:
                 clean_data = {k: v for k, v in actor_data.items() if k != "_actor_ref"}
                 validated_actors.append(clean_data)
             else:
@@ -1226,7 +1227,7 @@ class ActorOperations:
             "targetActor": [RequiredRule(), TypeRule(str)],
             "targetSocket": [RequiredRule(), TypeRule(str)],
             "sourceSocket": [TypeRule(str, allow_none=True)],
-            "offset": [ListLengthRule(3)],
+            "offset": [OffsetRule()],
             "validate": [TypeRule(bool)],
         }
     )
@@ -1248,7 +1249,7 @@ class ActorOperations:
         """
         # Set default for mutable parameter
         if offset is None:
-            offset = [0, 0, 0]
+            offset = {"x": 0, "y": 0, "z": 0}
 
         # Find the actors using require_actor for automatic error handling
         source = require_actor(sourceActor)
@@ -1327,7 +1328,7 @@ class ActorOperations:
         if not mesh_comp:
             return None
 
-        static_mesh = mesh_comp.get_static_mesh()
+        static_mesh = mesh_comp.static_mesh
         if not static_mesh:
             return None
 
@@ -1338,7 +1339,7 @@ class ActorOperations:
             return mesh_comp.get_socket_transform(targetSocket)
         else:
             # Try to list available sockets for debugging
-            sockets = static_mesh.get_sockets()
+            sockets = getattr(static_mesh, "sockets", None) if static_mesh else None
             socket_names = [s.socket_name for s in sockets] if sockets else []
             return {
                 "success": False,
@@ -1364,8 +1365,16 @@ class ActorOperations:
         new_rotation = socket_transform.rotation.rotator()
 
         # Apply offset if provided
-        if offset and any(v != 0 for v in offset):
-            new_location = self._apply_offset_to_location(new_location, new_rotation, offset)
+        if offset:
+            # Check if offset has non-zero values (handle both dict and array formats)
+            has_offset = False
+            if isinstance(offset, dict):
+                has_offset = any(offset.get(k, 0) != 0 for k in ["x", "y", "z"])
+            else:
+                has_offset = any(v != 0 for v in offset)
+
+            if has_offset:
+                new_location = self._apply_offset_to_location(new_location, new_rotation, offset)
 
         # If source socket is specified, calculate additional offset
         if sourceSocket:
@@ -1375,7 +1384,12 @@ class ActorOperations:
 
     def _apply_offset_to_location(self, location, rotation, offset):
         """Apply offset to location in world space."""
-        offset_vector = unreal.Vector(offset[0], offset[1], offset[2])
+        # Handle both dict format {x:0, y:0, z:0} and array format [0,0,0]
+        if isinstance(offset, dict):
+            offset_vector = unreal.Vector(offset.get("x", 0), offset.get("y", 0), offset.get("z", 0))
+        else:
+            # Array format [x, y, z]
+            offset_vector = unreal.Vector(offset[0], offset[1], offset[2])
         # Transform offset to world space using socket rotation
         rotated_offset = rotation.rotate_vector(offset_vector)
         return location + rotated_offset

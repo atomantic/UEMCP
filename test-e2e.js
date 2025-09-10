@@ -295,6 +295,25 @@ result = {"success": True, "message": "Test folder structure cleaned"}
     }
   }
 
+  async clearUELogs() {
+    this.log('🧹 Clearing UE logs for clean test baseline...', 'info');
+    
+    try {
+      const logPath = path.join(os.homedir(), 'Library', 'Logs', 'Unreal Engine', 'DemoEditor', 'Demo.log');
+      
+      if (fs.existsSync(logPath)) {
+        // Clear the log file by truncating it
+        fs.writeFileSync(logPath, '');
+        this.log('✅ UE log file cleared successfully', 'success');
+      } else {
+        this.log('⚠️  UE log file not found - will be created on first log entry', 'warning');
+      }
+      
+    } catch (error) {
+      this.log(`⚠️  Failed to clear UE logs: ${error.message}`, 'warning');
+    }
+  }
+
   async checkUELogs() {
     this.log('🔍 Checking Unreal Engine logs for errors...', 'info');
     
@@ -303,7 +322,7 @@ result = {"success": True, "message": "Test folder structure cleaned"}
     
     try {
       // Read UE log file directly (more reliable than going through MCP tools)
-      const logPath = path.join(os.homedir(), 'Library', 'Logs', 'Unreal Engine', 'HomeEditor', 'Home.log');
+      const logPath = path.join(os.homedir(), 'Library', 'Logs', 'Unreal Engine', 'DemoEditor', 'Demo.log');
       
       let logContent = '';
       if (fs.existsSync(logPath)) {
@@ -330,16 +349,14 @@ result = {"success": True, "message": "Test folder structure cleaned"}
       const logLines = logContent.split('\n').filter(line => line.trim());
       const errorLines = [];
       const criticalPatterns = [
-        /LogPython.*Error:/i,
-        /LogPython.*UEMCP.*Failed/i,
-        /LogCore.*Error:/i,
-        /LogUObjectGlobals.*Error:/i,
-        /LogScript.*Error:/i,
+        /Error:/i,
         /Fatal error/i,
+        /Critical error/i,
+        /=== Critical error: ===/i,
         /Assertion failed/i,
       ];
       
-      // Scan for critical errors
+      // Scan for errors
       for (const line of logLines) {
         for (const pattern of criticalPatterns) {
           if (pattern.test(line)) {
@@ -350,7 +367,9 @@ result = {"success": True, "message": "Test folder structure cleaned"}
       }
       
       if (errorLines.length > 0) {
-        this.log('❌ Critical errors found in UE logs:', 'error');
+        this.log(`❌ Found ${errorLines.length} errors in UE logs:`, 'error');
+        
+        // Show first 10 errors
         errorLines.slice(0, 10).forEach(line => {
           console.log(`   ${line.trim()}`);
         });
@@ -359,10 +378,9 @@ result = {"success": True, "message": "Test folder structure cleaned"}
           console.log(`   ... and ${errorLines.length - 10} more errors`);
         }
         
-        // Add to results
         this.results.e2e.ueLogErrors = errorLines.length;
       } else {
-        this.log('✅ No critical errors found in UE logs', 'success');
+        this.log('✅ No errors found in UE logs', 'success');
         this.results.e2e.ueLogErrors = 0;
       }
       
@@ -385,6 +403,11 @@ result = {"success": True, "message": "Test folder structure cleaned"}
       console.log(`🎮 E2E Tests:         Skipped (UE not connected)`);
     } else {
       console.log(`🎮 E2E Tests:         ${e2e.passed} passed, ${e2e.failed} failed`);
+      
+      // Show UE log error summary if errors were found
+      if (e2e.ueLogErrors && e2e.ueLogErrors > 0) {
+        console.log(`📋 UE Log Errors:     ${e2e.ueLogErrors} errors detected`);
+      }
     }
     
     const totalPassed = unit.passed + integration.passed + (e2e.passed || 0);
@@ -393,15 +416,22 @@ result = {"success": True, "message": "Test folder structure cleaned"}
     console.log('\n' + '-'.repeat(40));
     console.log(`🎯 TOTAL:             ${totalPassed} passed, ${totalFailed} failed`);
     
-    if (totalFailed === 0) {
+    // Consider UE log errors in overall assessment
+    const hasUEErrors = e2e.ueLogErrors && e2e.ueLogErrors > 0;
+    
+    if (totalFailed === 0 && !hasUEErrors) {
       console.log('\n🎉 All tests passed! UEMCP is working correctly.');
+    } else if (totalFailed === 0 && hasUEErrors) {
+      console.log('\n⚠️  Tests passed but UE log errors detected. Check UE console.');
+    } else if (hasUEErrors) {
+      console.log(`\n💥 ${totalFailed} test(s) failed + ${e2e.ueLogErrors} UE log errors. Check logs above.`);
     } else {
       console.log(`\n💥 ${totalFailed} test(s) failed. Check logs above.`);
     }
     
     console.log('='.repeat(60) + '\n');
     
-    return totalFailed === 0;
+    return totalFailed === 0 && !hasUEErrors;
   }
 
   async run() {
@@ -410,6 +440,9 @@ result = {"success": True, "message": "Test folder structure cleaned"}
     this.log('🚀 Starting UEMCP Comprehensive Test Suite', 'info');
     this.log(`Demo Project: ${this.config.demoProjectPath}`);
     this.log(`Coverage: ${this.config.coverage ? 'Enabled' : 'Disabled'}`);
+    
+    // Clear UE logs for clean baseline
+    await this.clearUELogs();
     
     // Run all test levels
     await this.runUnitTests();

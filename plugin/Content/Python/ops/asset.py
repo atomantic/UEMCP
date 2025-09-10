@@ -263,8 +263,8 @@ class AssetOperations:
             list: Socket information
         """
         sockets = []
-        if hasattr(asset, "get_sockets"):
-            mesh_sockets = asset.get_sockets()
+        if hasattr(asset, "sockets"):
+            mesh_sockets = getattr(asset, "sockets", None)
             if mesh_sockets:
                 for socket in mesh_sockets:
                     # Validate socket has required attributes

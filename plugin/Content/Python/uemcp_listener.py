@@ -199,15 +199,32 @@ def execute_on_main_thread(command):
             "project.info": "level_get_project_info",
             "asset.list": "asset_list_assets",
             "asset.info": "asset_get_asset_info",
+            "asset_get_info": "asset_get_asset_info",  # Direct MCP mapping
             "level.actors": "level_get_level_actors",
             "level.save": "level_save_level",
             "level.outliner": "level_get_outliner_structure",
+            "level_get_outliner": "level_get_outliner_structure",  # Direct MCP mapping
             "actor.spawn": "actor_spawn",
             "actor.create": "actor_spawn",  # Alias
             "actor.delete": "actor_delete",
             "actor.modify": "actor_modify",
             "actor.duplicate": "actor_duplicate",
             "actor.organize": "actor_organize",
+            "actor.batch_spawn": "actor_batch_spawn",  # Direct MCP mapping
+            "batch_spawn": "actor_batch_spawn",  # MCP tool name
+            "actor_snap_to_socket": "actor_snap_to_socket",  # Direct MCP mapping
+            "material_create": "material_create_material",  # Direct MCP mapping
+            "material_create_material": "material_create_material",  # Direct MCP mapping
+            "material_info": "material_get_material_info",  # Direct MCP mapping
+            "material_get_info": "material_get_material_info",  # Direct MCP mapping
+            "material_apply": "material_apply_material_to_actor",  # Direct MCP mapping
+            "material_apply_to_actor": "material_apply_material_to_actor",  # Direct MCP mapping
+            "material_list": "material_list_materials",  # Direct MCP mapping
+            "blueprint_create": "blueprint_create",  # Direct MCP mapping (standalone function)
+            "blueprint_get_info": "blueprint_get_info",  # Direct MCP mapping (standalone function)
+            "blueprint_list": "blueprint_list_blueprints",  # Direct MCP mapping (standalone function)
+            "blueprint_compile": "blueprint_compile",  # Direct MCP mapping (standalone function)
+            "blueprint_document": "blueprint_document",  # Direct MCP mapping (standalone function)
             "viewport.screenshot": "viewport_screenshot",
             "viewport.camera": "viewport_set_camera",
             "viewport.mode": "viewport_set_mode",

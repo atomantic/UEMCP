@@ -148,6 +148,33 @@ class FileExistsRule(ValidationRule):
         return None
 
 
+class OffsetRule(ValidationRule):
+    """Validates offset parameter - accepts both dict {x,y,z} and list [x,y,z] formats."""
+
+    def validate(self, value: Any, field_name: str) -> Optional[str]:
+        if value is None:
+            return None
+
+        if isinstance(value, dict):
+            # Dict format: {x: 0, y: 0, z: 0}
+            required_keys = {"x", "y", "z"}
+            if not required_keys.issubset(value.keys()):
+                missing = required_keys - value.keys()
+                return f"{field_name} dict missing keys: {missing}"
+            if not all(isinstance(value[k], (int, float)) for k in required_keys):
+                return f"{field_name} dict values must be numeric"
+            return None
+        elif isinstance(value, (list, tuple)):
+            # Array format: [x, y, z]
+            if len(value) != 3:
+                return f"{field_name} array must have 3 elements [x, y, z]"
+            if not all(isinstance(v, (int, float)) for v in value):
+                return f"{field_name} array elements must be numeric"
+            return None
+        else:
+            return f"{field_name} must be a dict {{x,y,z}} or array [x,y,z]"
+
+
 def validate_inputs(validation_schema: Dict[str, List[ValidationRule]]):
     """
     Decorator that validates function inputs against a schema.
