@@ -2,6 +2,129 @@
 
 This document showcases interesting experiments and advanced use cases for UEMCP.
 
+## Blueprint Development Workflow
+
+Complete example of creating, analyzing, and documenting Blueprint systems.
+
+### Interactive Door System
+```javascript
+// 1. Create a new Blueprint with components and variables
+blueprint_create({
+  className: "BP_InteractiveDoor", 
+  parentClass: "Actor",
+  targetFolder: "/Game/Blueprints/Interactive",
+  components: [
+    { name: "DoorMesh", type: "StaticMeshComponent" },
+    { name: "ProximityTrigger", type: "BoxComponent" },
+    { name: "DoorTimeline", type: "TimelineComponent" },
+    { name: "AudioComponent", type: "AudioComponent" }
+  ],
+  variables: [
+    { name: "IsOpen", type: "bool", defaultValue: false, isEditable: true },
+    { name: "OpenRotation", type: "rotator", defaultValue: [0, 0, 90] },
+    { name: "OpenSpeed", type: "float", defaultValue: 2.0, isEditable: true }
+  ]
+})
+
+// 2. Analyze the created Blueprint structure
+blueprint_info({ blueprintPath: "/Game/Blueprints/Interactive/BP_InteractiveDoor" })
+/* Returns:
+{
+  "name": "BP_InteractiveDoor",
+  "parent_class": "Actor", 
+  "components": [
+    { "name": "DoorMesh", "class": "StaticMeshComponent" },
+    { "name": "ProximityTrigger", "class": "BoxComponent" }
+  ],
+  "variables": [
+    { "name": "IsOpen", "type": "bool", "default_value": false },
+    { "name": "OpenRotation", "type": "rotator" }
+  ],
+  "functions": [
+    { "name": "OpenDoor", "inputs": [], "outputs": [] }
+  ]
+}
+*/
+
+// 3. Compile and check for errors
+blueprint_compile({ blueprintPath: "/Game/Blueprints/Interactive/BP_InteractiveDoor" })
+
+// 4. Generate comprehensive documentation
+blueprint_document({
+  blueprintPath: "/Game/Blueprints/Interactive/BP_InteractiveDoor",
+  outputPath: "/Game/Documentation/InteractiveDoor.md",
+  includeComponents: true,
+  includeVariables: true,
+  includeFunctions: true,
+  includeEvents: true
+})
+```
+
+### Inventory System Blueprint
+```javascript
+// Create a complex inventory system with multiple dependencies
+blueprint_create({
+  className: "BP_InventorySystem",
+  parentClass: "ActorComponent", 
+  targetFolder: "/Game/Systems",
+  components: [
+    { name: "WidgetComponent", type: "WidgetComponent" }
+  ],
+  variables: [
+    { name: "Items", type: "TArray<FItemData>", defaultValue: [] },
+    { name: "MaxItems", type: "int32", defaultValue: 20 },
+    { name: "CurrentWeight", type: "float", defaultValue: 0.0 }
+  ]
+})
+
+// Batch analyze multiple related Blueprints
+blueprint_document({
+  blueprintPaths: [
+    "/Game/Systems/BP_InventorySystem",
+    "/Game/Items/BP_ItemPickup", 
+    "/Game/Interfaces/BPI_Interactable",
+    "/Game/Characters/BP_PlayerCharacter"
+  ],
+  outputPath: "/Game/Documentation/InventorySystemDocumentation.md",
+  includeDependencies: true
+})
+```
+
+### Blueprint Testing & Validation Workflow
+```javascript
+// 1. List all test Blueprints
+blueprint_list({ 
+  path: "/Game/TestBlueprints",
+  filter: "BP_Test" 
+})
+
+// 2. Batch compile all test Blueprints
+const testBlueprints = [
+  "/Game/TestBlueprints/BP_TestDoor",
+  "/Game/TestBlueprints/BP_TestCharacter", 
+  "/Game/TestBlueprints/BP_TestPickup"
+];
+
+for (const bp of testBlueprints) {
+  const result = blueprint_compile({ blueprintPath: bp });
+  if (!result.compiled || result.has_errors) {
+    console.log(`❌ ${bp}: ${result.errors.join(', ')}`);
+  } else {
+    console.log(`✅ ${bp}: Compiled successfully`);
+  }
+}
+
+// 3. Generate test documentation for CI/CD
+blueprint_document({
+  blueprintPaths: testBlueprints,
+  outputPath: "/Game/Tests/TestBlueprintDocumentation.md",
+  includeComponents: false,
+  includeVariables: true,
+  includeFunctions: true,
+  includeDependencies: true
+})
+```
+
 ## House Building Experiment
 
 Demonstrates complex modular construction using the ModularOldTown asset pack.

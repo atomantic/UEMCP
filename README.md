@@ -4,7 +4,7 @@
 ![MCP](https://img.shields.io/badge/MCP-Compatible-green)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)
 
-UEMCP bridges AI assistants with Unreal Engine, enabling intelligent control of game development workflows through the Model Context Protocol (MCP).
+UEMCP bridges AI assistants with Unreal Engine through a two-tier architecture that separates the MCP server (Node.js) from the Python Editor Plugin, enabling remote deployment of Unreal Engine editors. This implementation provides optimized wrappers around common UE Python API operations, reducing code generation by up to 85%. The repository includes automated setup for AI clients, comprehensive development context, and three specialized Claude agents for enhanced UE workflows. Unlike package-managed MCP servers, this repo is designed to be cloned and potentially forked for maximum customization and development flexibility.
 
 <img src="https://github.com/atomantic/UEMCP/releases/download/v1.0.0/uemcp-demo.gif" alt="UEMCP Demo" width="100%">
 
@@ -152,7 +152,7 @@ Think of it like this: `python_proxy` is the powerful command line, while other 
 
 ## 🛠 Available Tools
 
-UEMCP provides 31 tools to Claude for controlling Unreal Engine:
+UEMCP provides 39 tools to Claude for controlling Unreal Engine:
 
 ### Project & Assets
 - **project_info** - Get current project information
@@ -188,6 +188,13 @@ UEMCP provides 31 tools to Claude for controlling Unreal Engine:
 - **material_info** - Get detailed material information including parameters and parent material
 - **material_create** - Create new materials or material instances with customizable parameters
 - **material_apply** - Apply materials to actors' static mesh components
+
+### Blueprint Development
+- **blueprint_create** - Create new Blueprint classes from C++ or Blueprint parents with components and variables
+- **blueprint_list** - List and filter Blueprints in the project with metadata
+- **blueprint_info** - Get detailed Blueprint structure including components, variables, functions, and events
+- **blueprint_compile** - Compile Blueprints and report compilation status, errors, and warnings
+- **blueprint_document** - Generate comprehensive markdown documentation for Blueprint systems
 
 ### 🔍 Validation Feature
 
@@ -268,6 +275,38 @@ batch_operations({
   - `help({ tool: "actor_spawn" })` - Detailed examples for specific tools
   - `help({ category: "viewport" })` - List all tools in a category
 
+### Blueprint Development Workflow
+```javascript
+// 1. List existing Blueprints in your project
+blueprint_list({ path: "/Game/Blueprints" })
+
+// 2. Create a new interactive door Blueprint
+blueprint_create({
+  className: "BP_InteractiveDoor",
+  parentClass: "Actor",
+  components: [
+    { name: "DoorMesh", type: "StaticMeshComponent" },
+    { name: "ProximityTrigger", type: "BoxComponent" }
+  ],
+  variables: [
+    { name: "IsOpen", type: "bool", defaultValue: false },
+    { name: "OpenRotation", type: "rotator", defaultValue: [0, 0, 90] }
+  ]
+})
+
+// 3. Analyze Blueprint structure 
+blueprint_info({ blueprintPath: "/Game/Blueprints/BP_InteractiveDoor" })
+
+// 4. Compile and check for errors
+blueprint_compile({ blueprintPath: "/Game/Blueprints/BP_InteractiveDoor" })
+
+// 5. Generate documentation
+blueprint_document({ 
+  blueprintPath: "/Game/Blueprints/BP_InteractiveDoor",
+  outputPath: "/Game/Documentation/BP_InteractiveDoor.md"
+})
+```
+
 
 ### Example: Using python_proxy for Complex Operations
 
@@ -299,7 +338,7 @@ def auto_layout_actors(spacing=500):
 - Node.js 18+ and npm
 - Unreal Engine 5.1+ (5.4+ recommended)
 - Python 3.11 (matches UE's built-in version)
-- An MCP-compatible AI client (Claude Desktop, Claude Code, Cursor)
+- An MCP-compatible AI client (Claude Desktop, Claude Code, Gemini, Codex, Q)
 
 ## 💡 Usage Examples
 
@@ -336,15 +375,24 @@ When using UEMCP with Claude Code, the proper workflow is:
 ## 🏗 Architecture
 
 ```
-UEMCP bridges AI ↔ Unreal Engine:
-Claude Desktop → MCP Server (Node.js) → Python Listener → Unreal Engine
+AI → Local MCP Server (Node.js) →  Cloud Unreal Engine (Python Listener)
+```
 
-Key Features:
-- Content-only plugin (no C++ compilation needed)
-- Hot reload support for rapid development
-- Full access to UE Python API
-- Background HTTP listener (non-blocking)
-- Modular Python architecture for maintainability
+### Why Split Node.js MCP Server + Python UE Bridge?
+
+UEMCP uses a **two-tier architecture** that separates the MCP protocol handling from Unreal Engine integration. This allows us to deploy unreal engine editors independently of the clients interacting with them, either locally or in the cloud.
+
+#### 🔄 **Development Workflow**
+```bash
+# Local development - both tiers on same machine
+AI Client ←→ MCP Server (localhost:8080) ←→ UE Python (localhost:8765)
+
+# Remote UE development - UE on cloud/server
+AI Client ←→ MCP Server (localhost:8080) ←→ UE Python (remote-server:8765)
+
+# Team development - shared UE instance  
+AI Client A ←→ MCP Server A ←→ Shared UE (team-server:8765)
+AI Client B ←→ MCP Server B ←→ Shared UE (team-server:8765)
 ```
 
 ### Modular Python Architecture
@@ -356,6 +404,8 @@ The Python plugin uses a clean, modular architecture (refactored from a monolith
 - **Validation Framework**: Optional post-operation validation with tolerance-based comparisons
 - **Consistent Error Handling**: Standardized across all operations
 - **85% Code Reduction**: When using dedicated MCP tools vs python_proxy
+
+📖 **[See detailed architecture documentation →](docs/development/architecture.md)**
 
 ## 🧑‍💻 Development
 
@@ -444,23 +494,8 @@ The diagnostic tests validate all MCP functionality including:
 
 ## ⚠️ Known Limitations
 
-While UEMCP provides comprehensive UE control, there are some current limitations:
-
-### ✅ MCP Tool Capabilities
-
-UEMCP provides comprehensive automation with **39 production-ready MCP tools**:
-
-- ✅ **Asset Snapping**: `actor_snap_to_socket` provides precise modular placement with automated socket-based positioning
-- ✅ **Undo/Redo System**: Full operation history with `undo`, `redo`, `history_list`, `checkpoint_create`, and `checkpoint_restore`
-- ✅ **Blueprint Creation**: `blueprint_create` generates Blueprint classes with components and variables
-- ✅ **Material Management**: Complete material workflow via `material_create`, `material_apply`, `material_info`, `material_list`
-- ✅ **Placement Validation**: Gap/overlap detection via `placement_validate` tool
-- ✅ **Asset Information**: Complete bounds, pivot, socket, and collision data via enhanced `asset_info`
-- ✅ **Batch Operations**: Execute multiple operations with 80-90% performance improvement
-- ✅ **Viewport Control**: Complete camera, rendering, and screenshot management
-
 ### Current MCP Tool Limitations
-- **Blueprint Graph Editing**: Cannot programmatically edit Blueprint node graphs (visual scripting logic)
+- **Blueprint Graph Editing**: Cannot programmatically edit Blueprint node graphs (visual scripting logic) - but can create, analyze, compile, and document Blueprints
 - **Animation Blueprints**: No direct animation state machine or blend tree manipulation
 - **Level Streaming**: No dynamic level loading/unloading control
 
