@@ -1,6 +1,25 @@
 import { BaseTool } from './base-tool.js';
 import { ResponseFormatter } from '../../utils/response-formatter.js';
 
+/**
+ * Type guard to check if a value is a color object
+ */
+function isColorObject(value: unknown): value is { r: number; g: number; b: number } {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  
+  const obj = value as Record<string, unknown>;
+  return (
+    'r' in obj &&
+    'g' in obj &&
+    'b' in obj &&
+    typeof obj.r === 'number' &&
+    typeof obj.g === 'number' &&
+    typeof obj.b === 'number'
+  );
+}
+
 export interface MaterialInfo {
   name: string;
   path: string;
@@ -141,9 +160,8 @@ export abstract class MaterialTool<TArgs = unknown> extends BaseTool<TArgs> {
       text += `\nProperties:\n`;
       Object.entries(result.properties).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
-          if (typeof value === 'object' && value !== null && 'r' in (value as Record<string, unknown>)) {
-            const color = value as { r: number; g: number; b: number };
-            text += `  - ${key}: RGB(${color.r}, ${color.g}, ${color.b})\n`;
+          if (isColorObject(value)) {
+            text += `  - ${key}: RGB(${value.r}, ${value.g}, ${value.b})\n`;
           } else {
             if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
               text += `  - ${key}: ${String(value)}\n`;
