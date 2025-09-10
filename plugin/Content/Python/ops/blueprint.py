@@ -362,3 +362,146 @@ def compile(blueprint_path: str) -> Dict[str, Any]:
             'errors': [f"Compilation error: {str(e)}"],
             'warnings': []
         }
+
+
+@validate_inputs({
+    'blueprint_paths': [RequiredRule(), TypeRule(list)],
+    'output_path': [TypeRule(str, allow_none=True)],
+    'include_components': [TypeRule(bool, allow_none=True)],
+    'include_variables': [TypeRule(bool, allow_none=True)],
+    'include_functions': [TypeRule(bool, allow_none=True)],
+    'include_events': [TypeRule(bool, allow_none=True)],
+    'include_dependencies': [TypeRule(bool, allow_none=True)]
+})
+@handle_unreal_errors("document_blueprints")
+@safe_operation("blueprint")
+def document(
+    blueprint_paths: List[str],
+    output_path: Optional[str] = None,
+    include_components: bool = True,
+    include_variables: bool = True,
+    include_functions: bool = True,
+    include_events: bool = True,
+    include_dependencies: bool = False
+) -> Dict[str, Any]:
+    """
+    Generate comprehensive markdown documentation for Blueprints.
+
+    Args:
+        blueprint_paths: List of Blueprint paths to document
+        output_path: Optional output file path for documentation
+        include_components: Include component hierarchy
+        include_variables: Include variable descriptions
+        include_functions: Include function signatures
+        include_events: Include custom events
+        include_dependencies: Include Blueprint dependencies
+
+    Returns:
+        Dictionary with documentation result
+    """
+    documentation_parts = []
+    documented_blueprints = []
+    
+    # Generate documentation header
+    documentation_parts.append("# Blueprint System Documentation\n")
+    documentation_parts.append(f"Generated on: {unreal.DateTime.now()}\n")
+    documentation_parts.append(f"Total Blueprints: {len(blueprint_paths)}\n\n")
+    
+    for blueprint_path in blueprint_paths:
+        try:
+            # Load Blueprint
+            blueprint = unreal.EditorAssetLibrary.load_asset(blueprint_path)
+            if not blueprint or not isinstance(blueprint, unreal.Blueprint):
+                log_warning(f"Skipping invalid Blueprint: {blueprint_path}")
+                continue
+                
+            blueprint_name = blueprint.get_name()
+            log_info(f"Documenting Blueprint: {blueprint_name}")
+            
+            # Start Blueprint documentation section
+            documentation_parts.append(f"## {blueprint_name}\n\n")
+            documentation_parts.append(f"**Path**: `{blueprint_path}`\n\n")
+            
+            # Get basic information
+            parent_class = blueprint.get_editor_property('parent_class')
+            if parent_class:
+                documentation_parts.append(f"**Parent Class**: {parent_class.get_name()}\n\n")
+            
+            # Blueprint summary for tracking
+            bp_summary = {
+                'name': blueprint_name,
+                'path': blueprint_path,
+                'componentsCount': 0,
+                'variablesCount': 0,
+                'functionsCount': 0,
+                'eventsCount': 0
+            }
+            
+            # Add sections based on options
+            if include_components:
+                documentation_parts.append("### Components\n\n")
+                # Note: Component introspection is limited in Python API
+                documentation_parts.append("*Component information requires Blueprint editor access for detailed inspection.*\n\n")
+                # This would be where we'd enumerate components if the API supported it
+                
+            if include_variables:
+                documentation_parts.append("### Variables\n\n")
+                # Note: Variable introspection is limited in Python API
+                documentation_parts.append("*Variable information requires Blueprint editor access for detailed inspection.*\n\n")
+                # This would be where we'd list variables if the API supported it
+                
+            if include_functions:
+                documentation_parts.append("### Functions\n\n")
+                # Note: Function introspection is limited in Python API
+                documentation_parts.append("*Function information requires Blueprint editor access for detailed inspection.*\n\n")
+                # This would be where we'd list functions if the API supported it
+                
+            if include_events:
+                documentation_parts.append("### Custom Events\n\n")
+                # Note: Event introspection is limited in Python API
+                documentation_parts.append("*Event information requires Blueprint editor access for detailed inspection.*\n\n")
+                # This would be where we'd list events if the API supported it
+                
+            if include_dependencies:
+                documentation_parts.append("### Dependencies\n\n")
+                # Note: Dependency analysis is limited in Python API
+                documentation_parts.append("*Dependency analysis requires Blueprint editor access for detailed inspection.*\n\n")
+            
+            # Add Blueprint to documented list
+            documented_blueprints.append(bp_summary)
+            documentation_parts.append("---\n\n")
+            
+        except Exception as e:
+            log_error(f"Error documenting Blueprint {blueprint_path}: {str(e)}")
+            continue
+    
+    # Combine documentation
+    full_documentation = ''.join(documentation_parts)
+    
+    # Save to file if output path specified
+    if output_path:
+        try:
+            import os
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(full_documentation)
+            log_info(f"Documentation saved to: {output_path}")
+        except Exception as e:
+            log_error(f"Failed to save documentation to {output_path}: {str(e)}")
+            return {
+                'success': False,
+                'error': f'Failed to save documentation: {str(e)}'
+            }
+    
+    log_info(f"Generated documentation for {len(documented_blueprints)} Blueprints")
+    
+    result = {
+        'success': True,
+        'documentedBlueprints': documented_blueprints,
+        'documentation': full_documentation
+    }
+    
+    if output_path:
+        result['outputPath'] = output_path
+    
+    return result

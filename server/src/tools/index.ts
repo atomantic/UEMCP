@@ -48,6 +48,7 @@ export {
   blueprintListTool,
   blueprintInfoTool,
   blueprintCompileTool,
+  blueprintDocumentTool,
 } from './blueprints/index.js';
 
 // Level tools

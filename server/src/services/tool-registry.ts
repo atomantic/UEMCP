@@ -39,6 +39,7 @@ import {
   blueprintListTool,
   blueprintInfoTool,
   blueprintCompileTool,
+  blueprintDocumentTool,
   // Level tools
   levelActorsTool,
   levelSaveTool,
@@ -125,6 +126,7 @@ export class ToolRegistry {
       blueprintListTool,
       blueprintInfoTool,
       blueprintCompileTool,
+      blueprintDocumentTool,
       levelActorsTool,
       levelSaveTool,
       levelOutlinerTool,
