@@ -29,7 +29,7 @@ class SocketSnappingUnitTest:
         if isinstance(actual, (list, tuple)) and isinstance(expected, (list, tuple)):
             if len(actual) != len(expected):
                 raise AssertionError(f"{message}: Length mismatch {len(actual)} != {len(expected)}")
-            for a, e in zip(actual, expected, strict=False):
+            for a, e in zip(actual, expected, strict=True):
                 if abs(a - e) > tolerance:
                     raise AssertionError(f"{message}: {actual} != {expected}")
         else:

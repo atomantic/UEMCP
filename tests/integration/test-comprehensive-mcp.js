@@ -212,7 +212,6 @@ class ComprehensiveMCPTest {
       
       // Restart the listener
       const restartResult = await this.client.callTool('restart_listener', { force: false });
-      console.log('    🔍 Debug - restartResult:', JSON.stringify(restartResult, null, 2));
       
       // Since restart_listener succeeded, we can consider the test passed
       // The actual restart happens asynchronously and may take more than 3 seconds

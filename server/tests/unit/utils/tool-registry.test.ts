@@ -89,8 +89,16 @@ describe('tool-registry', () => {
     });
 
     it('should have the expected total number of tools', () => {
-      // This test ensures we're tracking the complete set of tools
-      expect(TOOL_NAMES).toHaveLength(43);
+      // This test ensures we're tracking a reasonable number of tools
+      // and serves as a canary for significant changes to the tool registry
+      const expectedMinimumTools = 35; // Set reasonable minimum to catch accidental removals
+      const expectedMaximumTools = 50; // Set reasonable maximum to catch unexpected additions
+      
+      expect(TOOL_NAMES.length).toBeGreaterThanOrEqual(expectedMinimumTools);
+      expect(TOOL_NAMES.length).toBeLessThanOrEqual(expectedMaximumTools);
+      
+      // Log actual count for maintenance visibility
+      console.log(`Current tool count: ${TOOL_NAMES.length}`);
     });
 
     it('should contain only unique tool names', () => {

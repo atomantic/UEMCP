@@ -149,7 +149,16 @@ class FileExistsRule(ValidationRule):
 
 
 class OffsetRule(ValidationRule):
-    """Validates offset parameter - accepts both dict {x,y,z} and list [x,y,z] formats."""
+    """
+    Validates offset parameter - accepts both dict {x,y,z} and list [x,y,z] formats.
+
+    Examples:
+        # Dict format
+        {"x": 0, "y": 0, "z": 0}
+
+        # List format
+        [0, 0, 0]
+    """
 
     def validate(self, value: Any, field_name: str) -> Optional[str]:
         if value is None:

@@ -47,7 +47,10 @@ export class HelpTool extends BaseTool<HelpArgs> {
     if (result.tool) {
       // Specific tool help
       const help = result.help as { description?: string; parameters?: Record<string, unknown>; examples?: string[] };
-      const toolName = typeof result.tool === 'string' ? result.tool : 'Unknown Tool';
+      if (typeof result.tool !== 'string') {
+        throw new Error(`Invalid tool name in help result: expected string, got ${typeof result.tool}`);
+      }
+      const toolName = result.tool;
       text = `# ${toolName}\n\n`;
       text += `${help.description || ''}\n\n`;
       
