@@ -4,7 +4,7 @@
 ![MCP](https://img.shields.io/badge/MCP-Compatible-green)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)
 
-UEMCP bridges AI assistants with Unreal Engine. This particular implementation splits the MCP server (Node.js) and Python Editor Plugin into two parts so the Unreal Engine editor can be deployed remotely from the AI caller. Additionally, this implementation provides helpful wrappers around common or complex python API methods that would otherwise require heavy python code to be generated. Finally, this repo has automated setup and installation for AI clients and contains rich context for working with UE and for enriching the MCP server and plugin to add more helpful features during development. Unlike other MCP servers that run via a package manager, it is recommended that you clone (and maybe even fork) this repo to get the most out of the experience.
+UEMCP bridges AI assistants with Unreal Engine through a two-tier architecture that separates the MCP server (Node.js) from the Python Editor Plugin, enabling remote deployment of Unreal Engine editors. This implementation provides optimized wrappers around common UE Python API operations, reducing code generation by up to 85%. The repository includes automated setup for AI clients, comprehensive development context, and three specialized Claude agents for enhanced UE workflows. Unlike package-managed MCP servers, this repo is designed to be cloned and potentially forked for maximum customization and development flexibility.
 
 <img src="https://github.com/atomantic/UEMCP/releases/download/v1.0.0/uemcp-demo.gif" alt="UEMCP Demo" width="100%">
 
@@ -152,7 +152,7 @@ Think of it like this: `python_proxy` is the powerful command line, while other 
 
 ## 🛠 Available Tools
 
-UEMCP provides 31 tools to Claude for controlling Unreal Engine:
+UEMCP provides 39 tools to Claude for controlling Unreal Engine:
 
 ### Project & Assets
 - **project_info** - Get current project information
@@ -188,6 +188,13 @@ UEMCP provides 31 tools to Claude for controlling Unreal Engine:
 - **material_info** - Get detailed material information including parameters and parent material
 - **material_create** - Create new materials or material instances with customizable parameters
 - **material_apply** - Apply materials to actors' static mesh components
+
+### Blueprint Development
+- **blueprint_create** - Create new Blueprint classes from C++ or Blueprint parents with components and variables
+- **blueprint_list** - List and filter Blueprints in the project with metadata
+- **blueprint_info** - Get detailed Blueprint structure including components, variables, functions, and events
+- **blueprint_compile** - Compile Blueprints and report compilation status, errors, and warnings
+- **blueprint_document** - Generate comprehensive markdown documentation for Blueprint systems
 
 ### 🔍 Validation Feature
 
@@ -267,6 +274,38 @@ batch_operations({
   - `help({})` - Overview with categories and common workflows
   - `help({ tool: "actor_spawn" })` - Detailed examples for specific tools
   - `help({ category: "viewport" })` - List all tools in a category
+
+### Blueprint Development Workflow
+```javascript
+// 1. List existing Blueprints in your project
+blueprint_list({ path: "/Game/Blueprints" })
+
+// 2. Create a new interactive door Blueprint
+blueprint_create({
+  className: "BP_InteractiveDoor",
+  parentClass: "Actor",
+  components: [
+    { name: "DoorMesh", type: "StaticMeshComponent" },
+    { name: "ProximityTrigger", type: "BoxComponent" }
+  ],
+  variables: [
+    { name: "IsOpen", type: "bool", defaultValue: false },
+    { name: "OpenRotation", type: "rotator", defaultValue: [0, 0, 90] }
+  ]
+})
+
+// 3. Analyze Blueprint structure 
+blueprint_info({ blueprintPath: "/Game/Blueprints/BP_InteractiveDoor" })
+
+// 4. Compile and check for errors
+blueprint_compile({ blueprintPath: "/Game/Blueprints/BP_InteractiveDoor" })
+
+// 5. Generate documentation
+blueprint_document({ 
+  blueprintPath: "/Game/Blueprints/BP_InteractiveDoor",
+  outputPath: "/Game/Documentation/BP_InteractiveDoor.md"
+})
+```
 
 
 ### Example: Using python_proxy for Complex Operations
@@ -456,7 +495,7 @@ The diagnostic tests validate all MCP functionality including:
 ## ⚠️ Known Limitations
 
 ### Current MCP Tool Limitations
-- **Blueprint Graph Editing**: Cannot programmatically edit Blueprint node graphs (visual scripting logic)
+- **Blueprint Graph Editing**: Cannot programmatically edit Blueprint node graphs (visual scripting logic) - but can create, analyze, compile, and document Blueprints
 - **Animation Blueprints**: No direct animation state machine or blend tree manipulation
 - **Level Streaming**: No dynamic level loading/unloading control
 

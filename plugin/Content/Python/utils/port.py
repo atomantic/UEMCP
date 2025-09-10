@@ -2,11 +2,12 @@
 Port management utilities for UEMCP
 """
 
+import platform
 import socket
 import subprocess
-import platform
-import unreal
 import time
+
+import unreal
 
 
 def is_port_in_use(port):

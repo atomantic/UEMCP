@@ -83,6 +83,10 @@ Demo/*
 # Keep only the project file and documentation
 !Demo/*.uproject
 !Demo/README_CALIBRATION.md
+# Include Blueprint test system (part of UEMCP development)
+!Demo/Content/
+!Demo/Content/TestBlueprints/
+!Demo/Content/TestBlueprints/**
 # Always ignore Unreal's generated folders
 Demo/Saved/
 Demo/Intermediate/

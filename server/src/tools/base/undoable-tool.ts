@@ -4,6 +4,13 @@ import { OperationHistory, UndoData } from '../../services/operation-history.js'
 import { logger } from '../../utils/logger.js';
 
 /**
+ * Helper function to safely extract string values or return undefined
+ */
+function stringOrUndefined(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+/**
  * Base class for tools that support undo/redo operations
  */
 export abstract class UndoableTool<TArgs = unknown> extends BaseTool<TArgs> {
@@ -103,9 +110,9 @@ export abstract class UndoableTool<TArgs = unknown> extends BaseTool<TArgs> {
         location: Array.isArray(result.location) ? result.location : undefined,
         rotation: Array.isArray(result.rotation) ? result.rotation : undefined,
         scale: Array.isArray(result.scale) ? result.scale : undefined,
-        mesh: result.mesh ? String(result.mesh) : undefined,
-        folder: result.folder ? String(result.folder) : undefined,
-        asset_path: result.asset_path ? String(result.asset_path) : undefined,
+        mesh: stringOrUndefined(result.mesh),
+        folder: stringOrUndefined(result.folder),
+        asset_path: stringOrUndefined(result.asset_path),
       };
     }
 

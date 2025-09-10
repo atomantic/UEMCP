@@ -3,13 +3,11 @@ UEMCP Level Operations - All level and project-related operations
 """
 
 import unreal
-from utils import get_project_info, get_all_actors, log_error
+
+from utils import get_all_actors, get_project_info
 
 # Enhanced error handling framework
-from utils.error_handling import (
-    validate_inputs, handle_unreal_errors, safe_operation,
-    RequiredRule, TypeRule, ValidationError, ProcessingError
-)
+from utils.error_handling import ProcessingError, TypeRule, handle_unreal_errors, safe_operation, validate_inputs
 
 
 class LevelOperations:
@@ -22,16 +20,14 @@ class LevelOperations:
 
         Returns:
             dict: Result with success status
-            
+
         Raises:
             ProcessingError: If level save operation fails
         """
         success = unreal.EditorLevelLibrary.save_current_level()
         if not success:
             raise ProcessingError("Failed to save level")
-        return {
-            "message": "Level saved successfully"
-        }
+        return {"message": "Level saved successfully"}
 
     @handle_unreal_errors("get_project_info")
     @safe_operation("level")
@@ -44,10 +40,7 @@ class LevelOperations:
         info = get_project_info()
         return info
 
-    @validate_inputs({
-        'filter': [TypeRule(str, allow_none=True)],
-        'limit': [TypeRule(int)]
-    })
+    @validate_inputs({"filter": [TypeRule(str, allow_none=True)], "limit": [TypeRule(int)]})
     @handle_unreal_errors("get_level_actors")
     @safe_operation("level")
     def get_level_actors(self, filter=None, limit=30):
@@ -63,8 +56,7 @@ class LevelOperations:
         actors = get_all_actors(filter_text=filter, limit=limit)
 
         # Count total actors
-        editor_actor_subsystem = unreal.get_editor_subsystem(
-            unreal.EditorActorSubsystem)
+        editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
         all_actors = editor_actor_subsystem.get_all_level_actors()
 
         if filter:
@@ -81,8 +73,7 @@ class LevelOperations:
                 )
             )
         else:
-            total_count = len(
-                [a for a in all_actors if a and hasattr(a, "get_actor_label")])
+            total_count = len([a for a in all_actors if a and hasattr(a, "get_actor_label")])
 
         return {
             "actors": actors,
@@ -90,10 +81,7 @@ class LevelOperations:
             "currentLevel": unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world().get_name(),
         }
 
-    @validate_inputs({
-        'showEmpty': [TypeRule(bool)],
-        'maxDepth': [TypeRule(int)]
-    })
+    @validate_inputs({"showEmpty": [TypeRule(bool)], "maxDepth": [TypeRule(int)]})
     @handle_unreal_errors("get_outliner_structure")
     @safe_operation("level")
     def get_outliner_structure(self, showEmpty=False, maxDepth=10):
@@ -107,14 +95,11 @@ class LevelOperations:
             dict: Outliner structure
         """
         # Get all actors
-        editor_actor_subsystem = unreal.get_editor_subsystem(
-            unreal.EditorActorSubsystem)
+        editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
         all_actors = editor_actor_subsystem.get_all_level_actors()
 
         # Build folder structure
-        folder_structure, unorganized_actors, organized_count = self._build_folder_structure(
-            all_actors, maxDepth
-        )
+        folder_structure, unorganized_actors, organized_count = self._build_folder_structure(all_actors, maxDepth)
 
         # Sort all actors
         self._sort_folder_actors(folder_structure)
@@ -163,9 +148,7 @@ class LevelOperations:
 
             if folder_path:
                 organized_count += 1
-                self._add_actor_to_folder_structure(
-                    folder_structure, actor_label, str(folder_path), maxDepth
-                )
+                self._add_actor_to_folder_structure(folder_structure, actor_label, str(folder_path), maxDepth)
             else:
                 unorganized_actors.append(actor_label)
 
@@ -182,8 +165,7 @@ class LevelOperations:
         """
         return actor is not None and hasattr(actor, "get_actor_label")
 
-    def _add_actor_to_folder_structure(
-            self, folder_structure, actor_label, folder_path_str, maxDepth):
+    def _add_actor_to_folder_structure(self, folder_structure, actor_label, folder_path_str, maxDepth):
         """Add an actor to the folder structure.
 
         Args:
@@ -215,7 +197,7 @@ class LevelOperations:
         Args:
             folder_dict: Folder dictionary to sort
         """
-        for folder_name, folder_data in folder_dict.items():
+        for _folder_name, folder_data in folder_dict.items():
             if "actors" in folder_data:
                 folder_data["actors"].sort()
             if "subfolders" in folder_data:
@@ -252,8 +234,7 @@ class LevelOperations:
             bool: True if folder is empty
         """
         has_actors = "actors" in folder_data and len(folder_data["actors"]) > 0
-        has_subfolders = "subfolders" in folder_data and len(
-            folder_data["subfolders"]) > 0
+        has_subfolders = "subfolders" in folder_data and len(folder_data["subfolders"]) > 0
         return not has_actors and not has_subfolders
 
     def _count_folders(self, folder_dict):

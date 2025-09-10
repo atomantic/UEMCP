@@ -3,11 +3,13 @@
 Force cleanup for stuck UEMCP listener
 """
 
-import unreal
+import subprocess
 import sys
+
 # import os
 import time
-import subprocess
+
+import unreal
 
 
 def force_cleanup():

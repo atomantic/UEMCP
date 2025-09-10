@@ -92,7 +92,16 @@ export abstract class BlueprintTool<TArgs = unknown> extends BaseTool<TArgs> {
       info.variables.forEach(variable => {
         text += `  - ${variable.name}: ${variable.type}`;
         if (variable.defaultValue !== undefined) {
-          text += ` = ${String(variable.defaultValue)}`;
+          const dv = variable.defaultValue as unknown;
+          if (dv === null || ['string', 'number', 'boolean'].includes(typeof dv)) {
+            text += ` = ${String(dv)}`;
+          } else {
+            try {
+              text += ` = ${JSON.stringify(dv)}`;
+            } catch {
+              text += ` = [complex value]`;
+            }
+          }
         }
         text += `\n`;
       });

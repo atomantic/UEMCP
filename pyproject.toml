@@ -1,0 +1,25 @@
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["plugin/Content/Python"]
+
+[tool.ruff.lint]
+select = [
+  "E",  # pycodestyle errors
+  "F",  # pyflakes
+  "W",  # pycodestyle warnings
+  "B",  # flake8-bugbear
+  "I",  # isort (import sorting)
+]
+ignore = []
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "preserve"
+indent-style = "space"
+line-ending = "lf"

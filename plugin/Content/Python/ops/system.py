@@ -4,29 +4,28 @@ UEMCP System Operations - System-level commands and utilities
 Enhanced with improved error handling framework to eliminate try/catch boilerplate.
 """
 
-import unreal
 import os
 import sys
+
 # import importlib
-from typing import Dict, Any, Optional
+import unreal
+
+from uemcp_command_registry import get_registry
 
 # Enhanced error handling framework
 from utils.error_handling import (
-    validate_inputs, handle_unreal_errors, safe_operation,
-    RequiredRule, TypeRule, ValidationError
+    RequiredRule,
+    TypeRule,
+    handle_unreal_errors,
+    safe_operation,
+    validate_inputs,
 )
-
-from utils import log_error
-from uemcp_command_registry import get_registry
 
 
 class SystemOperations:
     """Handles system-level operations like help, connection testing, etc."""
 
-    @validate_inputs({
-        'tool': [TypeRule(str, allow_none=True)],
-        'category': [TypeRule(str, allow_none=True)]
-    })
+    @validate_inputs({"tool": [TypeRule(str, allow_none=True)], "category": [TypeRule(str, allow_none=True)]})
     @handle_unreal_errors("get_help")
     @safe_operation("system")
     def help(self, tool=None, category=None):
@@ -72,110 +71,110 @@ class SystemOperations:
         # Define detailed help for each tool
         tool_help = {
             "actor_spawn": {
-                    "description": "Spawn an actor in the level",
-                    "parameters": {
-                        "assetPath": "Path to asset (e.g., /Game/Meshes/SM_Wall)",
-                        "location": "[X, Y, Z] world position (default: [0, 0, 0])",
-                        "rotation": "[Roll, Pitch, Yaw] in degrees (default: [0, 0, 0])",
-                        "scale": "[X, Y, Z] scale factors (default: [1, 1, 1])",
-                        "name": "Actor name (optional)",
-                        "folder": "World Outliner folder path (optional)",
-                        "validate": "Validate spawn success (default: true)",
-                    },
-                    "examples": [
-                        'actor_spawn({ assetPath: "/Game/Meshes/SM_Cube" })',
-                        'actor_spawn({ assetPath: "/Game/Wall", location: [100, 200, 0], rotation: [0, 0, 90] })',
-                    ],
+                "description": "Spawn an actor in the level",
+                "parameters": {
+                    "assetPath": "Path to asset (e.g., /Game/Meshes/SM_Wall)",
+                    "location": "[X, Y, Z] world position (default: [0, 0, 0])",
+                    "rotation": "[Roll, Pitch, Yaw] in degrees (default: [0, 0, 0])",
+                    "scale": "[X, Y, Z] scale factors (default: [1, 1, 1])",
+                    "name": "Actor name (optional)",
+                    "folder": "World Outliner folder path (optional)",
+                    "validate": "Validate spawn success (default: true)",
                 },
-                "viewport_camera": {
-                    "description": "Set viewport camera position and rotation",
-                    "parameters": {
-                        "location": "[X, Y, Z] camera position",
-                        "rotation": "[Roll, Pitch, Yaw] camera angles",
-                        "focusActor": "Actor name to focus on (overrides location/rotation)",
-                        "distance": "Distance from focus actor (default: 500)",
-                    },
-                    "examples": [
-                        "viewport_camera({ location: [1000, 1000, 500], rotation: [0, -30, 45] })",
-                        'viewport_camera({ focusActor: "MyActor", distance: 1000 })',
-                    ],
+                "examples": [
+                    'actor_spawn({ assetPath: "/Game/Meshes/SM_Cube" })',
+                    'actor_spawn({ assetPath: "/Game/Wall", location: [100, 200, 0], rotation: [0, 0, 90] })',
+                ],
+            },
+            "viewport_camera": {
+                "description": "Set viewport camera position and rotation",
+                "parameters": {
+                    "location": "[X, Y, Z] camera position",
+                    "rotation": "[Roll, Pitch, Yaw] camera angles",
+                    "focusActor": "Actor name to focus on (overrides location/rotation)",
+                    "distance": "Distance from focus actor (default: 500)",
                 },
-                "python_proxy": {
-                    "description": "Execute arbitrary Python code in Unreal Engine",
-                    "parameters": {"code": "Python code to execute", "context": "Optional context variables (dict)"},
-                    "examples": [
-                        'python_proxy({ code: "import unreal\\nprint(unreal.SystemLibrary.get_project_name())" })',
-                        'python_proxy({ code: "result = len(unreal.EditorLevelLibrary.get_all_level_actors())" })',
-                    ],
+                "examples": [
+                    "viewport_camera({ location: [1000, 1000, 500], rotation: [0, -30, 45] })",
+                    'viewport_camera({ focusActor: "MyActor", distance: 1000 })',
+                ],
+            },
+            "python_proxy": {
+                "description": "Execute arbitrary Python code in Unreal Engine",
+                "parameters": {"code": "Python code to execute", "context": "Optional context variables (dict)"},
+                "examples": [
+                    'python_proxy({ code: "import unreal\\nprint(unreal.SystemLibrary.get_project_name())" })',
+                    'python_proxy({ code: "result = len(unreal.EditorLevelLibrary.get_all_level_actors())" })',
+                ],
+            },
+            "material_list": {
+                "description": "List materials in the project with optional filtering",
+                "parameters": {
+                    "path": "Content browser path to search (default: /Game)",
+                    "pattern": "Filter pattern for material names (optional)",
+                    "limit": "Maximum number of materials to return (default: 50)",
                 },
-                "material_list": {
-                    "description": "List materials in the project with optional filtering",
-                    "parameters": {
-                        "path": "Content browser path to search (default: /Game)",
-                        "pattern": "Filter pattern for material names (optional)",
-                        "limit": "Maximum number of materials to return (default: 50)",
-                    },
-                    "examples": [
-                        'material_list({ path: "/Game/Materials" })',
-                        'material_list({ pattern: "Wood", limit: 20 })',
-                    ],
+                "examples": [
+                    'material_list({ path: "/Game/Materials" })',
+                    'material_list({ pattern: "Wood", limit: 20 })',
+                ],
+            },
+            "material_info": {
+                "description": "Get detailed information about a material",
+                "parameters": {"materialPath": "Path to the material (e.g., /Game/Materials/M_Wood)"},
+                "examples": ['material_info({ materialPath: "/Game/Materials/M_Wood_Pine" })'],
+            },
+            "material_create": {
+                "description": "Create a new material or material instance",
+                "parameters": {
+                    "materialName": "Name for new material (creates simple material)",
+                    "parentMaterialPath": "Path to parent material (creates material instance)",
+                    "instanceName": "Name for new material instance",
+                    "targetFolder": "Destination folder (default: /Game/Materials)",
+                    "baseColor": "RGB color values {r, g, b} in 0-1 range",
+                    "metallic": "Metallic value (0-1)",
+                    "roughness": "Roughness value (0-1)",
+                    "emissive": "RGB emissive color {r, g, b}",
+                    "parameters": "Parameter overrides for material instance",
                 },
-                "material_info": {
-                    "description": "Get detailed information about a material",
-                    "parameters": {"materialPath": "Path to the material (e.g., /Game/Materials/M_Wood)"},
-                    "examples": ['material_info({ materialPath: "/Game/Materials/M_Wood_Pine" })'],
+                "examples": [
+                    'material_create({ materialName: "M_Sand", baseColor: {r: 0.8, g: 0.7, b: 0.5}, '
+                    "roughness: 0.8 })",
+                    'material_create({ parentMaterialPath: "/Game/M_Master", instanceName: "MI_Custom", '
+                    "parameters: { BaseColor: {r: 0.5, g: 0.5, b: 0.7} } })",
+                ],
+            },
+            "material_apply": {
+                "description": "Apply a material to an actor",
+                "parameters": {
+                    "actorName": "Name of the actor to apply material to",
+                    "materialPath": "Path to the material to apply",
+                    "slotIndex": "Material slot index (default: 0)",
                 },
-                "material_create": {
-                    "description": "Create a new material or material instance",
-                    "parameters": {
-                        "materialName": "Name for new material (creates simple material)",
-                        "parentMaterialPath": "Path to parent material (creates material instance)",
-                        "instanceName": "Name for new material instance",
-                        "targetFolder": "Destination folder (default: /Game/Materials)",
-                        "baseColor": "RGB color values {r, g, b} in 0-1 range",
-                        "metallic": "Metallic value (0-1)",
-                        "roughness": "Roughness value (0-1)",
-                        "emissive": "RGB emissive color {r, g, b}",
-                        "parameters": "Parameter overrides for material instance",
-                    },
-                    "examples": [
-                        'material_create({ materialName: "M_Sand", baseColor: {r: 0.8, g: 0.7, b: 0.5}, '
-                        'roughness: 0.8 })',
-                        'material_create({ parentMaterialPath: "/Game/M_Master", instanceName: "MI_Custom", '
-                        'parameters: { BaseColor: {r: 0.5, g: 0.5, b: 0.7} } })',
-                    ],
+                "examples": [
+                    'material_apply({ actorName: "Floor_01", materialPath: "/Game/Materials/M_Sand" })',
+                    'material_apply({ actorName: "Wall_01", materialPath: "/Game/Materials/M_Brick", '
+                    "slotIndex: 1 })",
+                ],
+            },
+            "actor_snap_to_socket": {
+                "description": "Snap an actor to another actor's socket for precise modular placement",
+                "parameters": {
+                    "sourceActor": "Name of actor to snap (will be moved)",
+                    "targetActor": "Name of target actor with socket",
+                    "targetSocket": "Socket name on target actor",
+                    "sourceSocket": "Optional socket on source actor (defaults to pivot)",
+                    "offset": "Optional [X, Y, Z] offset from socket position",
+                    "validate": "Validate snap operation (default: true)",
                 },
-                "material_apply": {
-                    "description": "Apply a material to an actor",
-                    "parameters": {
-                        "actorName": "Name of the actor to apply material to",
-                        "materialPath": "Path to the material to apply",
-                        "slotIndex": "Material slot index (default: 0)",
-                    },
-                    "examples": [
-                        'material_apply({ actorName: "Floor_01", materialPath: "/Game/Materials/M_Sand" })',
-                        'material_apply({ actorName: "Wall_01", materialPath: "/Game/Materials/M_Brick", '
-                        'slotIndex: 1 })',
-                    ],
-                },
-                "actor_snap_to_socket": {
-                    "description": "Snap an actor to another actor's socket for precise modular placement",
-                    "parameters": {
-                        "sourceActor": "Name of actor to snap (will be moved)",
-                        "targetActor": "Name of target actor with socket",
-                        "targetSocket": "Socket name on target actor",
-                        "sourceSocket": "Optional socket on source actor (defaults to pivot)",
-                        "offset": "Optional [X, Y, Z] offset from socket position",
-                        "validate": "Validate snap operation (default: true)",
-                    },
-                    "examples": [
-                        'actor_snap_to_socket({ sourceActor: "Door_01", targetActor: "Wall_01", '
-                        'targetSocket: "DoorSocket" })',
-                        'actor_snap_to_socket({ sourceActor: "Window_01", targetActor: "Wall_02", '
-                        'targetSocket: "WindowSocket", offset: [0, 0, 10] })',
-                    ],
-                },
-            }
+                "examples": [
+                    'actor_snap_to_socket({ sourceActor: "Door_01", targetActor: "Wall_01", '
+                    'targetSocket: "DoorSocket" })',
+                    'actor_snap_to_socket({ sourceActor: "Window_01", targetActor: "Wall_02", '
+                    'targetSocket: "WindowSocket", offset: [0, 0, 10] })',
+                ],
+            },
+        }
 
         # If specific tool requested
         if tool:
@@ -239,9 +238,7 @@ class SystemOperations:
             "unrealVersion": unreal.SystemLibrary.get_engine_version(),
         }
 
-    @validate_inputs({
-        'force': [TypeRule(bool)]
-    })
+    @validate_inputs({"force": [TypeRule(bool)]})
     @handle_unreal_errors("restart_listener")
     @safe_operation("system")
     def restart_listener(self, force=False):
@@ -263,17 +260,12 @@ class SystemOperations:
                 "message": "Listener restart initiated. The listener will restart automatically.",
             }
         except ImportError:
-            # Fallback to manual restart
             return {
                 "success": False,
                 "error": "Restart helper not available. Please restart manually from UE Python console.",
-                }
+            }
 
-
-    @validate_inputs({
-        'project': [TypeRule(str)],
-        'lines': [TypeRule(int)]
-    })
+    @validate_inputs({"project": [TypeRule(str)], "lines": [TypeRule(int)]})
     @handle_unreal_errors("read_ue_logs")
     @safe_operation("system")
     def ue_logs(self, project="Home", lines=100):
@@ -312,11 +304,7 @@ class SystemOperations:
             "requestedLines": lines,
         }
 
-
-    @validate_inputs({
-        'code': [RequiredRule(), TypeRule(str)],
-        'context': [TypeRule(dict, allow_none=True)]
-    })
+    @validate_inputs({"code": [RequiredRule(), TypeRule(str)], "context": [TypeRule(dict, allow_none=True)]})
     @handle_unreal_errors("execute_python")
     @safe_operation("system")
     def python_proxy(self, code, context=None):
@@ -353,7 +341,6 @@ class SystemOperations:
                 result = [str(item) if hasattr(item, "__dict__") else item for item in result]
 
         return {"success": True, "result": result, "message": "Code executed successfully"}
-
 
 
 def register_system_operations():

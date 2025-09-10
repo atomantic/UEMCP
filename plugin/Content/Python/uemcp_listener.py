@@ -2,19 +2,22 @@
 UEMCP Modular Listener - Refactored with modular architecture
 """
 
-import unreal
 import json
+import queue
 import threading
 import time
+
 # import os
 # import sys
 # import socket
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import queue
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+import unreal
+
+from ops.system import register_system_operations
 
 # Import command registry and operations
-from uemcp_command_registry import register_all_operations, dispatch_command
-from ops.system import register_system_operations
+from uemcp_command_registry import dispatch_command, register_all_operations
 from utils import log_debug, log_error
 
 # Global state
@@ -130,7 +133,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             if isinstance(v, str) and len(v) > 50:
                 v = v[:50] + "..."
             param_info.append(f"{k}={v}")
-        return ', '.join(param_info)
+        return ", ".join(param_info)
 
     def _wait_for_response(self, request_id, timeout=10.0):
         """Wait for command response.
@@ -173,12 +176,10 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         log_error(f"Error type: {type(e).__name__}")
 
         import traceback
+
         log_error(f"Traceback: {traceback.format_exc()}")
 
-        error = {
-            "success": False,
-            "error": str(e),
-            "error_type": type(e).__name__}
+        error = {"success": False, "error": str(e), "error_type": type(e).__name__}
         self._send_json_response(500, error)
 
     def log_message(self, format, *args):
@@ -198,15 +199,32 @@ def execute_on_main_thread(command):
             "project.info": "level_get_project_info",
             "asset.list": "asset_list_assets",
             "asset.info": "asset_get_asset_info",
+            "asset_get_info": "asset_get_asset_info",  # Direct MCP mapping
             "level.actors": "level_get_level_actors",
             "level.save": "level_save_level",
             "level.outliner": "level_get_outliner_structure",
+            "level_get_outliner": "level_get_outliner_structure",  # Direct MCP mapping
             "actor.spawn": "actor_spawn",
             "actor.create": "actor_spawn",  # Alias
             "actor.delete": "actor_delete",
             "actor.modify": "actor_modify",
             "actor.duplicate": "actor_duplicate",
             "actor.organize": "actor_organize",
+            "actor.batch_spawn": "actor_batch_spawn",  # Direct MCP mapping
+            "batch_spawn": "actor_batch_spawn",  # MCP tool name
+            "actor_snap_to_socket": "actor_snap_to_socket",  # Direct MCP mapping
+            "material_create": "material_create_material",  # Direct MCP mapping
+            "material_create_material": "material_create_material",  # Direct MCP mapping
+            "material_info": "material_get_material_info",  # Direct MCP mapping
+            "material_get_info": "material_get_material_info",  # Direct MCP mapping
+            "material_apply": "material_apply_material_to_actor",  # Direct MCP mapping
+            "material_apply_to_actor": "material_apply_material_to_actor",  # Direct MCP mapping
+            "material_list": "material_list_materials",  # Direct MCP mapping
+            "blueprint_create": "blueprint_create",  # Direct MCP mapping (standalone function)
+            "blueprint_get_info": "blueprint_get_info",  # Direct MCP mapping (standalone function)
+            "blueprint_list": "blueprint_list_blueprints",  # Direct MCP mapping (standalone function)
+            "blueprint_compile": "blueprint_compile",  # Direct MCP mapping (standalone function)
+            "blueprint_document": "blueprint_document",  # Direct MCP mapping (standalone function)
             "viewport.screenshot": "viewport_screenshot",
             "viewport.camera": "viewport_set_camera",
             "viewport.mode": "viewport_set_mode",
@@ -227,7 +245,7 @@ def execute_on_main_thread(command):
             # These operations are handled by the MCP server's operation history system
             # and don't need Python plugin implementations
             "system.undo": "not_implemented_python_layer",
-            "system.redo": "not_implemented_python_layer", 
+            "system.redo": "not_implemented_python_layer",
             "system.history_list": "not_implemented_python_layer",
             "system.checkpoint_create": "not_implemented_python_layer",
             "system.checkpoint_restore": "not_implemented_python_layer",
@@ -242,7 +260,10 @@ def execute_on_main_thread(command):
                 return {
                     "success": False,
                     "error": f"Command '{cmd_type}' is handled by MCP server layer, not Python plugin",
-                    "note": "This command should be called through the MCP server API, not directly to the Python listener"
+                    "note": (
+                        "This command should be called through the MCP server API, "
+                        "not directly to the Python listener"
+                    ),
                 }
             # Dispatch through the registry
             return dispatch_command(new_command, params)
@@ -255,11 +276,7 @@ def execute_on_main_thread(command):
         import traceback
 
         log_error(f"Traceback: {traceback.format_exc()}")
-        return {
-            "success": False,
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }
+        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
 def process_commands():
@@ -277,14 +294,12 @@ def process_commands():
                     unreal.log(f"UEMCP: Completed MCP tool: {cmd_type} ✓")
                 else:
                     error_msg = result.get("error", "Unknown error")
-                    unreal.log(
-                        f"UEMCP: Failed MCP tool: {cmd_type} - {error_msg}")
+                    unreal.log(f"UEMCP: Failed MCP tool: {cmd_type} - {error_msg}")
             except queue.Empty:
                 break
             except Exception as e:
                 log_error(f"Error processing command: {str(e)}")
-                response_queue[request_id] = {
-                    "success": False, "error": str(e)}
+                response_queue[request_id] = {"success": False, "error": str(e)}
     except Exception as e:
         log_error(f"Command processing error: {str(e)}")
 
@@ -304,8 +319,7 @@ def tick_handler(delta_time):
                 restart_scheduled = False
                 stop_server()
                 # Schedule restart after server is fully stopped
-                unreal.log(
-                    "UEMCP: Listener stopped, restarting in 1 second...")
+                unreal.log("UEMCP: Listener stopped, restarting in 1 second...")
 
                 # Create a one-time tick handler for restart
                 restart_timer = {"time": 1.0}
@@ -313,13 +327,11 @@ def tick_handler(delta_time):
                 def restart_tick_handler(delta):
                     restart_timer["time"] -= delta
                     if restart_timer["time"] <= 0:
-                        unreal.unregister_slate_post_tick_callback(
-                            restart_handle)
+                        unreal.unregister_slate_post_tick_callback(restart_handle)
                         unreal.log("UEMCP: Restarting listener now...")
                         start_server()
 
-                restart_handle = unreal.register_slate_post_tick_callback(
-                    restart_tick_handler)
+                restart_handle = unreal.register_slate_post_tick_callback(restart_tick_handler)
                 return
 
     except Exception as e:
@@ -350,6 +362,7 @@ def start_server():
     except Exception as e:
         log_error(f"Failed to start server: {str(e)}")
         import traceback
+
         log_error(f"Traceback: {traceback.format_exc()}")
         return False
 
@@ -378,6 +391,7 @@ def _create_server_thread():
     Returns:
         threading.Thread: The server thread
     """
+
     def run_server():
         global httpd, server_running
         local_httpd = None
@@ -460,15 +474,14 @@ def stop_server():
         # Give the server thread time to notice the flag and exit gracefully
         if server_thread and server_thread.is_alive():
             # Wait a bit for the thread to exit
-            for i in range(20):  # Wait up to 2 seconds
+            for _i in range(20):  # Wait up to 2 seconds
                 if not server_thread.is_alive():
                     break
                 time.sleep(0.1)
 
             # If still alive, force kill the port
             if server_thread.is_alive():
-                log_error(
-                    "Server thread did not stop gracefully, forcing port cleanup")
+                log_error("Server thread did not stop gracefully, forcing port cleanup")
                 try:
                     from utils import force_free_port_silent
 
@@ -504,8 +517,7 @@ def schedule_restart():
 
 def get_status():
     """Get current server status"""
-    return {"running": server_running,
-            "port": 8765, "version": "2.0 (Modular)"}
+    return {"running": server_running, "port": 8765, "version": "2.0 (Modular)"}
 
 
 # Module-level functions for compatibility with existing code

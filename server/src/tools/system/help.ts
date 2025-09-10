@@ -47,13 +47,18 @@ export class HelpTool extends BaseTool<HelpArgs> {
     if (result.tool) {
       // Specific tool help
       const help = result.help as { description?: string; parameters?: Record<string, unknown>; examples?: string[] };
-      text = `# ${String(result.tool)}\n\n`;
+      if (typeof result.tool !== 'string') {
+        throw new Error(`Invalid tool name in help result: expected string, got ${typeof result.tool}`);
+      }
+      const toolName = result.tool;
+      text = `# ${toolName}\n\n`;
       text += `${help.description || ''}\n\n`;
       
       if (help.parameters) {
         text += '## Parameters\n';
         Object.entries(help.parameters).forEach(([param, desc]) => {
-          text += `- **${param}**: ${String(desc)}\n`;
+          const descText = typeof desc === 'string' ? desc : (desc != null ? JSON.stringify(desc) : '');
+          text += `- **${param}**: ${descText}\n`;
         });
       }
       
@@ -64,7 +69,8 @@ export class HelpTool extends BaseTool<HelpArgs> {
       }
     } else if (result.category) {
       // Category listing
-      text = `# ${String(result.category)} Tools\n\n`;
+      const cat = typeof result.category === 'string' ? result.category : 'Unknown Category';
+      text = `# ${cat} Tools\n\n`;
       if (result.tools && Array.isArray(result.tools)) {
         result.tools.forEach((tool: string) => {
           text += `- ${tool}\n`;

@@ -36,6 +36,10 @@ import {
   materialApplyTool,
   // Blueprint tools
   blueprintCreateTool,
+  blueprintListTool,
+  blueprintInfoTool,
+  blueprintCompileTool,
+  blueprintDocumentTool,
   // Level tools
   levelActorsTool,
   levelSaveTool,
@@ -119,6 +123,10 @@ export class ToolRegistry {
       materialCreateTool,
       materialApplyTool,
       blueprintCreateTool,
+      blueprintListTool,
+      blueprintInfoTool,
+      blueprintCompileTool,
+      blueprintDocumentTool,
       levelActorsTool,
       levelSaveTool,
       levelOutlinerTool,
@@ -137,7 +145,15 @@ export class ToolRegistry {
     ];
 
     // Register each tool
-    allTools.forEach(tool => {
+    allTools.forEach((tool, index) => {
+      if (!tool) {
+        logger.error(`Tool at index ${index} is undefined or null`);
+        return;
+      }
+      if (!tool.definition) {
+        logger.error(`Tool at index ${index} is missing definition property`);
+        return;
+      }
       this.registerTool(tool as MCPTool);
     });
 

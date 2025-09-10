@@ -4,9 +4,10 @@ Unit tests for socket snapping functionality
 Run this in Unreal Engine's Python console to test socket operations
 """
 
-import unreal
 # import math
-from typing import Tuple, Optional
+from typing import Optional, Tuple
+
+import unreal
 
 
 class SocketSnappingUnitTest:
@@ -28,7 +29,7 @@ class SocketSnappingUnitTest:
         if isinstance(actual, (list, tuple)) and isinstance(expected, (list, tuple)):
             if len(actual) != len(expected):
                 raise AssertionError(f"{message}: Length mismatch {len(actual)} != {len(expected)}")
-            for a, e in zip(actual, expected):
+            for a, e in zip(actual, expected, strict=True):
                 if abs(a - e) > tolerance:
                     raise AssertionError(f"{message}: {actual} != {expected}")
         else:
@@ -182,7 +183,10 @@ class SocketSnappingUnitTest:
 
         # Create base actor
         base = self.create_test_actor_with_socket(
-            "Base_Actor", location=(3000, 0, 0), socket_name="MountSocket", socket_offset=(0, 0, 100)  # Socket on top
+            "Base_Actor",
+            location=(3000, 0, 0),
+            socket_name="MountSocket",
+            socket_offset=(0, 0, 100),  # Socket on top
         )
 
         # Create attachment with offset

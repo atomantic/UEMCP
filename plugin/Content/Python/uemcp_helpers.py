@@ -3,11 +3,13 @@ UEMCP Helper Functions
 Convenient functions for managing the UEMCP listener
 """
 
-import unreal
+import os
 import sys
+
 # import importlib
 import time
-import os
+
+import unreal
 
 
 def restart_listener():

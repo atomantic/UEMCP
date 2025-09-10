@@ -4,28 +4,31 @@ UEMCP Material Operations - All material creation and management operations
 Enhanced with improved error handling framework to eliminate try/catch boilerplate.
 """
 
+from typing import Any, Dict, Optional
+
 import unreal
-from typing import Dict, Any, Optional, List
+
+from utils import asset_exists, load_asset, log_debug
 
 # Enhanced error handling framework
 from utils.error_handling import (
-    validate_inputs, handle_unreal_errors, safe_operation,
-    RequiredRule, TypeRule, AssetPathRule,
-    require_asset, require_actor, ValidationError, ProcessingError
+    AssetPathRule,
+    ProcessingError,
+    RequiredRule,
+    TypeRule,
+    ValidationError,
+    handle_unreal_errors,
+    require_actor,
+    require_asset,
+    safe_operation,
+    validate_inputs,
 )
-
-from utils import load_asset, asset_exists, log_error, log_debug
-from utils.general import find_actor_by_name
 
 
 class MaterialOperations:
     """Handles all material-related operations."""
 
-    @validate_inputs({
-        'path': [RequiredRule(), TypeRule(str)],
-        'pattern': [TypeRule(str)],
-        'limit': [TypeRule(int)]
-    })
+    @validate_inputs({"path": [RequiredRule(), TypeRule(str)], "pattern": [TypeRule(str)], "limit": [TypeRule(int)]})
     @handle_unreal_errors("list_materials")
     @safe_operation("material")
     def list_materials(self, path: str = "/Game", pattern: str = "", limit: int = 50):
@@ -67,10 +70,7 @@ class MaterialOperations:
         Returns:
             list: Filtered material assets
         """
-        material_types = [
-            "Material",
-            "MaterialInstance",
-            "MaterialInstanceConstant"]
+        material_types = ["Material", "MaterialInstance", "MaterialInstanceConstant"]
         assets = []
 
         for asset in all_assets:
@@ -169,19 +169,15 @@ class MaterialOperations:
             if hasattr(material, "get_editor_property"):
                 parent = material.get_editor_property("parent")
                 if parent:
-                    material_info["parentMaterial"] = str(
-                        parent.get_path_name())
+                    material_info["parentMaterial"] = str(parent.get_path_name())
 
         # Add material domain
         if hasattr(material, "get_editor_property"):
-            material_info["domain"] = str(
-                material.get_editor_property("material_domain"))
+            material_info["domain"] = str(material.get_editor_property("material_domain"))
         else:
             material_info["domain"] = "Unknown"
 
-    @validate_inputs({
-        'material_path': [RequiredRule(), AssetPathRule()]
-    })
+    @validate_inputs({"material_path": [RequiredRule(), AssetPathRule()]})
     @handle_unreal_errors("get_material_info")
     @safe_operation("material")
     def get_material_info(self, material_path: str) -> Dict[str, Any]:
@@ -218,13 +214,11 @@ class MaterialOperations:
             tuple: (material object, error dict or None)
         """
         if not asset_exists(material_path):
-            return None, {"success": False,
-                          "error": f"Material does not exist: {material_path}"}
+            return None, {"success": False, "error": f"Material does not exist: {material_path}"}
 
         material = load_asset(material_path)
         if not material:
-            return None, {"success": False,
-                          "error": f"Failed to load material: {material_path}"}
+            return None, {"success": False, "error": f"Failed to load material: {material_path}"}
 
         return material, None
 
@@ -253,14 +247,10 @@ class MaterialOperations:
             material: Material object
         """
         if hasattr(material, "get_editor_property"):
-            info["domain"] = str(
-                material.get_editor_property("material_domain"))
-            info["blendMode"] = str(
-                material.get_editor_property("blend_mode"))
-            info["shadingModel"] = str(
-                material.get_editor_property("shading_model"))
-            info["twoSided"] = bool(
-                material.get_editor_property("two_sided"))
+            info["domain"] = str(material.get_editor_property("material_domain"))
+            info["blendMode"] = str(material.get_editor_property("blend_mode"))
+            info["shadingModel"] = str(material.get_editor_property("shading_model"))
+            info["twoSided"] = bool(material.get_editor_property("two_sided"))
         else:
             log_debug("Material does not support get_editor_property")
 
@@ -292,12 +282,11 @@ class MaterialOperations:
             list: Scalar parameters
         """
         scalar_params = []
-        if hasattr(material, 'get_scalar_parameter_names'):
+        if hasattr(material, "get_scalar_parameter_names"):
             scalar_param_names = material.get_scalar_parameter_names()
             for param_name in scalar_param_names:
                 value = material.get_scalar_parameter_value(param_name)
-                scalar_params.append(
-                    {"name": str(param_name), "value": float(value)})
+                scalar_params.append({"name": str(param_name), "value": float(value)})
         else:
             log_debug("Material does not support scalar parameters")
         return scalar_params
@@ -312,7 +301,7 @@ class MaterialOperations:
             list: Vector parameters
         """
         vector_params = []
-        if hasattr(material, 'get_vector_parameter_names'):
+        if hasattr(material, "get_vector_parameter_names"):
             vector_param_names = material.get_vector_parameter_names()
             for param_name in vector_param_names:
                 value = material.get_vector_parameter_value(param_name)
@@ -341,24 +330,25 @@ class MaterialOperations:
             list: Texture parameters
         """
         texture_params = []
-        if hasattr(material, 'get_texture_parameter_names'):
+        if hasattr(material, "get_texture_parameter_names"):
             texture_param_names = material.get_texture_parameter_names()
             for param_name in texture_param_names:
                 texture = material.get_texture_parameter_value(param_name)
                 texture_params.append(
-                    {"name": str(param_name), "texture": str(
-                        texture.get_path_name()) if texture else None}
+                    {"name": str(param_name), "texture": str(texture.get_path_name()) if texture else None}
                 )
         else:
             log_debug("Material does not support texture parameters")
         return texture_params
 
-    @validate_inputs({
-        'parent_material_path': [RequiredRule(), AssetPathRule()],
-        'instance_name': [RequiredRule(), TypeRule(str)],
-        'target_folder': [TypeRule(str)],
-        'parameters': [TypeRule(dict, allow_none=True)]
-    })
+    @validate_inputs(
+        {
+            "parent_material_path": [RequiredRule(), AssetPathRule()],
+            "instance_name": [RequiredRule(), TypeRule(str)],
+            "target_folder": [TypeRule(str)],
+            "parameters": [TypeRule(dict, allow_none=True)],
+        }
+    )
     @handle_unreal_errors("create_material_instance")
     @safe_operation("material")
     def create_material_instance(
@@ -420,15 +410,16 @@ class MaterialOperations:
             "appliedParameters": list(parameters.keys()) if parameters else [],
         }
 
-    @validate_inputs({
-        'actor_name': [RequiredRule(), TypeRule(str)],
-        'material_path': [RequiredRule(), AssetPathRule()],
-        'slot_index': [TypeRule(int)]
-    })
+    @validate_inputs(
+        {
+            "actor_name": [RequiredRule(), TypeRule(str)],
+            "material_path": [RequiredRule(), AssetPathRule()],
+            "slot_index": [TypeRule(int)],
+        }
+    )
     @handle_unreal_errors("apply_material_to_actor")
     @safe_operation("material")
-    def apply_material_to_actor(
-            self, actor_name: str, material_path: str, slot_index: int = 0) -> Dict[str, Any]:
+    def apply_material_to_actor(self, actor_name: str, material_path: str, slot_index: int = 0) -> Dict[str, Any]:
         """Apply a material to a specific material slot on an actor.
 
         Args:
@@ -452,12 +443,10 @@ class MaterialOperations:
         if hasattr(actor, "static_mesh_component"):
             static_mesh_component = actor.static_mesh_component
         elif hasattr(actor, "get_component_by_class"):
-            static_mesh_component = actor.get_component_by_class(
-                unreal.StaticMeshComponent)
+            static_mesh_component = actor.get_component_by_class(unreal.StaticMeshComponent)
         else:
             # Get components and find first StaticMeshComponent
-            components = actor.get_components_by_class(
-                unreal.StaticMeshComponent)
+            components = actor.get_components_by_class(unreal.StaticMeshComponent)
             if components and len(components) > 0:
                 static_mesh_component = components[0]
 
@@ -468,8 +457,7 @@ class MaterialOperations:
         static_mesh_component.set_material(slot_index, material)
 
         # Mark actor as modified
-        editor_actor_subsystem = unreal.get_editor_subsystem(
-            unreal.EditorActorSubsystem)
+        editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
         editor_actor_subsystem.set_actor_selection_state(actor, True)
 
         return {
@@ -479,14 +467,16 @@ class MaterialOperations:
             "componentName": static_mesh_component.get_name(),
         }
 
-    @validate_inputs({
-        'material_name': [RequiredRule(), TypeRule(str)],
-        'target_folder': [TypeRule(str)],
-        'base_color': [TypeRule(dict, allow_none=True)],
-        'metallic': [TypeRule((int, float))],
-        'roughness': [TypeRule((int, float))],
-        'emissive': [TypeRule(dict, allow_none=True)]
-    })
+    @validate_inputs(
+        {
+            "material_name": [RequiredRule(), TypeRule(str)],
+            "target_folder": [TypeRule(str)],
+            "base_color": [TypeRule(dict, allow_none=True)],
+            "metallic": [TypeRule((int, float))],
+            "roughness": [TypeRule((int, float))],
+            "emissive": [TypeRule(dict, allow_none=True)],
+        }
+    )
     @handle_unreal_errors("create_simple_material")
     @safe_operation("material")
     def create_simple_material(
@@ -546,17 +536,11 @@ class MaterialOperations:
             color_node.set_editor_property("parameter_name", "BaseColor")
             color_node.set_editor_property(
                 "default_value",
-                unreal.LinearColor(
-                    base_color.get(
-                        "r", 1.0), base_color.get(
-                        "g", 1.0), base_color.get(
-                        "b", 1.0), 1.0
-                ),
+                unreal.LinearColor(base_color.get("r", 1.0), base_color.get("g", 1.0), base_color.get("b", 1.0), 1.0),
             )
 
             # Connect to base color
-            material_editor.connect_material_property(
-                color_node, "", unreal.MaterialProperty.MP_BASE_COLOR)
+            material_editor.connect_material_property(color_node, "", unreal.MaterialProperty.MP_BASE_COLOR)
 
         # Metallic
         if metallic != 0.0:
@@ -566,8 +550,7 @@ class MaterialOperations:
             metallic_node.set_editor_property("parameter_name", "Metallic")
             metallic_node.set_editor_property("default_value", metallic)
 
-            material_editor.connect_material_property(
-                metallic_node, "", unreal.MaterialProperty.MP_METALLIC)
+            material_editor.connect_material_property(metallic_node, "", unreal.MaterialProperty.MP_METALLIC)
 
         # Roughness
         roughness_node = unreal.MaterialEditingLibrary.create_material_expression(
@@ -576,27 +559,20 @@ class MaterialOperations:
         roughness_node.set_editor_property("parameter_name", "Roughness")
         roughness_node.set_editor_property("default_value", roughness)
 
-        material_editor.connect_material_property(
-            roughness_node, "", unreal.MaterialProperty.MP_ROUGHNESS)
+        material_editor.connect_material_property(roughness_node, "", unreal.MaterialProperty.MP_ROUGHNESS)
 
         # Emissive
         if emissive:
             emissive_node = unreal.MaterialEditingLibrary.create_material_expression(
                 material, unreal.MaterialExpressionVectorParameter
             )
-            emissive_node.set_editor_property(
-                "parameter_name", "EmissiveColor")
+            emissive_node.set_editor_property("parameter_name", "EmissiveColor")
             emissive_node.set_editor_property(
                 "default_value",
-                unreal.LinearColor(
-                    emissive.get(
-                        "r", 0.0), emissive.get(
-                        "g", 0.0), emissive.get(
-                        "b", 0.0), 1.0),
+                unreal.LinearColor(emissive.get("r", 0.0), emissive.get("g", 0.0), emissive.get("b", 0.0), 1.0),
             )
 
-            material_editor.connect_material_property(
-                emissive_node, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+            material_editor.connect_material_property(emissive_node, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
 
         # Recompile the material
         unreal.MaterialEditingLibrary.recompile_material(material)
@@ -615,8 +591,7 @@ class MaterialOperations:
             },
         }
 
-    def _apply_material_parameters(
-            self, material_instance, parameters: Dict[str, Any]):
+    def _apply_material_parameters(self, material_instance, parameters: Dict[str, Any]):
         """Apply parameter overrides to a material instance.
 
         Args:
@@ -626,22 +601,17 @@ class MaterialOperations:
         for param_name, param_value in parameters.items():
             if isinstance(param_value, (int, float)):
                 # Scalar parameter
-                material_instance.set_scalar_parameter_value(
-                    param_name, float(param_value))
+                material_instance.set_scalar_parameter_value(param_name, float(param_value))
             elif isinstance(param_value, dict) and all(k in param_value for k in ["r", "g", "b"]):
                 # Vector parameter (color)
                 color = unreal.LinearColor(
-                    param_value["r"], param_value["g"], param_value["b"], param_value.get(
-                        "a", 1.0)
+                    param_value["r"], param_value["g"], param_value["b"], param_value.get("a", 1.0)
                 )
-                material_instance.set_vector_parameter_value(
-                    param_name, color)
+                material_instance.set_vector_parameter_value(param_name, color)
             elif isinstance(param_value, str) and asset_exists(param_value):
                 # Texture parameter
                 texture = load_asset(param_value)
                 if texture:
-                    material_instance.set_texture_parameter_value(
-                        param_name, texture)
+                    material_instance.set_texture_parameter_value(param_name, texture)
             else:
-                log_debug(
-                    f"Unsupported parameter type for {param_name}: {type(param_value)}")
+                log_debug(f"Unsupported parameter type for {param_name}: {type(param_value)}")

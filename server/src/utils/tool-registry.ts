@@ -26,6 +26,12 @@ export const TOOL_NAMES = [
   'material_info',
   'material_create',
   'material_apply',
+  // Blueprint tools
+  'blueprint_create',
+  'blueprint_list',
+  'blueprint_info',
+  'blueprint_compile',
+  'blueprint_document',
   // Level tools
   'level_actors',
   'level_save',
@@ -46,17 +52,25 @@ export const TOOL_NAMES = [
   'ue_logs',
   'python_proxy',
   'help',
+  'undo',
+  'redo',
+  'history_list',
+  'checkpoint_create',
+  'checkpoint_restore',
+  'batch_operations',
 ] as const;
 
 /**
  * Tool categories - used for help categorization
  */
 export const TOOL_CATEGORIES = [
-  'project',
-  'level', 
+  'actors',
+  'assets',
+  'materials', 
+  'blueprints',
+  'level',
   'viewport',
-  'advanced',
-  'help',
+  'system',
 ] as const;
 
 /**
