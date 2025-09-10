@@ -9,7 +9,7 @@ The next major development milestone focuses on comprehensive Blueprint editing,
 ## Prerequisites
 
 - Node >= 18, npm
-- Python 3.11+ (local ok with 3.10+ but prefer 3.11)
+- Python 3.11+ (local ok with 3.10+ but prefer 3.11) for MCP server and tools
 - Unreal Engine 5.4+ for full Blueprint functionality
 - No network access required beyond CI artifact uploads
 
@@ -20,7 +20,7 @@ The next major development milestone focuses on comprehensive Blueprint editing,
 - **Edit**: Create test Blueprint hierarchy in `/Game/TestBlueprints/`
 - **Do**:
   - Interactive door Blueprint with proximity detection and animation
-  - Inventory system with item pickup/drop mechanics  
+  - Inventory system with item pickup/drop mechanics
   - Character controller with custom input handling
   - UI system with dynamic menu generation
   - Game state manager with save/load functionality
@@ -33,7 +33,7 @@ The next major development milestone focuses on comprehensive Blueprint editing,
 - **Edit**: Add new tools in `server/src/tools/blueprint/` directory
 - **Do**:
   - `blueprint_create` - Create new Blueprint classes with components/variables/functions
-  - `blueprint_modify` - Edit Blueprint properties, components, and event graphs  
+  - `blueprint_modify` - Edit Blueprint properties, components, and event graphs
   - `blueprint_list` - List Blueprints with filtering and metadata
   - `blueprint_info` - Get detailed Blueprint structure (components, variables, functions, events)
   - `blueprint_compile` - Compile Blueprint and report compilation status/errors
