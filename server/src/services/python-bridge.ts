@@ -92,7 +92,7 @@ export class PythonBridge {
         params: {}
       });
       return cmdResponse.success;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

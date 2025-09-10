@@ -93,8 +93,10 @@ export class BlueprintDocumentTool extends BlueprintTool<BlueprintDocumentArgs> 
 
     let text = `Blueprint Documentation Generated\n\n`;
     
-    if (result.outputPath) {
+    if (typeof result.outputPath === 'string') {
       text += `📄 Documentation saved to: ${result.outputPath}\n`;
+    } else if (result.outputPath) {
+      text += `📄 Documentation saved.` + '\n';
     }
     
     text += `📋 Documented ${blueprintPaths.length} Blueprint${blueprintPaths.length === 1 ? '' : 's'}\n\n`;

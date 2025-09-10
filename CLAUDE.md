@@ -58,17 +58,36 @@ npm test
 # Run Python tests
 python -m pytest tests/
 
+# Run Python linting and formatting
+./scripts/lint-python.sh
+
 # Run linting and CI checks before committing
 ./test-ci-locally.sh
 ```
 
 **IMPORTANT**: Always run `./test-ci-locally.sh` before committing and pushing changes to ensure:
-- TypeScript linting passes (ESLint)
+- TypeScript linting passes (ESLint) with **zero warnings**
 - TypeScript type checking passes
-- Python linting passes (ruff, mypy, flake8)
+- Python linting passes (ruff, black, flake8) with **zero warnings**
 - All tests pass
 
-This prevents CI failures and ensures code quality.
+**CRITICAL**: We maintain a **zero warnings** policy for all linting tools. This ensures consistently high code quality and prevents technical debt accumulation. Pre-commit hooks automatically enforce this standard.
+
+### Pre-commit Hooks
+Pre-commit hooks are automatically installed and will run before each commit:
+```bash
+# Install pre-commit hooks (already done for this project)
+pre-commit install
+
+# Run pre-commit hooks on all files
+pre-commit run --all-files
+```
+
+The hooks include:
+- **ruff**: Fast Python linter and formatter with auto-fix capabilities
+- **black**: Python code formatter (120 character line length)  
+- **flake8**: Python style guide enforcement (ignores E203, W503 for Black compatibility)
+- **eslint**: TypeScript/JavaScript linting for server code
 
 ## Project Structure
 

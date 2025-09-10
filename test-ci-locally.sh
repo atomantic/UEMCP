@@ -54,7 +54,6 @@ cd ..
 
 # Python Tests for Plugin
 echo -e "\n${YELLOW}=== Python Plugin Tests ===${NC}"
-cd plugin/Content/Python
 
 # Check if we have Python 3.11
 PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}' | cut -d. -f1,2)
@@ -65,14 +64,11 @@ fi
 # Install Python dependencies if needed
 if ! python3 -m pip show flake8 &>/dev/null; then
     echo "Installing Python linting tools..."
-    pip install flake8
+    pip install flake8 black ruff
 fi
 
-# Run Python checks on plugin code
-run_test "Flake8 Linting" "flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics"
-run_test "Flake8 Style" "flake8 . --count --exit-zero --max-complexity=15 --max-line-length=120 --statistics"
-
-cd ../../..
+# Run comprehensive Python linting (includes formatting, ruff, and flake8)
+run_test "Python Linting & Formatting" "./scripts/lint-python.sh"
 
 # Comprehensive Test Suite (Unit + Integration + E2E)
 echo -e "\n${YELLOW}=== Comprehensive Test Suite ===${NC}"

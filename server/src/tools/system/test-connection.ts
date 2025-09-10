@@ -41,7 +41,7 @@ export class TestConnectionTool extends BaseTool {
       
       return ResponseFormatter.success(text);
       
-    } catch (error) {
+    } catch {
       return ResponseFormatter.success(
         '🔍 Testing Python listener availability...\n' +
         '❌ Python listener is OFFLINE\n' +

@@ -145,7 +145,15 @@ export class ToolRegistry {
     ];
 
     // Register each tool
-    allTools.forEach(tool => {
+    allTools.forEach((tool, index) => {
+      if (!tool) {
+        logger.error(`Tool at index ${index} is undefined or null`);
+        return;
+      }
+      if (!tool.definition) {
+        logger.error(`Tool at index ${index} is missing definition property`);
+        return;
+      }
       this.registerTool(tool as MCPTool);
     });
 

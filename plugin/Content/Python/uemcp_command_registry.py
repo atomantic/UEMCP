@@ -3,7 +3,8 @@ UEMCP Command Registry - Manages command registration and dispatch
 """
 
 import inspect
-from typing import Dict, Callable, Any, Optional, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 from utils import log_debug, log_error
 
 
@@ -178,7 +179,7 @@ def register_all_operations():
 
     try:
         # Import and register all operations from ops package
-        from ops import ActorOperations, AssetOperations, LevelOperations, ViewportOperations, MaterialOperations
+        from ops import ActorOperations, AssetOperations, LevelOperations, MaterialOperations, ViewportOperations
 
         # Register actor operations
         actor_ops = ActorOperations()
@@ -202,7 +203,8 @@ def register_all_operations():
 
         # Register batch operations
         from ops.batch_operations import execute_batch_operations
-        registry.register_command('batch_operations', execute_batch_operations)
+
+        registry.register_command("batch_operations", execute_batch_operations)
 
         log_debug(f"Registered {len(registry.handlers)} commands")
 

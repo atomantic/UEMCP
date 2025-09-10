@@ -2,8 +2,9 @@
 UEMCP Utilities - Common utility functions for all modules
 """
 
-import unreal
 import os
+
+import unreal
 
 
 def create_vector(location_array):

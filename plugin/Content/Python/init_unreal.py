@@ -3,10 +3,11 @@ UEMCP Auto-startup Script
 This script is automatically executed when the plugin loads
 """
 
-import unreal
-import sys
 import os
+import sys
 import time
+
+import unreal
 
 # Add this plugin's Python directory to path
 plugin_python_path = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +25,7 @@ try:
         time.sleep(1)  # Give it time to stop
 
     # Also check if port is in use from a crashed session
-    from utils import is_port_in_use, force_free_port_silent
+    from utils import force_free_port_silent, is_port_in_use
 
     if is_port_in_use(8765):
         unreal.log("UEMCP: Port 8765 in use from previous session, cleaning up...")
@@ -45,7 +46,7 @@ try:
         unreal.log("UEMCP: Functions: restart_listener(), stop_listener(), status(), start_listener()")
 
     # Import helper functions for convenience (made available to Python console)
-    from uemcp_helpers import restart_listener, reload_uemcp, status, start_listener, stop_listener  # noqa: F401
+    from uemcp_helpers import reload_uemcp, restart_listener, start_listener, status, stop_listener  # noqa: F401
 
 except ImportError as e:
     unreal.log_error(f"UEMCP: Could not import module: {e}")

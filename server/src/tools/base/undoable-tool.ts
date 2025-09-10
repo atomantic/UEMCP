@@ -103,9 +103,9 @@ export abstract class UndoableTool<TArgs = unknown> extends BaseTool<TArgs> {
         location: Array.isArray(result.location) ? result.location : undefined,
         rotation: Array.isArray(result.rotation) ? result.rotation : undefined,
         scale: Array.isArray(result.scale) ? result.scale : undefined,
-        mesh: result.mesh ? String(result.mesh) : undefined,
-        folder: result.folder ? String(result.folder) : undefined,
-        asset_path: result.asset_path ? String(result.asset_path) : undefined,
+        mesh: typeof result.mesh === 'string' ? result.mesh : undefined,
+        folder: typeof result.folder === 'string' ? result.folder : undefined,
+        asset_path: typeof result.asset_path === 'string' ? result.asset_path : undefined,
       };
     }
 

@@ -4,18 +4,25 @@ UEMCP Asset Operations - All asset and content browser operations
 Enhanced with improved error handling framework to eliminate try/catch boilerplate.
 """
 
-import unreal
 import os
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
+import unreal
+
+from utils import asset_exists, log_error
 
 # Enhanced error handling framework
 from utils.error_handling import (
-    validate_inputs, handle_unreal_errors, safe_operation,
-    RequiredRule, TypeRule, AssetPathRule, FileExistsRule,
-    require_asset, ValidationError, ProcessingError
+    AssetPathRule,
+    FileExistsRule,
+    RequiredRule,
+    TypeRule,
+    ValidationError,
+    handle_unreal_errors,
+    require_asset,
+    safe_operation,
+    validate_inputs,
 )
-
-from utils import load_asset, asset_exists, log_error
 
 
 class AssetOperations:
@@ -74,11 +81,9 @@ class AssetOperations:
             or len(aggregate_geom.convex_elems) > 0
         )
 
-    @validate_inputs({
-        'path': [RequiredRule(), TypeRule(str)],
-        'assetType': [TypeRule((str, type(None)))],
-        'limit': [TypeRule(int)]
-    })
+    @validate_inputs(
+        {"path": [RequiredRule(), TypeRule(str)], "assetType": [TypeRule((str, type(None)))], "limit": [TypeRule(int)]}
+    )
     @handle_unreal_errors("list_assets")
     @safe_operation("asset")
     def list_assets(self, path: str = "/Game", assetType: Optional[str] = None, limit: int = 20):
@@ -121,15 +126,11 @@ class AssetOperations:
                 else str(asset.asset_class_path)
             )
 
-            asset_list.append(
-                {"name": str(asset.asset_name), "type": asset_type_name, "path": str(asset.package_name)}
-            )
+            asset_list.append({"name": str(asset.asset_name), "type": asset_type_name, "path": str(asset.package_name)})
 
         return {"assets": asset_list, "totalCount": len(assets), "path": path}
 
-    @validate_inputs({
-        'assetPath': [RequiredRule(), AssetPathRule()]
-    })
+    @validate_inputs({"assetPath": [RequiredRule(), AssetPathRule()]})
     @handle_unreal_errors("get_asset_info")
     @safe_operation("asset")
     def get_asset_info(self, assetPath: str) -> Dict[str, Any]:
@@ -267,8 +268,12 @@ class AssetOperations:
             if mesh_sockets:
                 for socket in mesh_sockets:
                     # Validate socket has required attributes
-                    if (hasattr(socket, 'socket_name') and hasattr(socket, 'relative_location') and
-                        hasattr(socket, 'relative_rotation') and hasattr(socket, 'relative_scale')):
+                    if (
+                        hasattr(socket, "socket_name")
+                        and hasattr(socket, "relative_location")
+                        and hasattr(socket, "relative_rotation")
+                        and hasattr(socket, "relative_scale")
+                    ):
                         sockets.append(
                             {
                                 "name": str(socket.socket_name),
@@ -315,7 +320,7 @@ class AssetOperations:
                     material_path = self._get_material_path(mat_slot)
                     if material_path:
                         slot_info["materialPath"] = material_path
-                    
+
                     material_slots.append(slot_info)
         return material_slots
 
@@ -370,7 +375,7 @@ class AssetOperations:
         info["blueprintClass"] = str(asset.generated_class().get_name()) if asset.generated_class() else None
 
         # Get blueprint default object information
-        if hasattr(asset, 'generated_class') and asset.generated_class():
+        if hasattr(asset, "generated_class") and asset.generated_class():
             default_object = asset.generated_class().get_default_object()
             if default_object:
                 # Get bounds
@@ -433,9 +438,7 @@ class AssetOperations:
             }
         )
 
-    @validate_inputs({
-        'paths': [RequiredRule(), TypeRule(list)]
-    })
+    @validate_inputs({"paths": [RequiredRule(), TypeRule(list)]})
     @handle_unreal_errors("validate_asset_paths")
     @safe_operation("asset")
     def validate_asset_paths(self, paths: List[str]):
@@ -457,11 +460,13 @@ class AssetOperations:
             "invalidCount": sum(1 for v in results.values() if not v),
         }
 
-    @validate_inputs({
-        'assetType': [RequiredRule(), TypeRule(str)],
-        'searchPath': [RequiredRule(), TypeRule(str)],
-        'limit': [TypeRule(int)]
-    })
+    @validate_inputs(
+        {
+            "assetType": [RequiredRule(), TypeRule(str)],
+            "searchPath": [RequiredRule(), TypeRule(str)],
+            "limit": [TypeRule(int)],
+        }
+    )
     @handle_unreal_errors("find_assets_by_type")
     @safe_operation("asset")
     def find_assets_by_type(self, assetType: str, searchPath: str = "/Game", limit: int = 50):
@@ -522,13 +527,15 @@ class AssetOperations:
             "searchPath": searchPath,
         }
 
-    @validate_inputs({
-        'sourcePath': [RequiredRule(), TypeRule(str), FileExistsRule()],
-        'targetFolder': [RequiredRule(), TypeRule(str)],
-        'assetType': [TypeRule(str)],
-        'batchImport': [TypeRule(bool)],
-        'importSettings': [TypeRule(dict, allow_none=True)]
-    })
+    @validate_inputs(
+        {
+            "sourcePath": [RequiredRule(), TypeRule(str), FileExistsRule()],
+            "targetFolder": [RequiredRule(), TypeRule(str)],
+            "assetType": [TypeRule(str)],
+            "batchImport": [TypeRule(bool)],
+            "importSettings": [TypeRule(dict, allow_none=True)],
+        }
+    )
     @handle_unreal_errors("import_assets")
     @safe_operation("asset")
     def import_assets(
@@ -728,7 +735,7 @@ class AssetOperations:
                 files_to_import.append(source_path)
         elif os.path.isdir(source_path) and batch_import:
             # Batch import from folder
-            for root, dirs, files in os.walk(source_path):
+            for root, _dirs, files in os.walk(source_path):
                 for file in files:
                     if any(file.lower().endswith(ext) for ext in extensions):
                         files_to_import.append(os.path.join(root, file))
