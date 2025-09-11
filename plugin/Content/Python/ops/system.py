@@ -257,30 +257,44 @@ class SystemOperations:
         Returns:
             dict: Restart result
         """
-        # Schedule the restart to happen after we return the response
+        # Schedule the restart using Unreal's tick system instead of threads
         try:
-            import threading
-            import time
+            import unreal
 
-            def delayed_restart():
-                # Wait for response to be sent
-                time.sleep(0.5)
+            # We'll use a counter to ensure we only run once
+            restart_counter = [0]  # Use list so we can modify in nested function
 
-                # Now restart
+            def perform_restart(delta_time):
+                # Only run once
+                if restart_counter[0] > 0:
+                    return
+                restart_counter[0] += 1
+
                 try:
+                    unreal.log("UEMCP: Performing scheduled restart...")
                     import uemcp_listener
 
-                    uemcp_listener.restart_listener()
-                except Exception as e:
-                    unreal.log_error(f"UEMCP: Failed to restart listener: {str(e)}")
+                    # Unregister this callback first
+                    if hasattr(perform_restart, "_handle"):
+                        unreal.unregister_slate_post_tick_callback(perform_restart._handle)
 
-            # Start restart in background thread
-            restart_thread = threading.Thread(target=delayed_restart, daemon=True)
-            restart_thread.start()
+                    # Then restart
+                    success = uemcp_listener.restart_listener()
+                    if success:
+                        unreal.log("UEMCP: Restart completed successfully")
+                    else:
+                        unreal.log_error("UEMCP: Restart failed")
+                except Exception as e:
+                    unreal.log_error(f"UEMCP: Restart error: {str(e)}")
+
+            # Register the callback to run on next tick
+            # This ensures the response is sent before restart
+            handle = unreal.register_slate_post_tick_callback(perform_restart)
+            perform_restart._handle = handle
 
             return {
                 "success": True,
-                "message": "Listener restart scheduled. The listener will restart in 0.5 seconds.",
+                "message": "Listener restart scheduled for next tick.",
             }
         except Exception as e:
             return {
