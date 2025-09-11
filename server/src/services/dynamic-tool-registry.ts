@@ -78,7 +78,8 @@ export class HybridToolRegistry {
       return this.dynamicRegistry.getTools().map(tool => ({
         definition: tool.definition,
         handler: async (args: unknown): Promise<{ content: Array<{ type: string; text: string }> }> => {
-          const response = await tool.execute(args);
+          const typedArgs = args as Record<string, unknown> | undefined;
+          const response = await tool.execute(typedArgs);
           // Convert ToolResponse to expected format
           return {
             content: response.content.map(item => ({
@@ -102,7 +103,8 @@ export class HybridToolRegistry {
         return {
           definition: tool.definition,
           handler: async (args: unknown): Promise<{ content: Array<{ type: string; text: string }> }> => {
-            const response = await tool.execute(args);
+            const typedArgs = args as Record<string, unknown> | undefined;
+            const response = await tool.execute(typedArgs);
             // Convert ToolResponse to expected format
             return {
               content: response.content.map(item => ({
