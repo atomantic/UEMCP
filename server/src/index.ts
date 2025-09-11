@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * UEMCP Server Entry Point
- * Clean orchestration of server components
+ * UEMCP Server Entry Point with Dynamic Tool Loading
+ * 
+ * This version attempts to load tools dynamically from Python,
+ * falling back to static definitions if needed.
  */
 
 import { logger } from './utils/logger.js';
 import { PythonBridge } from './services/python-bridge.js';
-import { ToolRegistry } from './services/tool-registry.js';
+import { HybridToolRegistry } from './services/dynamic-tool-registry.js';
 import { ConfigManager } from './services/config-manager.js';
 import { ServerManager } from './services/server-manager.js';
 
 /**
- * Main application startup
+ * Main application startup with dynamic tool loading
  */
 async function main(): Promise<void> {
   try {
@@ -30,10 +32,39 @@ async function main(): Promise<void> {
     configManager.logStartupBanner();
     configManager.logConfiguration();
 
-    // Initialize tool registry
-    const toolRegistry = new ToolRegistry();
+    // Initialize Python bridge first for dynamic loading
+    const listenerPort = configManager.getListenerPort();
+    logger.info(`Connecting to Python bridge on port ${listenerPort}...`);
     
-    // Initialize server manager
+    const pythonBridge = new PythonBridge();
+    let bridgeAvailable = false;
+    
+    try {
+      // Test connection by sending a simple command
+      await pythonBridge.executeCommand({ type: 'test_connection', params: {} });
+      logger.info('✓ Python bridge connection successful');
+      bridgeAvailable = true;
+    } catch (error) {
+      logger.warn('Python bridge not available - will use static tool definitions', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+
+    // Initialize hybrid tool registry
+    const toolRegistry = new HybridToolRegistry(bridgeAvailable ? pythonBridge : undefined);
+    await toolRegistry.initialize();
+    
+    // Log tool loading mode
+    const stats = toolRegistry.getStats();
+    logger.info(`Loaded ${stats.total} tools in ${stats.mode} mode`);
+    
+    if (stats.mode === 'dynamic') {
+      logger.info('✨ Using dynamic tool definitions from Python manifest');
+    } else {
+      logger.info('📦 Using static tool definitions (Python manifest not available)');
+    }
+    
+    // Initialize server manager with the hybrid registry
     const serverManager = new ServerManager(toolRegistry, configManager);
     
     // Initialize MCP server before validation to avoid false negatives
@@ -46,28 +77,12 @@ async function main(): Promise<void> {
       process.exit(1);
     }
 
-    // Initialize Python bridge (test connection but don't require it)
-    const listenerPort = configManager.getListenerPort();
-    logger.info(`Connecting to Python bridge on port ${listenerPort}...`);
-    
-    const pythonBridge = new PythonBridge();
-    try {
-      // Test connection by sending a simple command
-      await pythonBridge.executeCommand({ type: 'system.ping', params: {} });
-      logger.info('✓ Python bridge connection successful');
-    } catch (error) {
-      logger.warn('Python bridge not available - tools will attempt connection when needed', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-    
     // Initialize and start the MCP server
     serverManager.setupShutdownHandlers();
     
     logger.info(`Starting MCP server with ${toolRegistry.getToolCount()} tools...`);
     logger.info('Tools organized by category:');
     
-    const stats = toolRegistry.getStats();
     Object.entries(stats.categories).forEach(([category, count]) => {
       logger.info(`  ${category}: ${count} tools`);
     });
@@ -76,6 +91,7 @@ async function main(): Promise<void> {
     
     logger.info('='.repeat(60));
     logger.info('✓ UEMCP Server started successfully');
+    logger.info(`Mode: ${stats.mode === 'dynamic' ? '🚀 Dynamic (Python-driven)' : '📦 Static (hardcoded)'}`);
     logger.info(`Ready to receive MCP requests...`);
     logger.info(`Summary: ${serverManager.getToolsSummary()}`);
     logger.info('='.repeat(60));

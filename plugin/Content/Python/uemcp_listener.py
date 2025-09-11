@@ -388,7 +388,14 @@ def _create_server_thread():
             log_debug("HTTP server started on port 8765")
 
             while server_running:
-                local_httpd.handle_request()
+                try:
+                    local_httpd.handle_request()
+                except OSError as e:
+                    # Socket was closed, this is expected during shutdown
+                    if not server_running:
+                        break
+                    log_error(f"Socket error during request handling: {str(e)}")
+                    break
 
         except Exception as e:
             log_error(f"HTTP server error: {str(e)}")
@@ -458,8 +465,16 @@ def stop_server():
 
         # Give the server thread time to notice the flag and exit gracefully
         if server_thread and server_thread.is_alive():
+            # Close the httpd socket to interrupt handle_request()
+            if httpd:
+                try:
+                    # Close the socket to interrupt any pending handle_request()
+                    httpd.socket.close()
+                except Exception:
+                    pass
+
             # Wait a bit for the thread to exit
-            for _i in range(20):  # Wait up to 2 seconds
+            for _i in range(30):  # Wait up to 3 seconds
                 if not server_thread.is_alive():
                     break
                 time.sleep(0.1)
@@ -520,8 +535,8 @@ def restart_listener():
 
     # Stop the server first
     if stop_server():
-        # Wait a moment for cleanup
-        time.sleep(0.5)
+        # Wait a longer moment for complete cleanup
+        time.sleep(1.0)  # Increased from 0.5 to ensure port is fully released
 
         # Start it again
         if start_server():

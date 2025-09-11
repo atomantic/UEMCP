@@ -257,19 +257,35 @@ class SystemOperations:
         Returns:
             dict: Restart result
         """
-        # Import the restart functionality
+        # Schedule the restart to happen after we return the response
         try:
-            from uemcp_helpers import restart_listener as helper_restart
+            import threading
+            import time
 
-            helper_restart()
+            def delayed_restart():
+                # Wait for response to be sent
+                time.sleep(0.5)
+
+                # Now restart
+                try:
+                    import uemcp_listener
+
+                    uemcp_listener.restart_listener()
+                except Exception as e:
+                    unreal.log_error(f"UEMCP: Failed to restart listener: {str(e)}")
+
+            # Start restart in background thread
+            restart_thread = threading.Thread(target=delayed_restart, daemon=True)
+            restart_thread.start()
+
             return {
                 "success": True,
-                "message": "Listener restart initiated. The listener will restart automatically.",
+                "message": "Listener restart scheduled. The listener will restart in 0.5 seconds.",
             }
-        except ImportError:
+        except Exception as e:
             return {
                 "success": False,
-                "error": "Restart helper not available. Please restart manually from UE Python console.",
+                "error": f"Failed to schedule restart: {str(e)}",
             }
 
     @validate_inputs({"project": [TypeRule(str)], "lines": [TypeRule(int)]})

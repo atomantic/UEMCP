@@ -9,7 +9,6 @@
 import { logger } from '../utils/logger.js';
 import { PythonBridge } from './python-bridge.js';
 import { DynamicToolRegistry } from '../tools/dynamic-registry.js';
-import { ToolRegistry } from './tool-registry.js';
 
 export interface MCPTool {
   definition: {
@@ -27,7 +26,6 @@ export interface MCPTool {
  */
 export class HybridToolRegistry {
   private dynamicRegistry: DynamicToolRegistry | null = null;
-  private staticRegistry: ToolRegistry | null = null;
   private isDynamic = false;
 
   constructor(private pythonBridge?: PythonBridge) {}
@@ -60,11 +58,15 @@ export class HybridToolRegistry {
       }
     }
 
-    // Fall back to static tools
-    logger.info('Loading static tool definitions...');
-    this.staticRegistry = new ToolRegistry();
-    this.isDynamic = false;
-    logger.info('✓ Loaded static tools');
+    throw new Error('Unable to load tools from Python manifest. Ensure Python listener is running.');
+  }
+
+  /**
+   * Get tool definitions for MCP server
+   */
+  getToolDefinitions(): Array<{ name: string; description: string; inputSchema: unknown }> {
+    const tools = this.getAllTools();
+    return tools.map(tool => tool.definition);
   }
 
   /**
@@ -86,8 +88,6 @@ export class HybridToolRegistry {
           };
         }
       }));
-    } else if (this.staticRegistry) {
-      return this.staticRegistry.getAllTools();
     }
     return [];
   }
@@ -113,8 +113,6 @@ export class HybridToolRegistry {
           }
         };
       }
-    } else if (this.staticRegistry) {
-      return this.staticRegistry.getTool(name);
     }
     return undefined;
   }
@@ -125,8 +123,6 @@ export class HybridToolRegistry {
   getToolCount(): number {
     if (this.isDynamic && this.dynamicRegistry) {
       return this.dynamicRegistry.getTools().length;
-    } else if (this.staticRegistry) {
-      return this.staticRegistry.getToolCount();
     }
     return 0;
   }
@@ -148,13 +144,6 @@ export class HybridToolRegistry {
           mode: 'dynamic'
         };
       }
-    } else if (this.staticRegistry) {
-      const stats = this.staticRegistry.getStats();
-      return {
-        total: stats.totalTools,
-        categories: stats.categories,
-        mode: 'static'
-      };
     }
     
     return { total: 0, categories: {}, mode: 'none' };

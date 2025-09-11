@@ -10,7 +10,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '../utils/logger.js';
-import { ToolRegistry } from './tool-registry.js';
+import { HybridToolRegistry } from './dynamic-tool-registry.js';
 import { ConfigManager } from './config-manager.js';
 import { ToolResponse } from '../utils/response-formatter.js';
 
@@ -27,12 +27,12 @@ export interface ServerOptions {
  */
 export class ServerManager {
   private server: Server | null = null;
-  private toolRegistry: ToolRegistry;
+  private toolRegistry: HybridToolRegistry;
   private configManager: ConfigManager;
   private isRunning = false;
 
   constructor(
-    toolRegistry: ToolRegistry,
+    toolRegistry: HybridToolRegistry,
     configManager: ConfigManager,
     private options: ServerOptions = {}
   ) {
@@ -152,7 +152,7 @@ export class ServerManager {
       const stats = this.toolRegistry.getStats();
       
       logger.info('UEMCP Server started successfully', {
-        tools: stats.totalTools,
+        tools: stats.total,
         categories: Object.keys(stats.categories).length,
         transport: 'stdio'
       });
@@ -216,7 +216,7 @@ export class ServerManager {
     
     return {
       isRunning: this.isRunning,
-      tools: toolStats.totalTools,
+      tools: toolStats.total,
       categories: toolStats.categories,
       config: this.configManager.getConfig(),
     };
@@ -278,6 +278,6 @@ export class ServerManager {
       .map(([cat, count]) => `${cat}(${count})`)
       .join(', ');
     
-    return `${stats.totalTools} tools: ${categories}`;
+    return `${stats.total} tools: ${categories}`;
   }
 }
