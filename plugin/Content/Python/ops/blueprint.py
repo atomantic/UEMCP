@@ -175,18 +175,6 @@ def create(
     return result
 
 
-# NOTE: add_component() has been removed as it cannot be implemented
-# due to Unreal Engine Python API limitations.
-# Component addition must be done manually in the Blueprint editor.
-# This functionality may be added in future UE versions.
-
-
-# NOTE: set_variable() has been removed as it cannot be implemented
-# due to Unreal Engine Python API limitations.
-# Variable addition must be done manually in the Blueprint editor.
-# This functionality may be added in future UE versions.
-
-
 @validate_inputs({"blueprint_path": [RequiredRule(), AssetPathRule()]})
 @handle_unreal_errors("get_blueprint_info")
 @safe_operation("blueprint")

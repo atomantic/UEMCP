@@ -64,10 +64,26 @@ git checkout -b prep/vX.Y.Z-release-notes
 
 Update version numbers in these files:
 
-**Server Package:**
+**Node/JavaScript Packages:**
 ```bash
+# Edit package.json (root)
+"version": "X.Y.Z"
+
 # Edit server/package.json
 "version": "X.Y.Z"
+```
+
+**Python Plugin Files:**
+```bash
+# Edit plugin/Content/Python/uemcp_listener.py
+# Line ~56: Status response
+"version": "X.Y.Z",
+# Line ~520: get_status() function
+return {"running": server_running, "port": 8765, "version": "X.Y.Z"}
+
+# Edit plugin/Content/Python/ops/system.py
+# Line ~298: test_connection() return value
+"version": "X.Y.Z",
 ```
 
 **Plugin Configuration:**
@@ -201,8 +217,6 @@ Prepare for UEMCP vX.Y.Z release with [brief description].
 ✅ ESLint linting passes  
 ✅ Python compilation verified
 ✅ Documentation consistency verified
-
-🤖 Generated with [Claude Code](https://claude.ai/code)"
 ```
 
 ## Phase 3: Release Publication
