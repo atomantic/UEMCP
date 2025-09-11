@@ -152,49 +152,65 @@ Think of it like this: `python_proxy` is the powerful command line, while other 
 
 ## 🛠 Available Tools
 
-UEMCP provides 39 tools to Claude for controlling Unreal Engine:
+UEMCP provides **36 MCP tools** across 7 categories for comprehensive Unreal Engine control:
 
-### Project & Assets
-- **project_info** - Get current project information
-- **asset_list** - List and filter project assets
-- **asset_info** - Get detailed asset information (dimensions, materials, etc.)
-- **asset_import** - Import assets from FAB marketplace or local files with advanced settings
+### 📦 Project & Asset Management (3 tools)
+- **project_info** - Get current UE project information
+- **asset_list** - List project assets with filtering
+- **asset_info** - Get detailed asset information (bounds, sockets, materials)
 
-### Level Editing
-- **actor_spawn** - Spawn actors from any mesh or blueprint
-- **batch_spawn** - Spawn multiple actors efficiently in one operation
-- **actor_duplicate** - Duplicate existing actors with optional offset
+### 🎭 Actor Management (8 tools)
+- **actor_spawn** - Spawn actors in the level
+- **actor_duplicate** - Duplicate existing actors with offset
 - **actor_delete** - Delete actors by name
-- **actor_modify** - Change actor transform and organization
+- **actor_modify** - Modify actor properties (location, rotation, scale, mesh)
 - **actor_organize** - Organize actors into World Outliner folders
-- **actor_snap_to_socket** - Snap actors to socket points for precise modular placement
-- **placement_validate** - Validate modular building placement to detect gaps, overlaps, and alignment issues
-- **level_actors** - List all actors in the current level
+- **actor_snap_to_socket** - Snap actors to socket positions for modular building
+- **batch_spawn** - Efficiently spawn multiple actors in one operation
+- **placement_validate** - Validate modular component placement (gaps, overlaps)
+
+### 🏗️ Level Operations (3 tools)
+- **level_actors** - List all actors in level with properties
 - **level_save** - Save the current level
-- **level_outliner** - View World Outliner folder structure
+- **level_outliner** - Get World Outliner folder structure
 
-### Viewport Control
-- **viewport_screenshot** - Capture viewport screenshots
-- **viewport_camera** - Control camera position and orientation
-- **viewport_mode** - Switch between perspective/orthographic views
-- **viewport_focus** - Focus on specific actors
-- **viewport_render_mode** - Change rendering mode (wireframe, unlit, etc.)
-- **viewport_bounds** - Get current viewport boundaries and visible area
-- **viewport_fit** - Auto-frame actors in viewport
-- **viewport_look_at** - Point camera at specific coordinates or actor with automatic Yaw calculation
+### 📹 Viewport Control (8 tools)
+- **viewport_screenshot** - Capture viewport images
+- **viewport_camera** - Set camera position and rotation
+- **viewport_mode** - Switch to standard views (top, front, side, perspective)
+- **viewport_focus** - Focus camera on specific actor
+- **viewport_render_mode** - Change rendering mode (lit, wireframe, etc.)
+- **viewport_bounds** - Get current viewport boundaries
+- **viewport_fit** - Fit actors in viewport automatically
+- **viewport_look_at** - Point camera at specific coordinates/actor
 
-### Material Management
-- **material_list** - List and filter materials in the project
-- **material_info** - Get detailed material information including parameters and parent material
-- **material_create** - Create new materials or material instances with customizable parameters
-- **material_apply** - Apply materials to actors' static mesh components
+### 🎨 Material System (4 tools)
+- **material_list** - List project materials with filtering
+- **material_info** - Get detailed material information and parameters
+- **material_create** - Create new materials or material instances
+- **material_apply** - Apply materials to actor mesh components
 
-### Blueprint Development
-- **blueprint_create** - Create new Blueprint classes from C++ or Blueprint parents with components and variables
-- **blueprint_list** - List and filter Blueprints in the project with metadata
-- **blueprint_info** - Get detailed Blueprint structure including components, variables, functions, and events
-- **blueprint_compile** - Compile Blueprints and report compilation status, errors, and warnings
-- **blueprint_document** - Generate comprehensive markdown documentation for Blueprint systems
+### 🔷 Blueprint System (5 tools)
+- **blueprint_create** - Create new Blueprint classes
+- **blueprint_list** - List project Blueprints with metadata
+- **blueprint_info** - Get Blueprint structure (components, variables, functions)
+- **blueprint_compile** - Compile Blueprints and report errors
+- **blueprint_document** - Generate comprehensive Blueprint documentation
+
+### ⚙️ System & Advanced (5 tools)
+- **python_proxy** ⭐ - Execute arbitrary Python code with full UE API access
+- **test_connection** - Test Python listener connection and status
+- **restart_listener** - Restart Python listener (hot reload)
+- **ue_logs** - Fetch recent Unreal Engine log entries
+- **help** 📚 - Get comprehensive help and tool documentation
+
+### 🔧 MCP Server Layer Tools (Additional tools handled by Node.js)
+- **undo** - Undo last operation(s)
+- **redo** - Redo previously undone operations
+- **history_list** - Show operation history with timestamps
+- **checkpoint_create** - Create named save points
+- **checkpoint_restore** - Restore to named checkpoints
+- **batch_operations** - Execute multiple operations in single request
 
 ### 🔍 Validation Feature
 
@@ -262,18 +278,28 @@ batch_operations({
 - **Detailed results** - individual success/failure status for each operation
 - **Performance tracking** - execution time and memory management
 
-### Advanced
-- **batch_operations** 🚀 - Execute multiple operations in a single HTTP request to reduce overhead by 80-90%. Supports `actor_spawn`, `actor_modify`, `actor_delete`, `actor_duplicate`, `viewport_camera`, and `viewport_screenshot`
-- **python_proxy** ⭐ - Execute ANY Python code with full [UE API access](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/?application_version=5.6). This is the most powerful tool - it can do everything the other tools can do and more!
-- **test_connection** - Test connection to UE Python listener
-- **restart_listener** - Stop listener for hot reload (requires manual restart - see Development section)
-- **ue_logs** - Read recent lines from UE console log file (useful for debugging)
+---
 
-### Help & Documentation
-- **help** 📚 - Get inline help and examples for all UEMCP tools. This is your **starting point** for learning UEMCP!
-  - `help({})` - Overview with categories and common workflows
-  - `help({ tool: "actor_spawn" })` - Detailed examples for specific tools
-  - `help({ category: "viewport" })` - List all tools in a category
+**Total: 36 MCP Tools** across 7 categories, providing comprehensive Unreal Engine automation and control through the Model Context Protocol interface. 
+
+🚀 **v2.0.0 Dynamic Architecture**: All tool definitions are now dynamically loaded from Python, eliminating code duplication and ensuring Python is the single source of truth for tool capabilities. The tools range from basic project queries to advanced Blueprint manipulation, with the `python_proxy` tool providing unlimited access to Unreal Engine's complete Python API for any operations not covered by the dedicated tools.
+
+### 💡 Getting Started with Help
+
+**The `help` tool is self-documenting!** Start here:
+
+```javascript
+// First command to run - shows all tools and workflows
+help({})
+
+// Learn about specific tools
+help({ tool: "actor_spawn" })
+help({ tool: "python_proxy" })
+
+// Explore by category
+help({ category: "level" })     // All level editing tools
+help({ category: "viewport" })  // Camera and rendering tools
+```
 
 ### Blueprint Development Workflow
 ```javascript
@@ -341,23 +367,6 @@ def auto_layout_actors(spacing=500):
 - An MCP-compatible AI client (Claude Desktop, Claude Code, Gemini, Codex, Q)
 
 ## 💡 Usage Examples
-
-### Getting Started with Help
-
-**The `help` tool is self-documenting!** Start here:
-
-```javascript
-// First command to run - shows all tools and workflows
-help({})
-
-// Learn about specific tools
-help({ tool: "actor_spawn" })
-help({ tool: "python_proxy" })
-
-// Explore by category
-help({ category: "level" })     // All level editing tools
-help({ category: "viewport" })  // Camera and rendering tools
-```
 
 ### Important: Workflow with Claude Code
 

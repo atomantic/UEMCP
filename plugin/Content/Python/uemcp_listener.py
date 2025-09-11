@@ -15,18 +15,18 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import unreal
 
 from ops.system import register_system_operations
+from ops.tool_manifest import get_tool_manifest
 
 # Import command registry and operations
 from uemcp_command_registry import dispatch_command, register_all_operations
 from utils import log_debug, log_error
+from version import VERSION
 
 # Global state
 server_running = False
 server_thread = None
 httpd = None
 tick_handle = None
-restart_scheduled = False
-restart_countdown = 0
 
 # Import thread tracker
 try:
@@ -43,22 +43,26 @@ class UEMCPHandler(BaseHTTPRequestHandler):
     """HTTP handler for UEMCP commands"""
 
     def do_GET(self):
-        """Provide simple health check status"""
-        self.send_response(200)
-        self.send_header("Content-type", "application/json")
-        self.end_headers()
+        """Provide health check status with full manifest"""
+        # Get the manifest (function imported at module level)
+        manifest = get_tool_manifest()
 
-        # Minimal status for health check - only what Python bridge actually
-        # uses
-        status = {
+        # Combine status with manifest
+        response = {
             "status": "online",
             "service": "UEMCP Listener",
-            "version": "1.1.0",
+            "version": VERSION,
             "ready": True,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "manifest": manifest,
         }
 
-        self.wfile.write(json.dumps(status, indent=2).encode("utf-8"))
+        self.send_response(200)
+        self.send_header("Content-type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")  # Allow browser access
+        self.end_headers()
+
+        self.wfile.write(json.dumps(response, indent=2).encode("utf-8"))
 
     def do_POST(self):
         """Handle command execution"""
@@ -306,34 +310,10 @@ def process_commands():
 
 def tick_handler(delta_time):
     """Main thread tick handler"""
-    global restart_scheduled, restart_countdown
-
+    # Only process commands, no restart logic here
     try:
         # Process any queued commands
         process_commands()
-
-        # Handle scheduled restart
-        if restart_scheduled:
-            restart_countdown -= delta_time
-            if restart_countdown <= 0:
-                restart_scheduled = False
-                stop_server()
-                # Schedule restart after server is fully stopped
-                unreal.log("UEMCP: Listener stopped, restarting in 1 second...")
-
-                # Create a one-time tick handler for restart
-                restart_timer = {"time": 1.0}
-
-                def restart_tick_handler(delta):
-                    restart_timer["time"] -= delta
-                    if restart_timer["time"] <= 0:
-                        unreal.unregister_slate_post_tick_callback(restart_handle)
-                        unreal.log("UEMCP: Restarting listener now...")
-                        start_server()
-
-                restart_handle = unreal.register_slate_post_tick_callback(restart_tick_handler)
-                return
-
     except Exception as e:
         log_error(f"Tick handler error: {str(e)}")
 
@@ -371,6 +351,12 @@ def _register_operations():
     """Register all operations with the command registry."""
     register_all_operations()
     register_system_operations()
+
+    # Register manifest operations for dynamic tool discovery
+    from ops.tool_manifest import register_manifest_operations
+
+    register_manifest_operations()
+
     log_debug("Registered all operations with command registry")
 
 
@@ -403,7 +389,14 @@ def _create_server_thread():
             log_debug("HTTP server started on port 8765")
 
             while server_running:
-                local_httpd.handle_request()
+                try:
+                    local_httpd.handle_request()
+                except OSError as e:
+                    # Socket was closed, this is expected during shutdown
+                    if not server_running:
+                        break
+                    log_error(f"Socket error during request handling: {str(e)}")
+                    break
 
         except Exception as e:
             log_error(f"HTTP server error: {str(e)}")
@@ -473,8 +466,16 @@ def stop_server():
 
         # Give the server thread time to notice the flag and exit gracefully
         if server_thread and server_thread.is_alive():
+            # Close the httpd socket to interrupt handle_request()
+            if httpd:
+                try:
+                    # Close the socket to interrupt any pending handle_request()
+                    httpd.socket.close()
+                except Exception:
+                    pass
+
             # Wait a bit for the thread to exit
-            for _i in range(20):  # Wait up to 2 seconds
+            for _i in range(30):  # Wait up to 3 seconds
                 if not server_thread.is_alive():
                     break
                 time.sleep(0.1)
@@ -508,16 +509,14 @@ def stop_server():
 
 
 def schedule_restart():
-    """Schedule a server restart"""
-    global restart_scheduled, restart_countdown
-    restart_scheduled = True
-    restart_countdown = 0.5  # Restart in 0.5 seconds
-    return {"success": True, "message": "Restart scheduled"}
+    """Schedule a server restart (deprecated - use restart_listener instead)"""
+    # Just call restart_listener directly now
+    return {"success": restart_listener(), "message": "Restart completed"}
 
 
 def get_status():
     """Get current server status"""
-    return {"running": server_running, "port": 8765, "version": "1.1.0"}
+    return {"running": server_running, "port": 8765, "version": VERSION}
 
 
 # Module-level functions for compatibility with existing code
@@ -533,12 +532,23 @@ def stop_listener():
 
 def restart_listener():
     """Restart the UEMCP listener (module-level function for compatibility)."""
-    # Use the safer scheduled restart to avoid threading issues
-    result = schedule_restart()
-    if result["success"]:
-        unreal.log("UEMCP: Restart scheduled - will restart automatically")
-        return True
-    return False
+    unreal.log("UEMCP: Restarting listener...")
+
+    # Stop the server first
+    if stop_server():
+        # Wait a longer moment for complete cleanup
+        time.sleep(1.0)  # Increased from 0.5 to ensure port is fully released
+
+        # Start it again
+        if start_server():
+            unreal.log("UEMCP: Listener restarted successfully")
+            return True
+        else:
+            unreal.log_error("UEMCP: Failed to start listener after stopping")
+            return False
+    else:
+        unreal.log_error("UEMCP: Failed to stop listener for restart")
+        return False
 
 
 # Auto-start only if running as main script

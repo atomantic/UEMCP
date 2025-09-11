@@ -20,6 +20,7 @@ from utils.error_handling import (
     safe_operation,
     validate_inputs,
 )
+from version import VERSION
 
 
 class SystemOperations:
@@ -240,7 +241,7 @@ class SystemOperations:
         """
         return {
             "message": "Connection successful",
-            "version": "1.1.0",
+            "version": VERSION,
             "pythonVersion": sys.version.split()[0],
             "unrealVersion": unreal.SystemLibrary.get_engine_version(),
         }
@@ -257,19 +258,49 @@ class SystemOperations:
         Returns:
             dict: Restart result
         """
-        # Import the restart functionality
+        # Schedule the restart using Unreal's tick system instead of threads
         try:
-            from uemcp_helpers import restart_listener as helper_restart
+            import unreal
 
-            helper_restart()
+            # We'll use a counter to ensure we only run once
+            restart_counter = [0]  # Use list so we can modify in nested function
+
+            def perform_restart(delta_time):
+                # Only run once
+                if restart_counter[0] > 0:
+                    return
+                restart_counter[0] += 1
+
+                try:
+                    unreal.log("UEMCP: Performing scheduled restart...")
+                    import uemcp_listener
+
+                    # Unregister this callback first
+                    if hasattr(perform_restart, "_handle"):
+                        unreal.unregister_slate_post_tick_callback(perform_restart._handle)
+
+                    # Then restart
+                    success = uemcp_listener.restart_listener()
+                    if success:
+                        unreal.log("UEMCP: Restart completed successfully")
+                    else:
+                        unreal.log_error("UEMCP: Restart failed")
+                except Exception as e:
+                    unreal.log_error(f"UEMCP: Restart error: {str(e)}")
+
+            # Register the callback to run on next tick
+            # This ensures the response is sent before restart
+            handle = unreal.register_slate_post_tick_callback(perform_restart)
+            perform_restart._handle = handle
+
             return {
                 "success": True,
-                "message": "Listener restart initiated. The listener will restart automatically.",
+                "message": "Listener restart scheduled for next tick.",
             }
-        except ImportError:
+        except Exception as e:
             return {
                 "success": False,
-                "error": "Restart helper not available. Please restart manually from UE Python console.",
+                "error": f"Failed to schedule restart: {str(e)}",
             }
 
     @validate_inputs({"project": [TypeRule(str)], "lines": [TypeRule(int)]})

@@ -1,0 +1,63 @@
+{
+  "success": true,
+  "version": "1.1.0",
+  "totalTools": 4,
+  "tools": [
+    {
+      "name": "actor_spawn",
+      "description": "Spawn an actor in the level",
+      "category": "actors",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "viewport_screenshot",
+      "description": "Capture a screenshot of the current viewport",
+      "category": "viewport",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "python_proxy",
+      "description": "Execute arbitrary Python code in Unreal Engine",
+      "category": "system",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "test_connection",
+      "description": "Test the connection to the Python listener",
+      "category": "system",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "categories": {
+    "actors": [
+      "actor_spawn"
+    ],
+    "viewport": [
+      "viewport_screenshot"
+    ],
+    "system": [
+      "python_proxy",
+      "test_connection"
+    ]
+  }
+}

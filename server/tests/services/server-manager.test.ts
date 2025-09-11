@@ -50,8 +50,9 @@ const mockToolRegistry = {
   ]),
   getTool: jest.fn(),
   getStats: jest.fn(() => ({
-    totalTools: 1,
+    total: 1,
     categories: { test: 1 } as Record<string, number>,
+    mode: 'dynamic' as const,
   })),
   getToolCount: jest.fn(() => 1),
 };
@@ -84,8 +85,9 @@ describe('ServerManager', () => {
     
     // Reset mock tool registry to default values
     mockToolRegistry.getStats.mockReturnValue({
-      totalTools: 1,
+      total: 1,
       categories: { test: 1 } as Record<string, number>,
+      mode: 'dynamic' as const,
     });
     mockToolRegistry.getToolCount.mockReturnValue(1);
     
@@ -335,8 +337,9 @@ describe('ServerManager', () => {
 
     it('should log tool statistics on startup', async () => {
       mockToolRegistry.getStats.mockReturnValue({
-        totalTools: 5,
+        total: 5,
         categories: { actors: 2, viewport: 3 } as Record<string, number>,
+        mode: 'dynamic' as const,
       });
 
       await serverManager.startServer();
@@ -625,8 +628,9 @@ describe('ServerManager', () => {
 
     it('should get tools summary', () => {
       mockToolRegistry.getStats.mockReturnValue({
-        totalTools: 5,
+        total: 5,
         categories: { actors: 2, viewport: 3 } as Record<string, number>,
+        mode: 'dynamic' as const,
       });
 
       const summary = serverManager.getToolsSummary();
@@ -636,8 +640,9 @@ describe('ServerManager', () => {
 
     it('should handle empty categories in summary', () => {
       mockToolRegistry.getStats.mockReturnValue({
-        totalTools: 0,
+        total: 0,
         categories: {} as Record<string, number>,
+        mode: 'dynamic' as const,
       });
 
       const summary = serverManager.getToolsSummary();
@@ -647,8 +652,9 @@ describe('ServerManager', () => {
 
     it('should handle single category in summary', () => {
       mockToolRegistry.getStats.mockReturnValue({
-        totalTools: 3,
+        total: 3,
         categories: { system: 3 } as Record<string, number>,
+        mode: 'dynamic' as const,
       });
 
       const summary = serverManager.getToolsSummary();

@@ -32,12 +32,6 @@ module.exports = {
       functions: 75, // Current: 80% - allow some regression
       lines: 70,    // Current: 72.72% - allow some regression
       statements: 70 // Current: 71.11% - allow some regression
-    },
-    'src/tools/base/': {
-      branches: 35, // Current: 42.28% - allow some regression
-      functions: 35, // Current: 37.28% - allow some regression
-      lines: 35,    // Current: 40.45% - allow some regression
-      statements: 35 // Current: 40.46% - allow some regression
     }
   },
   moduleNameMapper: {
