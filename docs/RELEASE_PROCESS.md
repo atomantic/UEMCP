@@ -62,9 +62,17 @@ git checkout -b prep/vX.Y.Z-release-notes
 
 #### Step 2: Update Version Numbers
 
-Update version numbers in these files:
+**🎯 Centralized Version Management (v2.0.0+)**
 
-**Node/JavaScript Packages:**
+Starting with v2.0.0, UEMCP uses centralized version management. Update versions in **only these two locations**:
+
+**Python Components (Single Source):**
+```bash
+# Edit plugin/Content/Python/version.py
+VERSION = "X.Y.Z"
+```
+
+**Node.js Components:**
 ```bash
 # Edit package.json (root)
 "version": "X.Y.Z"
@@ -73,18 +81,14 @@ Update version numbers in these files:
 "version": "X.Y.Z"
 ```
 
-**Python Plugin Files:**
-```bash
-# Edit plugin/Content/Python/uemcp_listener.py
-# Line ~56: Status response
-"version": "X.Y.Z",
-# Line ~520: get_status() function
-return {"running": server_running, "port": 8765, "version": "X.Y.Z"}
+**✅ Automatic Updates:**
+All other components automatically use these centralized versions:
+- Python: Tool manifest, listener API, system operations, and status endpoints
+- Node.js: Dynamic registry fallback uses `package.json` version
 
-# Edit plugin/Content/Python/ops/system.py
-# Line ~298: test_connection() return value
-"version": "X.Y.Z",
-```
+**⚠️ Legacy Note:**
+For versions prior to v2.0.0, manual updates were required in multiple files. 
+This is no longer necessary - **do not manually update hardcoded versions**.
 
 **Plugin Configuration:**
 ```bash

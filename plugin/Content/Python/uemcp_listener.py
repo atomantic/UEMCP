@@ -20,6 +20,7 @@ from ops.tool_manifest import get_tool_manifest
 # Import command registry and operations
 from uemcp_command_registry import dispatch_command, register_all_operations
 from utils import log_debug, log_error
+from version import VERSION
 
 # Global state
 server_running = False
@@ -50,7 +51,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         response = {
             "status": "online",
             "service": "UEMCP Listener",
-            "version": "2.0.0",
+            "version": VERSION,
             "ready": True,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "manifest": manifest,
@@ -515,7 +516,7 @@ def schedule_restart():
 
 def get_status():
     """Get current server status"""
-    return {"running": server_running, "port": 8765, "version": "2.0.0"}
+    return {"running": server_running, "port": 8765, "version": VERSION}
 
 
 # Module-level functions for compatibility with existing code

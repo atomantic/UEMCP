@@ -20,6 +20,7 @@ from utils.error_handling import (
     safe_operation,
     validate_inputs,
 )
+from version import VERSION
 
 
 class SystemOperations:
@@ -240,7 +241,7 @@ class SystemOperations:
         """
         return {
             "message": "Connection successful",
-            "version": "2.0.0",
+            "version": VERSION,
             "pythonVersion": sys.version.split()[0],
             "unrealVersion": unreal.SystemLibrary.get_engine_version(),
         }

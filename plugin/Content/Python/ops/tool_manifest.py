@@ -10,6 +10,7 @@ import inspect
 from typing import Any, Dict, List, Union, get_args, get_origin
 
 from utils.general import log_debug, log_error
+from version import VERSION
 
 
 class ManifestGenerator:
@@ -221,7 +222,7 @@ class ManifestGenerator:
 
             return {
                 "success": True,
-                "version": "2.0.0",
+                "version": VERSION,
                 "totalTools": len(tools),
                 "tools": tools,
                 "categories": categories,

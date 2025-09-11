@@ -8,6 +8,7 @@
 import { PythonBridge } from '../services/python-bridge.js';
 import { DynamicTool, DynamicToolDefinition } from './dynamic-tool.js';
 import { logger } from '../utils/logger.js';
+import { getVersion } from '../utils/version.js';
 
 export interface ToolManifest {
   success: boolean;
@@ -59,7 +60,7 @@ export class DynamicToolRegistry {
       this.manifest = {
         success: result.success,
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        version: String(result.version || '2.0.0'),
+        version: String(result.version || getVersion()),
         totalTools: Number(result.totalTools || result.tools.length),
         tools: result.tools as DynamicToolDefinition[],
         categories: (result.categories || {}) as Record<string, string[]>,
