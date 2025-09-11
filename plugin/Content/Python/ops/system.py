@@ -64,6 +64,13 @@ class SystemOperations:
                 "viewport_look_at",
             ],
             "material": ["material_list", "material_info", "material_create", "material_apply"],
+            "blueprint": [
+                "blueprint_create",
+                "blueprint_list",
+                "blueprint_info",
+                "blueprint_compile",
+                "blueprint_document",
+            ],
             "advanced": ["python_proxy"],
             "system": ["test_connection", "restart_listener", "ue_logs", "help"],
         }
@@ -233,7 +240,7 @@ class SystemOperations:
         """
         return {
             "message": "Connection successful",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "pythonVersion": sys.version.split()[0],
             "unrealVersion": unreal.SystemLibrary.get_engine_version(),
         }

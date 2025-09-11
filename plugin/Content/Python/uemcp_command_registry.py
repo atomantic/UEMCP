@@ -201,6 +201,15 @@ def register_all_operations():
         material_ops = MaterialOperations()
         registry.register_operations(material_ops)
 
+        # Register Blueprint operations (standalone functions)
+        from ops import blueprint
+
+        registry.register_command("blueprint_create", blueprint.create)
+        registry.register_command("blueprint_get_info", blueprint.get_info)
+        registry.register_command("blueprint_list_blueprints", blueprint.list_blueprints)
+        registry.register_command("blueprint_compile", blueprint.compile)
+        registry.register_command("blueprint_document", blueprint.document)
+
         # Register batch operations
         from ops.batch_operations import execute_batch_operations
 
