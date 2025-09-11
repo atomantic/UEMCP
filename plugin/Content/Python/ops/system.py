@@ -240,7 +240,7 @@ class SystemOperations:
         """
         return {
             "message": "Connection successful",
-            "version": "1.1.0",
+            "version": "2.0.0",
             "pythonVersion": sys.version.split()[0],
             "unrealVersion": unreal.SystemLibrary.get_engine_version(),
         }

@@ -50,7 +50,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         response = {
             "status": "online",
             "service": "UEMCP Listener",
-            "version": "1.1.0",
+            "version": "2.0.0",
             "ready": True,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "manifest": manifest,
@@ -515,7 +515,7 @@ def schedule_restart():
 
 def get_status():
     """Get current server status"""
-    return {"running": server_running, "port": 8765, "version": "1.1.0"}
+    return {"running": server_running, "port": 8765, "version": "2.0.0"}
 
 
 # Module-level functions for compatibility with existing code
