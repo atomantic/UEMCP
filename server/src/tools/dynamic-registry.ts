@@ -59,7 +59,7 @@ export class DynamicToolRegistry {
       this.manifest = {
         success: result.success,
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        version: String(result.version || '1.1.0'),
+        version: String(result.version || '2.0.0'),
         totalTools: Number(result.totalTools || result.tools.length),
         tools: result.tools as DynamicToolDefinition[],
         categories: (result.categories || {}) as Record<string, string[]>,
