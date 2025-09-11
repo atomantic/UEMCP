@@ -371,6 +371,12 @@ def _register_operations():
     """Register all operations with the command registry."""
     register_all_operations()
     register_system_operations()
+
+    # Register manifest operations for dynamic tool discovery
+    from ops.tool_manifest import register_manifest_operations
+
+    register_manifest_operations()
+
     log_debug("Registered all operations with command registry")
 
 
