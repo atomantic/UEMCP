@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/atomantic-uemcp-badge.png)](https://mseep.ai/app/atomantic-uemcp)
+
 # UEMCP - Unreal Engine Model Context Protocol
 
 ![Unreal Engine](https://img.shields.io/badge/Unreal%20Engine-5.x-blue?logo=unrealengine)
