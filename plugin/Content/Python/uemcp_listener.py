@@ -69,6 +69,8 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         """Handle command execution"""
         try:
             command = self._parse_command()
+            if command is None:
+                return  # _parse_command already sent the error response
             request_id = self._generate_request_id()
             self._log_command(command)
 
@@ -91,16 +93,16 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         """Parse command from POST data.
 
         Returns:
-            dict: Parsed command
+            dict or None: Parsed command, or None if validation failed (error already sent)
         """
         raw_length = self.headers.get("Content-Length")
         if raw_length is None:
             self.send_error(411, "Content-Length required")
-            raise ValueError("Missing Content-Length header")
+            return None
         content_length = int(raw_length)
         if content_length > 10 * 1024 * 1024:  # 10 MB cap
             self.send_error(413, "Request body too large")
-            raise ValueError(f"Request body exceeds 10 MB limit: {content_length}")
+            return None
         post_data = self.rfile.read(content_length)
         return json.loads(post_data.decode("utf-8"))
 
