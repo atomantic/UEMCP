@@ -50,6 +50,7 @@ See `docs/mcp-tools-vs-python-proxy.md` for detailed comparisons.
 - **Line Endings**: Always use LF (Unix-style), never CRLF
 - **Exception Handling**: Minimize try/catch - prefer validation
 - **Zero Warnings Policy**: Enforced by pre-commit hooks
+- **Post-Feature Simplification**: Always run `/simplify` after implementing a feature to catch duplication, quality issues, and efficiency problems before committing
 
 See `docs/code-style-guide.md` for comprehensive standards.
 

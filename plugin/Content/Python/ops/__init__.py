@@ -3,8 +3,8 @@ UEMCP Operations Package - Contains all operation modules
 """
 
 # Import all operation classes for easy access
-# Import blueprint operations as a module since it doesn't have a class yet
-from . import blueprint
+# Import blueprint operations as modules since they use standalone functions
+from . import blueprint, blueprint_graph, blueprint_nodes
 from .actor import ActorOperations
 from .asset import AssetOperations
 from .level import LevelOperations
@@ -20,4 +20,6 @@ __all__ = [
     "SystemOperations",
     "MaterialOperations",
     "blueprint",
+    "blueprint_graph",
+    "blueprint_nodes",
 ]
