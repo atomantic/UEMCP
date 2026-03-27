@@ -604,6 +604,24 @@ def add_component(
     }
 
 
+def _validate_numeric_list(values, target_type):
+    """Validate that all elements in a list are numeric (int/float, not bool).
+
+    Args:
+        values: List of values to validate
+        target_type: Name of the target UE type (for error messages)
+
+    Raises:
+        ProcessingError: If any element is not a number
+    """
+    if not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in values):
+        raise ProcessingError(
+            f"{len(values)}-element array must contain only numbers for {target_type}",
+            operation="coerce_property_value",
+            details={"value": values},
+        )
+
+
 def _coerce_property_value(value):
     """Coerce a JSON-friendly value to a UE-compatible type.
 
@@ -622,20 +640,10 @@ def _coerce_property_value(value):
     """
     if isinstance(value, list):
         if len(value) == 3:
-            if not all(isinstance(v, (int, float)) for v in value):
-                raise ProcessingError(
-                    "3-element array must contain only numbers for Vector",
-                    operation="coerce_property_value",
-                    details={"value": value},
-                )
+            _validate_numeric_list(value, "Vector")
             return unreal.Vector(value[0], value[1], value[2])
         if len(value) == 4:
-            if not all(isinstance(v, (int, float)) for v in value):
-                raise ProcessingError(
-                    "4-element array must contain only numbers for LinearColor",
-                    operation="coerce_property_value",
-                    details={"value": value},
-                )
+            _validate_numeric_list(value, "LinearColor")
             return unreal.LinearColor(r=value[0], g=value[1], b=value[2], a=value[3])
 
     if isinstance(value, str) and (value.startswith("/Game/") or value.startswith("/Engine/")):
@@ -740,6 +748,7 @@ def modify_component(
     for prop_name, raw_value in properties.items():
         # Rotation properties expect Rotator, not Vector
         if isinstance(raw_value, list) and len(raw_value) == 3 and "rotation" in prop_name.lower():
+            _validate_numeric_list(raw_value, "Rotator")
             value = unreal.Rotator(roll=raw_value[0], pitch=raw_value[1], yaw=raw_value[2])
         else:
             value = _coerce_property_value(raw_value)

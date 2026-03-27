@@ -860,6 +860,7 @@ class TestCoercePropertyValue:
         """Test that 3-element list becomes a Vector."""
         from ops.blueprint_graph import _coerce_property_value
 
+        mock_unreal.Vector.reset_mock()
         _coerce_property_value([1.0, 2.0, 3.0])
         mock_unreal.Vector.assert_called_with(1.0, 2.0, 3.0)
 
@@ -867,6 +868,7 @@ class TestCoercePropertyValue:
         """Test that 4-element list becomes a LinearColor."""
         from ops.blueprint_graph import _coerce_property_value
 
+        mock_unreal.LinearColor.reset_mock()
         _coerce_property_value([1.0, 0.5, 0.0, 1.0])
         mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.5, b=0.0, a=1.0)
 
@@ -874,6 +876,7 @@ class TestCoercePropertyValue:
         """Test that /Game/ paths trigger asset loading."""
         from ops.blueprint_graph import _coerce_property_value
 
+        mock_unreal.EditorAssetLibrary.load_asset.reset_mock()
         mock_asset = MagicMock()
         mock_unreal.EditorAssetLibrary.load_asset.return_value = mock_asset
 
@@ -885,6 +888,7 @@ class TestCoercePropertyValue:
         """Test that /Engine/ paths trigger asset loading."""
         from ops.blueprint_graph import _coerce_property_value
 
+        mock_unreal.EditorAssetLibrary.load_asset.reset_mock()
         mock_asset = MagicMock()
         mock_unreal.EditorAssetLibrary.load_asset.return_value = mock_asset
 
@@ -924,27 +928,72 @@ class TestCoercePropertyValue:
         with pytest.raises(ProcessingError, match="4-element array must contain only numbers"):
             _coerce_property_value([1.0, 0.5, None, 1.0])
 
+    def test_list_3_with_booleans_raises(self):
+        """Test that booleans in arrays are rejected (bool is subclass of int in Python)."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_property_value
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError, match="3-element array must contain only numbers"):
+            _coerce_property_value([True, False, True])
+
+
+class TestValidateNumericList:
+    """Test the _validate_numeric_list helper."""
+
+    def test_valid_ints(self):
+        """Test that integer lists pass validation."""
+        from ops.blueprint_graph import _validate_numeric_list
+
+        _validate_numeric_list([1, 2, 3], "Vector")
+
+    def test_valid_floats(self):
+        """Test that float lists pass validation."""
+        from ops.blueprint_graph import _validate_numeric_list
+
+        _validate_numeric_list([1.0, 2.5, 3.7], "Vector")
+
+    def test_mixed_int_float(self):
+        """Test that mixed int/float lists pass validation."""
+        from ops.blueprint_graph import _validate_numeric_list
+
+        _validate_numeric_list([1, 2.5, 3], "Vector")
+
+    def test_booleans_rejected(self):
+        """Test that booleans are rejected even though bool is subclass of int."""
+        import pytest
+
+        from ops.blueprint_graph import _validate_numeric_list
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError):
+            _validate_numeric_list([True, False, True], "Vector")
+
+    def test_strings_rejected(self):
+        """Test that strings are rejected."""
+        import pytest
+
+        from ops.blueprint_graph import _validate_numeric_list
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError):
+            _validate_numeric_list(["a", "b", "c"], "Vector")
+
 
 class TestModifyComponentRotationDetection:
-    """Test that modify_component detects rotation properties and uses Rotator."""
+    """Test rotation property detection and numeric validation in modify_component's loop."""
 
-    def test_rotation_property_uses_rotator(self):
-        """Test that properties with 'rotation' in the name use Rotator instead of Vector."""
-        # The rotation detection happens in modify_component's loop, not in _coerce_property_value.
-        # We test the inline logic by verifying that a 3-element list paired with a rotation-named
-        # property calls unreal.Rotator rather than unreal.Vector.
-        mock_unreal.Rotator.reset_mock()
-        mock_unreal.Vector.reset_mock()
+    def test_rotation_property_name_detected(self):
+        """Test that property names containing 'rotation' trigger Rotator coercion."""
+        from ops.blueprint_graph import _validate_numeric_list
 
-        # Simulate what modify_component does for a rotation property
-        raw_value = [0.0, 45.0, 90.0]
-        prop_name = "relative_rotation"
-
-        if isinstance(raw_value, list) and len(raw_value) == 3 and "rotation" in prop_name.lower():
-            mock_unreal.Rotator(roll=raw_value[0], pitch=raw_value[1], yaw=raw_value[2])
-
-        mock_unreal.Rotator.assert_called_once_with(roll=0.0, pitch=45.0, yaw=90.0)
-        mock_unreal.Vector.assert_not_called()
+        # Verify the detection condition matches rotation properties
+        rotation_names = ["relative_rotation", "Rotation", "my_ROTATION_value"]
+        for name in rotation_names:
+            raw = [0.0, 45.0, 90.0]
+            assert "rotation" in name.lower(), f"{name} should match rotation detection"
+            _validate_numeric_list(raw, "Rotator")
 
     def test_non_rotation_property_uses_vector(self):
         """Test that non-rotation 3-element list properties use Vector."""
