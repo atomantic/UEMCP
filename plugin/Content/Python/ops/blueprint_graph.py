@@ -20,8 +20,8 @@ from utils.error_handling import (
     safe_operation,
     validate_inputs,
 )
+from utils.general import create_rotator, create_vector, log_error
 from utils.general import log_debug as log_info
-from utils.general import log_error
 
 _VARIABLE_TYPE_MAP = {
     "bool": ("bool", None),
@@ -247,6 +247,121 @@ def remove_variable(
         "success": True,
         "blueprintPath": blueprint_path,
         "variableName": variable_name,
+    }
+
+
+def _coerce_value_for_cdo(value, variable_name: str):
+    """Convert a JSON-friendly value to the appropriate Unreal type for CDO assignment.
+
+    Handles:
+        - Primitives (bool, int, float, str): passed through as-is
+        - 3-element lists: converted to unreal.Vector (use value_type='rotator' in caller for Rotator)
+        - 4-element lists: converted to unreal.LinearColor
+        - String asset paths (/Game/, /Script/, /Engine/): loaded via EditorAssetLibrary
+
+    Returns:
+        The coerced value ready for set_editor_property()
+    """
+    if isinstance(value, (bool, int, float)):
+        return value
+
+    if isinstance(value, str):
+        if value.startswith("/Game/") or value.startswith("/Script/") or value.startswith("/Engine/"):
+            loaded = unreal.EditorAssetLibrary.load_asset(value)
+            if not loaded:
+                raise ProcessingError(
+                    f"Asset not found for variable '{variable_name}': {value}",
+                    operation="blueprint_set_variable_default",
+                    details={"variable_name": variable_name, "asset_path": value},
+                )
+            return loaded
+        return value
+
+    if isinstance(value, list):
+        if len(value) == 3:
+            return create_vector(value)
+        if len(value) == 4:
+            return unreal.LinearColor(r=value[0], g=value[1], b=value[2], a=value[3])
+        raise ProcessingError(
+            f"List value for '{variable_name}' must have 3 or 4 elements, got {len(value)}",
+            operation="blueprint_set_variable_default",
+            details={"variable_name": variable_name, "value": value},
+        )
+
+    return value
+
+
+@validate_inputs(
+    {
+        "blueprint_path": [RequiredRule(), AssetPathRule()],
+        "variable_name": [RequiredRule(), TypeRule(str)],
+        "value": [RequiredRule()],
+        "value_type": [TypeRule(str, allow_none=True)],
+    }
+)
+@handle_unreal_errors("blueprint_set_variable_default")
+@safe_operation("blueprint")
+def set_variable_default(
+    blueprint_path: str,
+    variable_name: str,
+    value: Any,
+    value_type: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Set the default value of a Blueprint variable on the Class Default Object.
+
+    Args:
+        blueprint_path: Path to the Blueprint asset
+        variable_name: Name of the variable whose default to set
+        value: The default value (type depends on variable):
+               - Primitives: bool, int, float, string
+               - Vectors: [x, y, z] array
+               - Rotators: [roll, pitch, yaw] array (requires value_type='rotator')
+               - Colors: [r, g, b, a] array
+               - Asset references: string path like '/Game/Meshes/MyMesh'
+        value_type: Optional type hint to disambiguate values.
+                    Use 'rotator' to interpret a 3-element list as Rotator instead of Vector.
+
+    Returns:
+        Dictionary with the variable name and value that was set
+    """
+    blueprint = resolve_blueprint(blueprint_path)
+
+    # Compile first to ensure CDO exists and is up to date
+    unreal.KismetEditorUtilities.compile_blueprint(blueprint)
+
+    gen_class = blueprint.generated_class()
+    if not gen_class:
+        raise ProcessingError(
+            f"Blueprint has no generated class: {blueprint_path}",
+            operation="blueprint_set_variable_default",
+            details={"blueprint_path": blueprint_path},
+        )
+
+    cdo = gen_class.get_default_object()
+    if not cdo:
+        raise ProcessingError(
+            f"Could not get Class Default Object for: {blueprint_path}",
+            operation="blueprint_set_variable_default",
+            details={"blueprint_path": blueprint_path},
+        )
+
+    # Handle rotator disambiguation: 3-element list + value_type='rotator'
+    if value_type and value_type.lower() == "rotator" and isinstance(value, list) and len(value) == 3:
+        coerced = create_rotator(value)
+    else:
+        coerced = _coerce_value_for_cdo(value, variable_name)
+
+    cdo.set_editor_property(variable_name, coerced)
+
+    compile_and_save(blueprint, blueprint_path)
+    log_info(f"Set default for '{variable_name}' = {value} on {blueprint_path}")
+
+    return {
+        "success": True,
+        "blueprintPath": blueprint_path,
+        "variableName": variable_name,
+        "value": value,
     }
 
 
