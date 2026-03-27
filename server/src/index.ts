@@ -12,6 +12,8 @@ import { PythonBridge } from './services/python-bridge.js';
 import { HybridToolRegistry } from './services/dynamic-tool-registry.js';
 import { ConfigManager } from './services/config-manager.js';
 import { ServerManager } from './services/server-manager.js';
+import { getVersion } from './utils/version.js';
+import { ResponseFormatter } from './utils/response-formatter.js';
 
 /**
  * Main application startup with dynamic tool loading
@@ -19,7 +21,7 @@ import { ServerManager } from './services/server-manager.js';
 async function main(): Promise<void> {
   try {
     // Initialize configuration management
-    const configManager = new ConfigManager('0.2.0', 'uemcp');
+    const configManager = new ConfigManager(getVersion(), 'uemcp');
     
     // Validate configuration
     const configValidation = configManager.validateConfiguration();
@@ -46,7 +48,7 @@ async function main(): Promise<void> {
       bridgeAvailable = true;
     } catch (error) {
       logger.warn('Python bridge not available - will use static tool definitions', {
-        error: error instanceof Error ? error.message : String(error)
+        error: ResponseFormatter.getErrorMessage(error)
       });
     }
 
@@ -97,15 +99,13 @@ async function main(): Promise<void> {
     logger.info('='.repeat(60));
     
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('Failed during initialization', { error: errorMessage });
+    logger.error('Failed during initialization', { error: ResponseFormatter.getErrorMessage(error) });
     throw error;
   }
 }
 
 // Start the server
 main().catch((error: unknown) => {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  logger.error('Server failed to start', { error: errorMessage });
+  logger.error('Server failed to start', { error: ResponseFormatter.getErrorMessage(error) });
   process.exit(1);
 });
