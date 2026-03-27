@@ -229,7 +229,8 @@ def add_node(
         blueprint_path: Path to the Blueprint asset
         node_type: Type of node to add. Options:
             Events: 'BeginPlay', 'Tick', 'EndPlay', 'ActorBeginOverlap',
-                    'ActorEndOverlap', 'AnyDamage', 'OnDestroyed', 'CustomEvent'
+                    'ActorEndOverlap', 'AnyDamage', 'OnHit', 'OnDestroyed',
+                    'CustomEvent'
             Flow: 'Branch', 'Sequence', 'DoOnce', 'FlipFlop', 'Gate',
                   'Delay', 'ForEachLoop', 'WhileLoop', 'Select', 'MultiGate'
             Functions: 'CallFunction' (requires function_name)

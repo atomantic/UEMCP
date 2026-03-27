@@ -1359,7 +1359,7 @@ def _enrich_with_parameters(actions):
 
 
 def _deep_copy_action(action):
-    """Create a deep copy of an action dict, including nested lists/dicts."""
+    """Create a copy of an action dict, including the nested parameters list."""
     copy = dict(action)
     if "parameters" in copy and isinstance(copy["parameters"], list):
         copy["parameters"] = [dict(p) for p in copy["parameters"]]
@@ -1472,6 +1472,7 @@ def _discover_library_actions(filter_category=None):
     return actions
 
 
+@safe_operation("blueprint")
 @validate_inputs(
     {
         "blueprint_path": [TypeRule(str, allow_none=True)],
@@ -1482,7 +1483,6 @@ def _discover_library_actions(filter_category=None):
     }
 )
 @handle_unreal_errors("blueprint_discover_actions")
-@safe_operation("blueprint")
 def discover_actions(
     blueprint_path: Optional[str] = None,
     class_name: Optional[str] = None,
