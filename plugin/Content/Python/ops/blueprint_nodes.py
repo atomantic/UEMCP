@@ -351,8 +351,12 @@ def _create_function_call_node(blueprint, graph, function_name, target_class, po
         # First, try resolving as a built-in Unreal Python class
         target = getattr(unreal, target_class, None)
         if not target:
-            # If an explicit asset path is provided, load it as an asset
-            if isinstance(target_class, str) and target_class.startswith("/"):
+            # If an explicit path is provided, load appropriately
+            if isinstance(target_class, str) and target_class.startswith("/Script/"):
+                # /Script/ paths are native classes, use load_class
+                target = unreal.load_class(None, target_class)
+            elif isinstance(target_class, str) and target_class.startswith("/"):
+                # /Game/ or other content paths, use load_asset
                 target = unreal.EditorAssetLibrary.load_asset(target_class)
             else:
                 # Fallback: try loading as a native class from /Script/Engine
@@ -649,6 +653,11 @@ def execute_console_command(
         Dictionary with command execution result
     """
     subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+    if not subsystem:
+        raise ProcessingError(
+            "UnrealEditorSubsystem not available",
+            operation="console_command",
+        )
     world = subsystem.get_editor_world()
     if not world:
         raise ProcessingError(

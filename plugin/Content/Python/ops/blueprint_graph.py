@@ -173,7 +173,9 @@ def add_variable(
 
     pin_type = _make_pin_type(variable_type, sub_type)
 
-    success = unreal.BlueprintEditorLibrary.add_variable(blueprint, variable_name, pin_type, is_instance_editable)
+    # Normalize None to default (validation allows None but UE API requires bool)
+    editable = True if is_instance_editable is None else is_instance_editable
+    success = unreal.BlueprintEditorLibrary.add_variable(blueprint, variable_name, pin_type, editable)
 
     if not success:
         raise ProcessingError(
