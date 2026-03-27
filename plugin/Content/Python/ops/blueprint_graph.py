@@ -1548,12 +1548,15 @@ def discover_actions(
         filter_cat = category if category not in (None, "all") else None
         actions.extend(_discover_library_actions(filter_category=filter_cat))
 
-    # Deduplicate actions discovered via multiple paths
-    # (e.g., function libraries discovered both as class and library actions)
+    # Deduplicate actions discovered via multiple paths.
+    # Use resolved class identity (id) instead of string name to handle
+    # aliases (e.g., MathLibrary and KismetMathLibrary are the same class).
     seen_keys = set()
     deduped = []
     for action in actions:
-        key = (action.get("nodeType"), action.get("name"), action.get("className"))
+        cls_name = action.get("className")
+        cls_id = id(getattr(unreal, cls_name, None)) if cls_name else 0
+        key = (action.get("nodeType"), action.get("name"), cls_id)
         if key in seen_keys:
             continue
         seen_keys.add(key)
