@@ -1365,8 +1365,12 @@ def _enrich_with_add_node_params(actions):
 
     Provides an ``addNodeParams`` dict showing which parameters to pass
     to ``blueprint_add_node`` for each discovered action. Function names
-    use the exact UE Python binding name (snake_case), which is accepted
-    by ``BlueprintEditorLibrary.add_call_function_node``.
+    use the exact UE Python binding name (snake_case), which is the format
+    accepted by ``BlueprintEditorLibrary.add_call_function_node``.
+
+    Note: Utility/math shortcuts (e.g., ``PrintString``, ``Add``) use
+    different friendly names and are not discovered via reflection. They
+    are documented in ``blueprint_add_node``'s ``node_type`` parameter.
 
     Args:
         actions: List of action info dicts (modified in place)

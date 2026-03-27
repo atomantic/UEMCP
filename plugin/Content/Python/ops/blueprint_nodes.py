@@ -27,6 +27,7 @@ _EVENT_NODES = {
     "ActorBeginOverlap": "K2Node_Event",
     "ActorEndOverlap": "K2Node_Event",
     "AnyDamage": "K2Node_Event",
+    "OnHit": "K2Node_Event",
     "OnDestroyed": "K2Node_Event",
 }
 
