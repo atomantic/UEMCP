@@ -707,3 +707,46 @@ class TestSetVariableDefaultSignature:
         sig = inspect.signature(set_variable_default)
         assert "value_type" in sig.parameters
         assert sig.parameters["value_type"].default is None
+
+
+class TestSetVariableDefaultRotatorDisambiguation:
+    """Test that value_type='rotator' routes through create_rotator."""
+
+    def test_rotator_value_type_uses_create_rotator(self, monkeypatch):
+        """When value_type='rotator' and value is a 3-element list, create_rotator is used."""
+        import ops.blueprint_graph as bg
+
+        # Track which coercion function was called
+        rotator_calls = []
+        vector_calls = []
+
+        def fake_create_rotator(arr):
+            rotator_calls.append(arr)
+            return "mock_rotator"
+
+        def fake_create_vector(arr):
+            vector_calls.append(arr)
+            return "mock_vector"
+
+        # Mock the full chain: resolve_blueprint -> compile -> generated_class -> CDO
+        mock_cdo = Mock()
+        mock_gen_class = Mock()
+        mock_gen_class.get_default_object.return_value = mock_cdo
+        mock_blueprint = Mock()
+        mock_blueprint.generated_class.return_value = mock_gen_class
+
+        monkeypatch.setattr(bg, "resolve_blueprint", lambda path: mock_blueprint)
+        monkeypatch.setattr(bg, "create_rotator", fake_create_rotator)
+        monkeypatch.setattr(bg, "create_vector", fake_create_vector)
+
+        result = bg.set_variable_default(
+            "/Game/BP_Test",
+            "MyRotator",
+            [10.0, 20.0, 30.0],
+            value_type="rotator",
+        )
+
+        assert result["success"] is True
+        assert rotator_calls == [[10.0, 20.0, 30.0]]
+        assert vector_calls == []
+        mock_cdo.set_editor_property.assert_called_once_with("MyRotator", "mock_rotator")
