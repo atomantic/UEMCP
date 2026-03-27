@@ -41,7 +41,10 @@ _VARIABLE_TYPE_MAP = {
     "class": ("class", "/Script/CoreUObject.Object"),
 }
 
-# Supported component class names for add_component
+# Supported component class names for add_component.
+# Note: "BoxCollisionComponent" is a friendly alias for UE's BoxComponent.
+# The internal UE class name is "BoxComponent" but we use the more descriptive
+# name for the API surface.
 SUPPORTED_COMPONENT_CLASSES = (
     "StaticMeshComponent",
     "SkeletalMeshComponent",
@@ -1058,8 +1061,16 @@ def implement_interface(
             details={"interface_path": interface_path},
         )
 
+    # UE expects an interface class, not the asset itself.
+    # For Blueprint interfaces, get the generated class.
+    interface_class = interface_asset
+    if hasattr(interface_asset, "generated_class") and callable(interface_asset.generated_class):
+        gen_class = interface_asset.generated_class()
+        if gen_class:
+            interface_class = gen_class
+
     # Add the interface
-    success = unreal.BlueprintEditorLibrary.add_interface(blueprint, interface_asset)
+    success = unreal.BlueprintEditorLibrary.add_interface(blueprint, interface_class)
 
     if not success:
         raise ProcessingError(
