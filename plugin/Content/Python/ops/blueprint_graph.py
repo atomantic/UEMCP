@@ -607,9 +607,12 @@ def add_component(
 def _coerce_property_value(value):
     """Coerce a JSON-friendly value to a UE-compatible type.
 
-    Handles vectors ([x,y,z]), rotators ([roll,pitch,yaw]), colors,
+    Handles vectors ([x,y,z] -> Vector), colors ([r,g,b,a] -> LinearColor),
     asset paths (strings starting with /Game/ or /Engine/), and pass-through
     for strings, numbers, and booleans.
+
+    Note: Rotator coercion is handled by the caller (modify_component) via
+    property name detection, not by this function.
 
     Args:
         value: The value to coerce
@@ -619,9 +622,20 @@ def _coerce_property_value(value):
     """
     if isinstance(value, list):
         if len(value) == 3:
-            # Default to Vector; caller handles Rotator via property name detection
+            if not all(isinstance(v, (int, float)) for v in value):
+                raise ProcessingError(
+                    "3-element array must contain only numbers for Vector",
+                    operation="coerce_property_value",
+                    details={"value": value},
+                )
             return unreal.Vector(value[0], value[1], value[2])
         if len(value) == 4:
+            if not all(isinstance(v, (int, float)) for v in value):
+                raise ProcessingError(
+                    "4-element array must contain only numbers for LinearColor",
+                    operation="coerce_property_value",
+                    details={"value": value},
+                )
             return unreal.LinearColor(r=value[0], g=value[1], b=value[2], a=value[3])
 
     if isinstance(value, str) and (value.startswith("/Game/") or value.startswith("/Engine/")):
