@@ -98,21 +98,16 @@ class AssetOperations:
             dict: Result with asset list
         """
         asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
-        assets = asset_registry.get_assets_by_path(path, recursive=True)
 
-        # Filter by asset type if specified
+        # Push type filter into the registry query when possible to avoid loading all assets
         if assetType:
-            filtered_assets = []
-            for asset in assets:
-                asset_type_name = (
-                    str(asset.asset_class_path.asset_name)
-                    if hasattr(asset.asset_class_path, "asset_name")
-                    else str(asset.asset_class_path)
-                )
-
-                if asset_type_name == assetType:
-                    filtered_assets.append(asset)
-            assets = filtered_assets
+            ar_filter = unreal.ARFilter()
+            ar_filter.package_paths = [path]
+            ar_filter.recursive_paths = True
+            ar_filter.class_names = [assetType]
+            assets = asset_registry.get_assets(ar_filter)
+        else:
+            assets = asset_registry.get_assets_by_path(path, recursive=True)
 
         # Build asset list with limit
         asset_list = []

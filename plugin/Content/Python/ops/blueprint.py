@@ -448,16 +448,25 @@ def document(
     if output_path:
         import os
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        with open(output_path, "w", encoding="utf-8") as f:
+        project_dir = os.path.realpath(unreal.Paths.project_dir())
+        real_output = os.path.realpath(os.path.abspath(output_path))
+        if not real_output.startswith(project_dir + os.sep) and real_output != project_dir:
+            raise ValidationError(
+                f"output_path must be within the UE project directory: {output_path}",
+                operation="document_blueprints",
+                details={"output_path": output_path, "project_dir": project_dir},
+            )
+
+        os.makedirs(os.path.dirname(real_output), exist_ok=True)
+        with open(real_output, "w", encoding="utf-8") as f:
             f.write(full_documentation)
-        log_info(f"Documentation saved to: {output_path}")
+        log_info(f"Documentation saved to: {real_output}")
 
     log_info(f"Generated documentation for {len(documented_blueprints)} Blueprints")
 
     result = {"success": True, "documentedBlueprints": documented_blueprints, "documentation": full_documentation}
 
     if output_path:
-        result["outputPath"] = output_path
+        result["outputPath"] = real_output
 
     return result
