@@ -19,10 +19,20 @@ def resolve_blueprint(blueprint_path):
     return bp_asset
 
 
-def compile_and_save(blueprint, blueprint_path):
-    """Compile and save a Blueprint after modifications."""
+def compile_and_save(blueprint, blueprint_path, force_save=False):
+    """Compile and save a Blueprint after modifications.
+
+    Args:
+        blueprint: The Blueprint object
+        blueprint_path: Asset path for saving
+        force_save: If True, save even if package is not marked dirty
+                    (needed for CDO property changes that may not dirty the package)
+    """
     unreal.KismetEditorUtilities.compile_blueprint(blueprint)
-    unreal.EditorAssetLibrary.save_asset(blueprint_path)
+    if force_save:
+        unreal.EditorAssetLibrary.save_asset(blueprint_path, only_if_is_dirty=False)
+    else:
+        unreal.EditorAssetLibrary.save_asset(blueprint_path)
 
 
 def list_pin_names(node):

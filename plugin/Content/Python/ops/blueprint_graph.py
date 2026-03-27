@@ -372,8 +372,8 @@ def set_variable_default(
 
     cdo.set_editor_property(variable_name, coerced)
 
-    # Force save -- CDO property changes may not mark the package dirty
-    unreal.EditorAssetLibrary.save_asset(blueprint_path, only_if_is_dirty=False)
+    # CDO property changes may not mark the package dirty — force save
+    compile_and_save(blueprint, blueprint_path, force_save=True)
     log_info(f"Set default for '{variable_name}' = {value} on {blueprint_path}")
 
     return {
