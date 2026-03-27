@@ -220,6 +220,7 @@ def register_all_operations():
         registry.register_command("blueprint_get_graph", blueprint_graph.get_graph)
         registry.register_command("blueprint_compile_enhanced", blueprint_graph.compile_enhanced)
         registry.register_command("blueprint_implement_interface", blueprint_graph.implement_interface)
+        registry.register_command("blueprint_create_interface", blueprint_graph.create_interface)
         registry.register_command("blueprint_discover_actions", blueprint_graph.discover_actions)
         registry.register_command("blueprint_set_variable_default", blueprint_graph.set_variable_default)
 

@@ -49,7 +49,7 @@ The #1 gap vs competitors: we can create/compile/document Blueprints but cannot 
 
 - [x] `blueprint_implement_interface` — Add interface to existing Blueprint
 - [x] `console_command` — Execute UE console commands
-- [ ] `blueprint_create_interface` — Create Blueprint interface assets
+- [x] `blueprint_create_interface` — Create Blueprint interface assets
 - [ ] `blueprint_modify_component` — Set any component property via reflection
 - [x] `blueprint_set_variable_default` — Set default values on CDO
 

@@ -760,3 +760,74 @@ class TestSetVariableDefaultRotatorDisambiguation:
         assert rotator_calls == [[10.0, 20.0, 30.0]]
         assert vector_calls == []
         mock_cdo.set_editor_property.assert_called_once_with("MyRotator", "mock_rotator")
+
+
+class TestCreateInterface:
+    """Test blueprint_create_interface function."""
+
+    def test_create_interface_signature(self):
+        """Test create_interface function signature has correct parameters and defaults."""
+        import inspect
+
+        from ops.blueprint_graph import create_interface
+
+        sig = inspect.signature(create_interface)
+
+        assert "interface_path" in sig.parameters
+        assert sig.parameters["interface_path"].default is inspect.Parameter.empty
+
+        assert "functions" in sig.parameters
+        assert sig.parameters["functions"].default is None
+
+    def test_create_interface_uses_make_pin_type(self):
+        """Test that _make_pin_type is importable and usable for interface function params."""
+        from ops.blueprint_graph import _make_pin_type
+
+        # _make_pin_type should exist and be callable
+        assert callable(_make_pin_type)
+
+    def test_create_interface_rejects_empty_path(self):
+        """Test create_interface rejects path without asset name."""
+        from ops.blueprint_graph import create_interface
+
+        result = create_interface(interface_path="/Game/Interfaces/")
+        # The decorators catch ProcessingError and return an error dict
+        assert result.get("success") is False
+
+    def test_create_interface_rejects_path_without_slash(self):
+        """Test create_interface rejects path without any slash."""
+        import pytest
+
+        from ops.blueprint_graph import create_interface
+        from utils.error_handling import ValidationError
+
+        with pytest.raises(ValidationError):
+            create_interface(interface_path="BPI_NoSlash")
+
+    def test_create_interface_validates_interface_path_required(self):
+        """Test create_interface requires interface_path parameter."""
+        import pytest
+
+        from ops.blueprint_graph import create_interface
+        from utils.error_handling import ValidationError
+
+        with pytest.raises(ValidationError):
+            create_interface(interface_path=None)
+
+    def test_create_interface_accepts_functions_as_none(self):
+        """Test that functions parameter defaults to None and is optional."""
+        import inspect
+
+        from ops.blueprint_graph import create_interface
+
+        sig = inspect.signature(create_interface)
+        func_param = sig.parameters["functions"]
+        assert func_param.default is None
+
+    def test_create_interface_has_correct_decorators(self):
+        """Test that create_interface is wrapped by decorators (functools.wraps chain)."""
+        from ops.blueprint_graph import create_interface
+
+        assert callable(create_interface)
+        # functools.wraps preserves __wrapped__ through the decorator chain
+        assert hasattr(create_interface, "__wrapped__")
