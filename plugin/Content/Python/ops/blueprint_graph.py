@@ -1207,6 +1207,12 @@ _COMMON_EVENTS = [
         "description": "Called when this actor hits or is hit by something",
     },
     {
+        "name": "OnDestroyed",
+        "nodeType": "Event",
+        "category": "events",
+        "description": "Called when the actor is destroyed",
+    },
+    {
         "name": "CustomEvent",
         "nodeType": "Event",
         "category": "events",
@@ -1544,7 +1550,10 @@ def discover_actions(
     if category in (None, "all", "flow"):
         actions.extend(_deep_copy_action(n) for n in _FLOW_NODES)
 
-    if context_class and category in (None, "all", "class"):
+    # Skip class discovery for known function libraries (unless explicitly
+    # requesting category 'class') to avoid mislabeling library functions.
+    is_known_library = context_class in _LIBRARY_CATEGORY_MAP
+    if context_class and category in (None, "all", "class") and (category == "class" or not is_known_library):
         actions.extend(_discover_class_actions(context_class))
 
     if category in _VALID_LIBRARY_CATEGORIES:

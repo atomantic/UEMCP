@@ -530,3 +530,46 @@ class TestActionDiscovery:
         assert result["success"] is False
         assert "Invalid category 'bogus'" in result["error"]
         assert "category" in result.get("details", {}).get("field", "")
+
+    def test_discover_actions_events_have_add_node_params(self):
+        """Test that event actions include correct addNodeParams."""
+        from ops.blueprint_graph import discover_actions
+
+        result = discover_actions(category="events")
+        assert result["success"] is True
+        for action in result["actions"]:
+            assert "addNodeParams" in action, f"Missing addNodeParams on {action['name']}"
+            params = action["addNodeParams"]
+            assert "node_type" in params
+            if action["name"] == "CustomEvent":
+                assert params.get("event_name") == "<your_event_name>"
+            else:
+                assert params["node_type"] == action["name"]
+
+    def test_discover_actions_flow_have_add_node_params(self):
+        """Test that flow actions include correct addNodeParams."""
+        from ops.blueprint_graph import discover_actions
+
+        result = discover_actions(category="flow")
+        assert result["success"] is True
+        for action in result["actions"]:
+            assert "addNodeParams" in action
+            assert action["addNodeParams"]["node_type"] == action["name"]
+
+    def test_discover_actions_limit_clamps(self):
+        """Test that limit is clamped between 1 and 200."""
+        from ops.blueprint_graph import discover_actions
+
+        result = discover_actions(category="events", limit=2)
+        assert result["returned"] <= 2
+
+    def test_discover_actions_search_filters(self):
+        """Test that search filters actions by name."""
+        from ops.blueprint_graph import discover_actions
+
+        result = discover_actions(category="events", search="BeginPlay")
+        assert result["success"] is True
+        names = [a["name"] for a in result["actions"]]
+        assert "BeginPlay" in names
+        # Other events should be filtered out
+        assert "Delay" not in names
