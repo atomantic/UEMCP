@@ -47,7 +47,7 @@
 
 ## Prerequisites
 
-- Node >= 18, npm
+- Node >= 20, npm
 - Python 3.11+
 - Unreal Engine 5.4+ (5.5+ recommended)
 

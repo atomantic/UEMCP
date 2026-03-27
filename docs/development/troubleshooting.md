@@ -5,7 +5,7 @@
 Before troubleshooting, run these diagnostics:
 
 ```bash
-# Check Node.js version (should be 18+)
+# Check Node.js version (should be 20+)
 node --version
 
 # Test the server directly
@@ -107,7 +107,7 @@ npm install --verbose
 #### "Build fails with TypeScript errors"
 
 **Solutions:**
-1. Check Node version: `node --version` (needs 18+)
+1. Check Node version: `node --version` (needs 20+)
 2. Delete and reinstall:
    ```bash
    rm -rf node_modules package-lock.json

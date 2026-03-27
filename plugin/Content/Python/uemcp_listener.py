@@ -104,7 +104,12 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             command_type = command.get("type", "")
             normalized_type = command_type.replace(".", "_") if isinstance(command_type, str) else ""
             fallback_timeout = _COMMAND_TIMEOUTS.get(normalized_type, _DEFAULT_TIMEOUT)
-            timeout = command.get("timeout", fallback_timeout)
+            raw_timeout = command.get("timeout", fallback_timeout)
+            # Validate/coerce timeout to a bounded positive number
+            try:
+                timeout = max(1, min(float(raw_timeout), 120))
+            except (TypeError, ValueError):
+                timeout = fallback_timeout
 
             # Wait for response
             result = self._wait_for_response(request_id, timeout=timeout, event=event)

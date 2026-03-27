@@ -361,7 +361,7 @@ def auto_layout_actors(spacing=500):
 
 ## 📋 Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 20+ and npm
 - Unreal Engine 5.1+ (5.4+ recommended)
 - Python 3.11 (matches UE's built-in version)
 - An MCP-compatible AI client (Claude Desktop, Claude Code, Gemini, Codex, Q)

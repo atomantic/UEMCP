@@ -125,7 +125,7 @@ open server/tests/python/coverage/index.html # Python
 ## Prerequisites by Tier
 
 ### Tier 1 (Unit Tests):
-- Node.js 18+
+- Node.js 20+
 - Python 3.11+
 - No external dependencies
 
