@@ -257,7 +257,8 @@ def _coerce_value_for_cdo(value, variable_name: str):
         - Primitives (bool, int, float, str): passed through as-is
         - 3-element lists: converted to unreal.Vector (use value_type='rotator' in caller for Rotator)
         - 4-element lists: converted to unreal.LinearColor
-        - String asset paths (/Game/, /Script/, /Engine/): loaded via EditorAssetLibrary
+        - /Script/ paths: loaded via unreal.load_object (native class references)
+        - /Game/ and /Engine/ paths: loaded via EditorAssetLibrary.load_asset
 
     Returns:
         The coerced value ready for set_editor_property()
@@ -266,7 +267,16 @@ def _coerce_value_for_cdo(value, variable_name: str):
         return value
 
     if isinstance(value, str):
-        if value.startswith("/Game/") or value.startswith("/Script/") or value.startswith("/Engine/"):
+        if value.startswith("/Script/"):
+            loaded = unreal.load_object(None, value)
+            if not loaded:
+                raise ProcessingError(
+                    f"Object not found for variable '{variable_name}': {value}",
+                    operation="blueprint_set_variable_default",
+                    details={"variable_name": variable_name, "object_path": value},
+                )
+            return loaded
+        if value.startswith("/Game/") or value.startswith("/Engine/"):
             loaded = unreal.EditorAssetLibrary.load_asset(value)
             if not loaded:
                 raise ProcessingError(
@@ -354,7 +364,9 @@ def set_variable_default(
 
     cdo.set_editor_property(variable_name, coerced)
 
-    compile_and_save(blueprint, blueprint_path)
+    # Save only -- the initial compile already ensured the CDO exists,
+    # and setting a default value is a data change, not a structural one.
+    unreal.EditorAssetLibrary.save_asset(blueprint_path)
     log_info(f"Set default for '{variable_name}' = {value} on {blueprint_path}")
 
     return {

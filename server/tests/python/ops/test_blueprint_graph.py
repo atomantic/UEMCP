@@ -662,15 +662,16 @@ class TestCoerceValueForCdo:
         with pytest.raises(ProcessingError, match="must have 3 or 4 elements"):
             _coerce_value_for_cdo([1.0, 2.0], "MyVar")
 
-    def test_script_path_loads_asset(self):
-        """Test that /Script/ paths trigger asset loading."""
+    def test_script_path_loads_object(self):
+        """Test that /Script/ paths use unreal.load_object for native class refs."""
         from ops.blueprint_graph import _coerce_value_for_cdo
 
-        mock_asset = Mock()
-        mock_unreal.EditorAssetLibrary.load_asset.return_value = mock_asset
+        mock_obj = Mock()
+        mock_unreal.load_object.return_value = mock_obj
 
         result = _coerce_value_for_cdo("/Script/Engine.StaticMesh", "MyRef")
-        assert result is mock_asset
+        assert result is mock_obj
+        mock_unreal.load_object.assert_called_with(None, "/Script/Engine.StaticMesh")
 
     def test_engine_path_loads_asset(self):
         """Test that /Engine/ paths trigger asset loading."""
