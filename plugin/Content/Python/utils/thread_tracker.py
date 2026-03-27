@@ -62,6 +62,14 @@ def track_thread(thread):
     add_server_thread(thread)
 
 
+def untrack_thread(thread):
+    """Remove a thread from tracking"""
+    try:
+        _all_server_threads.remove(thread)
+    except ValueError:
+        pass
+
+
 def get_tracked_threads():
     """Get all tracked threads"""
     # Clean up dead threads first

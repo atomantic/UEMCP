@@ -4,6 +4,8 @@ UEMCP Validation Framework - Validates operations succeeded by checking actual s
 
 import unreal
 
+from .general import find_actor_by_name, normalize_angle
+
 # import time
 # import math
 
@@ -57,11 +59,6 @@ def validate_actor_rotation(actor, expected_rotation, tolerance=0.1):
 
     try:
         actual_rotation = actor.get_actor_rotation()
-
-        # Normalize angles to -180 to 180 range
-        def normalize_angle(angle):
-            # More efficient modulo-based normalization
-            return ((angle + 180) % 360) - 180
 
         # Check each rotation component
         for component, expected, actual in [
@@ -205,23 +202,6 @@ def validate_actor_deleted(actor_name):
     return result
 
 
-def find_actor_by_name(actor_name):
-    """Find an actor by name, returning None if not found"""
-    try:
-        all_actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
-
-        for actor in all_actors:
-            try:
-                if actor and hasattr(actor, "get_actor_label") and actor.get_actor_label() == actor_name:
-                    return actor
-            except Exception:
-                continue
-
-        return None
-    except Exception:
-        return None
-
-
 def validate_actor_spawn(
     actor_name,
     expected_location=None,
@@ -251,10 +231,7 @@ def validate_actor_spawn(
     # Run validations
     for expected_value, validator, actor_obj in validations:
         if expected_value is not None:
-            if validator == validate_actor_mesh or validator == validate_actor_folder:
-                validation_result = validator(actor_obj, expected_value)
-            else:
-                validation_result = validator(actor_obj, expected_value)
+            validation_result = validator(actor_obj, expected_value)
             _merge_validation_errors(result, validation_result)
 
     return result
@@ -297,27 +274,3 @@ def validate_actor_modifications(actor, modifications):
             _merge_validation_errors(result, validation_result)
 
     return result
-
-
-class ValidationManager:
-    """Manager class for validation operations - provides a namespace for validation functions"""
-
-    @staticmethod
-    def validate_spawn(actor_name, **kwargs):
-        """Validate a spawned actor with expected properties"""
-        return validate_actor_spawn(actor_name, **kwargs)
-
-    @staticmethod
-    def validate_deletion(actor_name):
-        """Validate an actor was successfully deleted"""
-        return validate_actor_deleted(actor_name)
-
-    @staticmethod
-    def validate_modifications(actor, modifications):
-        """Validate modifications to an actor"""
-        return validate_actor_modifications(actor, modifications)
-
-    @staticmethod
-    def find_actor(actor_name):
-        """Find an actor by name"""
-        return find_actor_by_name(actor_name)

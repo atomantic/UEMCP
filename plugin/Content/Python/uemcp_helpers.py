@@ -3,9 +3,6 @@ UEMCP Helper Functions
 Convenient functions for managing the UEMCP listener
 """
 
-import os
-import sys
-
 # import importlib
 import time
 
@@ -63,7 +60,9 @@ def start_listener():
     """Start the listener"""
     try:
         # First ensure port is free
-        force_kill_port()
+        from utils.port import force_free_port_silent
+
+        force_free_port_silent(8765)
         time.sleep(0.5)
 
         import uemcp_listener
@@ -87,23 +86,6 @@ def stop_listener():
             return False
     except Exception as e:
         unreal.log_error(f"UEMCP: Error stopping listener: {e}")
-        return False
-
-
-def force_kill_port():
-    """Force kill any process on port 8765"""
-    try:
-        if sys.platform == "darwin":  # macOS
-            result = os.system("lsof -ti:8765 | xargs kill -9 2>/dev/null")
-            if result == 0:
-                unreal.log("UEMCP: Killed processes on port 8765")
-            else:
-                unreal.log("UEMCP: No processes found on port 8765")
-        elif sys.platform == "win32":  # Windows
-            os.system("FOR /F \"tokens=5\" %P IN ('netstat -ano ^| findstr :8765') DO TaskKill /F /PID %P")
-        return True
-    except Exception as e:
-        unreal.log_error(f"UEMCP: Error killing port: {e}")
         return False
 
 

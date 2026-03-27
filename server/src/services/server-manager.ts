@@ -12,7 +12,7 @@ import {
 import { logger } from '../utils/logger.js';
 import { HybridToolRegistry } from './dynamic-tool-registry.js';
 import { ConfigManager } from './config-manager.js';
-import { ToolResponse } from '../utils/response-formatter.js';
+import { ResponseFormatter, ToolResponse } from '../utils/response-formatter.js';
 
 export interface ServerOptions {
   name?: string;
@@ -120,13 +120,10 @@ export class ServerManager {
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      
-      logger.error(`Tool ${name} failed`, { 
-        error: errorMessage,
+      logger.error(`Tool ${name} failed`, {
+        error: ResponseFormatter.getErrorMessage(error),
         duration: `${duration}ms`
       });
-      
       throw error;
     }
   }
@@ -163,8 +160,7 @@ export class ServerManager {
       }
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error('Failed to start server', { error: errorMessage });
+      logger.error('Failed to start server', { error: ResponseFormatter.getErrorMessage(error) });
       throw error;
     }
   }
@@ -183,8 +179,7 @@ export class ServerManager {
       this.isRunning = false;
       logger.info('UEMCP Server stopped gracefully');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error('Error stopping server', { error: errorMessage });
+      logger.error('Error stopping server', { error: ResponseFormatter.getErrorMessage(error) });
       throw error;
     }
   }
@@ -234,8 +229,7 @@ export class ServerManager {
         logger.info('Shutdown complete');
         process.exit(0);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.error('Error during shutdown', { error: errorMessage });
+        logger.error('Error during shutdown', { error: ResponseFormatter.getErrorMessage(error) });
         process.exit(1);
       }
     };

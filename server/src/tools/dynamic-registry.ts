@@ -135,12 +135,28 @@ export class DynamicToolRegistry {
   }
 
   /**
-   * Refresh the manifest and tools from Python
+   * Refresh the manifest and tools from Python.
+   * Builds new state in a temporary registry so the current instance
+   * stays fully functional for concurrent requests during the await.
+   * Only swaps fields on success.
    */
   async refresh(): Promise<boolean> {
-    this.initialized = false;
-    this.tools.clear();
-    this.manifest = null;
-    return this.initialize();
+    try {
+      // Build new state in a separate registry instance
+      const temp = new DynamicToolRegistry(this.bridge);
+      const success = await temp.initialize();
+      if (success) {
+        // Atomic swap — only mutate after new state is fully ready
+        this.tools = temp.tools;
+        this.manifest = temp.manifest;
+        this.initialized = true;
+      }
+      return success;
+    } catch (error) {
+      logger.error('Exception during registry refresh, existing state preserved:', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return false;
+    }
   }
 }

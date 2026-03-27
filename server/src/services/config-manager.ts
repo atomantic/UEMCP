@@ -83,13 +83,6 @@ export class ConfigManager {
   }
 
   /**
-   * Check if debug mode is enabled
-   */
-  public isDebugMode(): boolean {
-    return !!this.config.debugMode;
-  }
-
-  /**
    * Get debug mode configuration
    */
   public getDebugMode(): string | undefined {
@@ -160,56 +153,9 @@ export class ConfigManager {
   }
 
   /**
-   * Update configuration value
-   */
-  public updateConfig(key: keyof ServerConfig, value: string | number): void {
-    // Use type assertion with proper constraint to ensure type safety
-    (this.config as unknown as Record<string, unknown>)[key] = value;
-    logger.info(`Configuration updated: ${key} = ${value}`);
-  }
-
-  /**
-   * Get environment summary for logging
-   */
-  public getEnvironmentSummary(): string {
-    return [
-      `UEMCP Server ${this.config.version}`,
-      `Node.js ${this.config.nodeVersion}`,
-      `${this.config.platform} ${this.config.osRelease}`,
-      `PID: ${this.config.processId}`,
-      `Port: ${this.config.listenerPort}`,
-    ].join(' | ');
-  }
-
-  /**
    * Check if UE project path is configured
    */
   public hasUEProjectPath(): boolean {
     return !!this.config.ueProjectPath;
-  }
-
-  /**
-   * Get system information
-   */
-  public getSystemInfo(): {
-    nodeVersion: string;
-    platform: string;
-    osRelease: string;
-    processId: number;
-    workingDirectory: string;
-    arch: string;
-    totalMemory: number;
-    freeMemory: number;
-  } {
-    return {
-      nodeVersion: this.config.nodeVersion,
-      platform: this.config.platform,
-      osRelease: this.config.osRelease,
-      processId: this.config.processId,
-      workingDirectory: this.config.workingDirectory,
-      arch: os.arch(),
-      totalMemory: os.totalmem(),
-      freeMemory: os.freemem(),
-    };
   }
 }

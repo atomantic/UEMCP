@@ -37,6 +37,9 @@ except ImportError:
 # Queue for main thread execution
 command_queue = queue.Queue()
 response_queue = {}
+abandoned_requests = {}  # request_id -> abandon timestamp (float); cleaned up periodically
+_response_events = {}  # Per-request threading.Event objects
+_response_lock = threading.Lock()  # Protects response_queue, abandoned_requests, _response_events
 
 
 class UEMCPHandler(BaseHTTPRequestHandler):
@@ -59,7 +62,6 @@ class UEMCPHandler(BaseHTTPRequestHandler):
 
         self.send_response(200)
         self.send_header("Content-type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")  # Allow browser access
         self.end_headers()
 
         self.wfile.write(json.dumps(response, indent=2).encode("utf-8"))
@@ -68,14 +70,21 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         """Handle command execution"""
         try:
             command = self._parse_command()
+            if command is None:
+                return  # _parse_command already sent the error response
             request_id = self._generate_request_id()
             self._log_command(command)
+
+            # Register event BEFORE queuing so _post_response never misses it
+            event = threading.Event()
+            with _response_lock:
+                _response_events[request_id] = event
 
             # Queue command for main thread
             command_queue.put((request_id, command))
 
             # Wait for response
-            result = self._wait_for_response(request_id)
+            result = self._wait_for_response(request_id, event=event)
             if result is None:
                 self.send_error(504, "Command execution timeout")
                 return
@@ -90,9 +99,23 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         """Parse command from POST data.
 
         Returns:
-            dict: Parsed command
+            dict or None: Parsed command, or None if validation failed (error already sent)
         """
-        content_length = int(self.headers["Content-Length"])
+        raw_length = self.headers.get("Content-Length")
+        if raw_length is None:
+            self.send_error(411, "Content-Length required")
+            return None
+        try:
+            content_length = int(raw_length)
+        except ValueError:
+            self.send_error(400, "Invalid Content-Length")
+            return None
+        if content_length <= 0:
+            self.send_error(400, "Content-Length must be positive")
+            return None
+        if content_length > 10 * 1024 * 1024:  # 10 MB cap
+            self.send_error(413, "Request body too large")
+            return None
         post_data = self.rfile.read(content_length)
         return json.loads(post_data.decode("utf-8"))
 
@@ -116,7 +139,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             # Don't log full code for python_proxy
             unreal.log(f"UEMCP: Handling MCP tool: {cmd_type}")
         else:
-            params = command.get("parameters", {})
+            params = command.get("params", {})
             param_str = self._format_params_for_logging(params)
             unreal.log(f"UEMCP: Handling MCP tool: {cmd_type}({param_str})")
 
@@ -139,24 +162,34 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             param_info.append(f"{k}={v}")
         return ", ".join(param_info)
 
-    def _wait_for_response(self, request_id, timeout=10.0):
+    def _wait_for_response(self, request_id, timeout=10.0, event=None):
         """Wait for command response.
 
         Args:
             request_id: Request ID to wait for
             timeout: Maximum wait time in seconds
+            event: Pre-created threading.Event already registered in _response_events.
 
         Returns:
             dict or None: Response if received, None on timeout
         """
-        start_time = time.time()
+        if event is None:
+            event = threading.Event()
+            with _response_lock:
+                _response_events[request_id] = event
 
-        while request_id not in response_queue:
-            if time.time() - start_time > timeout:
-                return None
-            time.sleep(0.01)
+        # Wait outside the lock — the event is set by _post_response
+        event.wait(timeout=timeout)
 
-        return response_queue.pop(request_id)
+        # Atomically check result and clean up under the lock
+        with _response_lock:
+            result = response_queue.pop(request_id, None)
+            _response_events.pop(request_id, None)
+            if result is not None:
+                return result
+            # Timeout: mark abandoned with timestamp for periodic cleanup
+            abandoned_requests[request_id] = time.time()
+            return None
 
     def _send_json_response(self, code, data):
         """Send JSON response.
@@ -216,19 +249,13 @@ def execute_on_main_thread(command):
             "actor.organize": "actor_organize",
             "actor.batch_spawn": "actor_batch_spawn",  # Direct MCP mapping
             "batch_spawn": "actor_batch_spawn",  # MCP tool name
-            "actor_snap_to_socket": "actor_snap_to_socket",  # Direct MCP mapping
             "material_create": "material_create_material",  # Direct MCP mapping
-            "material_create_material": "material_create_material",  # Direct MCP mapping
             "material_info": "material_get_material_info",  # Direct MCP mapping
             "material_get_info": "material_get_material_info",  # Direct MCP mapping
             "material_apply": "material_apply_material_to_actor",  # Direct MCP mapping
             "material_apply_to_actor": "material_apply_material_to_actor",  # Direct MCP mapping
             "material_list": "material_list_materials",  # Direct MCP mapping
-            "blueprint_create": "blueprint_create",  # Direct MCP mapping (standalone function)
-            "blueprint_get_info": "blueprint_get_info",  # Direct MCP mapping (standalone function)
-            "blueprint_list": "blueprint_list_blueprints",  # Direct MCP mapping (standalone function)
-            "blueprint_compile": "blueprint_compile",  # Direct MCP mapping (standalone function)
-            "blueprint_document": "blueprint_document",  # Direct MCP mapping (standalone function)
+            "blueprint_list": "blueprint_list_blueprints",  # Direct MCP mapping
             "viewport.screenshot": "viewport_screenshot",
             "viewport.camera": "viewport_set_camera",
             "viewport.mode": "viewport_set_mode",
@@ -245,53 +272,47 @@ def execute_on_main_thread(command):
             "system.test_connection": "test_connection",  # Alternative mapping
             "system.logs": "ue_logs",
             "system.ue_logs": "ue_logs",  # Alternative mapping
-            # Note: undo/redo/history/checkpoint tools exist only in MCP server layer
-            # These operations are handled by the MCP server's operation history system
-            # and don't need Python plugin implementations
-            "system.undo": "not_implemented_python_layer",
-            "system.redo": "not_implemented_python_layer",
-            "system.history_list": "not_implemented_python_layer",
-            "system.checkpoint_create": "not_implemented_python_layer",
-            "system.checkpoint_restore": "not_implemented_python_layer",
-            "placement.validate": "not_implemented_python_layer",
         }
 
-        # Get the new command name
-        new_command = command_map.get(cmd_type)
-        if new_command:
-            # Check for server-layer-only commands
-            if new_command == "not_implemented_python_layer":
-                return {
-                    "success": False,
-                    "error": f"Command '{cmd_type}' is handled by MCP server layer, not Python plugin",
-                    "note": (
-                        "This command should be called through the MCP server API, "
-                        "not directly to the Python listener"
-                    ),
-                }
-            # Dispatch through the registry
-            return dispatch_command(new_command, params)
-        else:
-            # Try direct dispatch (for commands already in new format)
-            return dispatch_command(cmd_type, params)
+        # Get the new command name, fall back to direct dispatch
+        new_command = command_map.get(cmd_type, cmd_type)
+        return dispatch_command(new_command, params)
 
     except Exception as e:
-        log_error(f"Failed to execute command {cmd_type}: {str(e)}")
         import traceback
 
+        log_error(f"Failed to execute command {cmd_type}: {str(e)}")
         log_error(f"Traceback: {traceback.format_exc()}")
-        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
+        return {"success": False, "error": str(e)}
+
+
+def _post_response(request_id, result):
+    """Store result and signal the waiting HTTP handler thread.
+
+    All shared state access is protected by _response_lock to prevent races.
+    """
+    with _response_lock:
+        if request_id in abandoned_requests:
+            del abandoned_requests[request_id]
+            return
+        event = _response_events.get(request_id)
+        if event is None:
+            return
+        response_queue[request_id] = result
+    # Set event outside lock so the waiter can acquire the lock to read
+    event.set()
 
 
 def process_commands():
     """Process queued commands on main thread"""
     try:
         while not command_queue.empty():
+            request_id = None
             try:
                 request_id, command = command_queue.get_nowait()
                 cmd_type = command.get("type", "unknown")
                 result = execute_on_main_thread(command)
-                response_queue[request_id] = result
+                _post_response(request_id, result)
 
                 # Log command completion
                 if result.get("success"):
@@ -303,17 +324,26 @@ def process_commands():
                 break
             except Exception as e:
                 log_error(f"Error processing command: {str(e)}")
-                response_queue[request_id] = {"success": False, "error": str(e)}
+                if request_id is not None:
+                    _post_response(request_id, {"success": False, "error": str(e)})
     except Exception as e:
         log_error(f"Command processing error: {str(e)}")
 
 
+def _cleanup_abandoned_requests():
+    """Remove abandoned_requests entries older than 30 seconds to prevent unbounded growth."""
+    cutoff = time.time() - 30
+    with _response_lock:
+        stale = [rid for rid, ts in abandoned_requests.items() if ts < cutoff]
+        for rid in stale:
+            del abandoned_requests[rid]
+
+
 def tick_handler(delta_time):
     """Main thread tick handler"""
-    # Only process commands, no restart logic here
     try:
-        # Process any queued commands
         process_commands()
+        _cleanup_abandoned_requests()
     except Exception as e:
         log_error(f"Tick handler error: {str(e)}")
 
@@ -428,7 +458,21 @@ def _track_server_thread(thread):
         thread: The server thread to track
     """
     try:
-        uemcp_thread_tracker.track_thread("uemcp_server", thread)
+        uemcp_thread_tracker.track_thread(thread)
+    except Exception:
+        pass
+
+
+def _untrack_server_thread(thread):
+    """Remove server thread from tracking.
+
+    Args:
+        thread: The server thread to untrack (no-op if None)
+    """
+    if thread is None:
+        return
+    try:
+        uemcp_thread_tracker.untrack_thread(thread)
     except Exception:
         pass
 
@@ -490,15 +534,12 @@ def stop_server():
                 except Exception:
                     pass
 
+        # Clean up thread tracking before nullifying the reference
+        _untrack_server_thread(server_thread)
+
         # Clean up references
         httpd = None
         server_thread = None
-
-        # Clean up thread tracking
-        try:
-            uemcp_thread_tracker.untrack_thread("uemcp_server")
-        except Exception:
-            pass
 
         unreal.log("UEMCP: Modular listener stopped")
         return True

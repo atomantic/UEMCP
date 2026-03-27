@@ -4,7 +4,9 @@ UEMCP System Operations - System-level commands and utilities
 Enhanced with improved error handling framework to eliminate try/catch boilerplate.
 """
 
+import collections
 import os
+import re
 import sys
 
 # import importlib
@@ -21,6 +23,9 @@ from utils.error_handling import (
     validate_inputs,
 )
 from version import VERSION
+
+# Module-level flag to prevent duplicate slate_post_tick_callback registrations
+_restart_scheduled = False
 
 
 class SystemOperations:
@@ -262,10 +267,18 @@ class SystemOperations:
         try:
             import unreal
 
+            global _restart_scheduled
+            if _restart_scheduled:
+                return {
+                    "success": True,
+                    "message": "Listener restart already scheduled.",
+                }
+
             # We'll use a counter to ensure we only run once
             restart_counter = [0]  # Use list so we can modify in nested function
 
             def perform_restart(delta_time):
+                global _restart_scheduled
                 # Only run once
                 if restart_counter[0] > 0:
                     return
@@ -287,11 +300,14 @@ class SystemOperations:
                         unreal.log_error("UEMCP: Restart failed")
                 except Exception as e:
                     unreal.log_error(f"UEMCP: Restart error: {str(e)}")
+                finally:
+                    _restart_scheduled = False
 
             # Register the callback to run on next tick
             # This ensures the response is sent before restart
             handle = unreal.register_slate_post_tick_callback(perform_restart)
             perform_restart._handle = handle
+            _restart_scheduled = True
 
             return {
                 "success": True,
@@ -316,29 +332,44 @@ class SystemOperations:
         Returns:
             dict: Log lines
         """
+        # Validate project name to prevent path traversal
+        if not re.match(r"^[A-Za-z0-9_\-]+$", project):
+            return {"success": False, "error": f"Invalid project name: {project}"}
+
+        # Coerce and clamp lines to avoid TypeError or confusing behavior
+        try:
+            lines = int(lines)
+        except (TypeError, ValueError):
+            lines = 100
+        lines = max(1, min(lines, 1000))
+
         # Construct log file path
         if sys.platform == "darwin":  # macOS
             log_path = os.path.expanduser(f"~/Library/Logs/Unreal Engine/{project}Editor/{project}.log")
         elif sys.platform == "win32":  # Windows
-            log_path = os.path.join(
-                os.environ["LOCALAPPDATA"], "UnrealEngine", project, "Saved", "Logs", f"{project}.log"
-            )
+            local_appdata = os.environ.get("LOCALAPPDATA", "")
+            if not local_appdata:
+                return {"success": False, "error": "LOCALAPPDATA environment variable is not set"}
+            log_path = os.path.join(local_appdata, "UnrealEngine", project, "Saved", "Logs", f"{project}.log")
         else:  # Linux
             log_path = os.path.expanduser(f"~/.config/Epic/UnrealEngine/{project}/Saved/Logs/{project}.log")
 
         if not os.path.exists(log_path):
             return {"success": False, "error": f"Log file not found: {log_path}"}
 
-        # Read last N lines
+        # Read last N lines efficiently: single pass with a counter and fixed-size deque
+        total_lines = 0
+        tail = collections.deque(maxlen=lines)
         with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
-            all_lines = f.readlines()
-            recent_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+            for line in f:
+                total_lines += 1
+                tail.append(line)
 
         return {
             "success": True,
             "logPath": log_path,
-            "lines": recent_lines,
-            "totalLines": len(all_lines),
+            "lines": list(tail),
+            "totalLines": total_lines,
             "requestedLines": lines,
         }
 

@@ -10,23 +10,24 @@ jest.mock('../../src/utils/logger.js', () => ({
   },
 }));
 
-// Mock node-fetch - it's a default export
-jest.mock('node-fetch', () => jest.fn());
-
 describe('PythonBridge', () => {
   let pythonBridge: PythonBridge;
   let originalEnv: NodeJS.ProcessEnv;
+  let originalFetch: typeof global.fetch;
   let mockFetch: jest.Mock;
 
   beforeEach(() => {
     originalEnv = { ...process.env };
+    originalFetch = global.fetch;
     jest.clearAllMocks();
-    mockFetch = jest.mocked(require('node-fetch'));
+    mockFetch = jest.fn();
+    global.fetch = mockFetch;
     pythonBridge = new PythonBridge();
   });
 
   afterEach(() => {
     process.env = originalEnv;
+    global.fetch = originalFetch;
   });
 
   describe('constructor', () => {
@@ -40,6 +41,11 @@ describe('PythonBridge', () => {
     it('should use environment port when set', () => {
       process.env.UEMCP_LISTENER_PORT = '9000';
       const bridge = new PythonBridge();
+      expect(bridge).toBeInstanceOf(PythonBridge);
+    });
+
+    it('should use explicit port when passed as argument', () => {
+      const bridge = new PythonBridge(9876);
       expect(bridge).toBeInstanceOf(PythonBridge);
     });
   });
@@ -59,14 +65,13 @@ describe('PythonBridge', () => {
 
       await pythonBridge.executeCommand(mockCommand);
 
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8765', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8765', expect.objectContaining({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(mockCommand),
-        timeout: 10000,
-      });
+      }));
     });
 
     it('should return successful response', async () => {
@@ -82,15 +87,47 @@ describe('PythonBridge', () => {
       expect(result).toEqual(mockPythonResponse);
     });
 
-    it('should handle network errors gracefully', async () => {
+    it('should propagate network errors to caller', async () => {
       mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
 
-      const result = await pythonBridge.executeCommand(mockCommand);
+      await expect(pythonBridge.executeCommand(mockCommand)).rejects.toThrow('ECONNREFUSED');
+    });
 
-      expect(result).toEqual({
-        success: false,
-        error: 'Failed to connect to Python listener at http://localhost:8765. Make sure Unreal Engine is running with the UEMCP plugin loaded.'
+    it('should throw on non-ok HTTP response', async () => {
+      const mockResponse = {
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        text: jest.fn().mockResolvedValue('Server error details'),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+
+      await expect(pythonBridge.executeCommand(mockCommand)).rejects.toThrow('Python listener HTTP 500');
+    });
+
+    it('should abort the request after 10 seconds', async () => {
+      jest.useFakeTimers();
+
+      // fetch never resolves — simulates a hung connection
+      mockFetch.mockImplementation((_url: string, options: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => {
+            // Use plain Error with AbortError name for portability across Node/Jest versions
+            const err = new Error('The operation was aborted.');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        });
       });
+
+      const executePromise = pythonBridge.executeCommand(mockCommand);
+
+      // Advance past the 10-second AbortController timeout
+      jest.advanceTimersByTime(10001);
+
+      await expect(executePromise).rejects.toThrow('The operation was aborted.');
+
+      jest.useRealTimers();
     });
   });
 
@@ -105,10 +142,9 @@ describe('PythonBridge', () => {
       const result = await pythonBridge.isUnrealEngineAvailable();
 
       expect(result).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8765/', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8765/', expect.objectContaining({
         method: 'GET',
-        timeout: 2000,
-      });
+      }));
     });
 
     it('should return false when health check fails', async () => {

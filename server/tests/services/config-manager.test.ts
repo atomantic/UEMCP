@@ -103,14 +103,6 @@ describe('ConfigManager', () => {
       expect(envConfig.getListenerPort()).toBe('9001');
     });
 
-    it('should check debug mode', () => {
-      expect(configManager.isDebugMode()).toBe(false);
-      
-      process.env.DEBUG = 'true';
-      const debugConfig = new ConfigManager();
-      expect(debugConfig.isDebugMode()).toBe(true);
-    });
-
     it('should get debug mode value', () => {
       expect(configManager.getDebugMode()).toBeUndefined();
       
@@ -216,19 +208,6 @@ describe('ConfigManager', () => {
     });
   });
 
-  describe('configuration updates', () => {
-    it('should update configuration values', () => {
-      configManager.updateConfig('listenerPort', '9999');
-      expect(configManager.getListenerPort()).toBe('9999');
-      expect(mockLogger.info).toHaveBeenCalledWith('Configuration updated: listenerPort = 9999');
-    });
-
-    it('should update version', () => {
-      configManager.updateConfig('version', '2.0.0');
-      expect(configManager.getServerVersion()).toBe('2.0.0');
-    });
-  });
-
   describe('utility methods', () => {
     it('should check if UE project path is configured', () => {
       expect(configManager.hasUEProjectPath()).toBe(false);
@@ -238,28 +217,6 @@ describe('ConfigManager', () => {
       expect(envConfig.hasUEProjectPath()).toBe(true);
     });
 
-    it('should get environment summary', () => {
-      const summary = configManager.getEnvironmentSummary();
-      
-      expect(summary).toContain('UEMCP Server 0.2.0');
-      expect(summary).toContain(`Node.js ${process.version}`);
-      expect(summary).toContain('darwin 21.6.0');
-      expect(summary).toContain(`PID: ${process.pid}`);
-      expect(summary).toContain('Port: 8765');
-    });
-
-    it('should get system information', () => {
-      const sysInfo = configManager.getSystemInfo();
-      
-      expect(sysInfo.nodeVersion).toBe(process.version);
-      expect(sysInfo.platform).toBe('darwin');
-      expect(sysInfo.osRelease).toBe('21.6.0');
-      expect(sysInfo.processId).toBe(process.pid);
-      expect(sysInfo.workingDirectory).toBe(process.cwd());
-      expect(sysInfo.arch).toBe('x64');
-      expect(sysInfo.totalMemory).toBe(17179869184);
-      expect(sysInfo.freeMemory).toBe(8589934592);
-    });
   });
 
   describe('edge cases', () => {
