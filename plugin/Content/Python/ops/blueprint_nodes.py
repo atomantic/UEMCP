@@ -294,9 +294,11 @@ def add_node(
             },
         )
 
-    # Set position
-    node.set_editor_property("node_pos_x", int(position_x))
-    node.set_editor_property("node_pos_y", int(position_y))
+    # Set position (normalize None to 0 since validation allows None)
+    norm_pos_x = 0 if position_x is None else int(position_x)
+    norm_pos_y = 0 if position_y is None else int(position_y)
+    node.set_editor_property("node_pos_x", norm_pos_x)
+    node.set_editor_property("node_pos_y", norm_pos_y)
 
     # Set comment if provided
     if node_name:

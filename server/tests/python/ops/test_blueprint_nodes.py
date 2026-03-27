@@ -203,35 +203,27 @@ class TestMathFunctionMapping:
     """Test that math node types map to correct KismetMathLibrary functions."""
 
     def test_math_function_names(self):
-        """Test math function name mappings used in add_node."""
-        math_func_map = {
-            "Add": "Add_FloatFloat",
-            "Subtract": "Subtract_FloatFloat",
-            "Multiply": "Multiply_FloatFloat",
-            "Divide": "Divide_FloatFloat",
-            "Clamp": "FClamp",
-            "Lerp": "Lerp",
-        }
+        """Test math function name mappings against production registry."""
+        from ops.blueprint_nodes import _MATH_SHORTCUTS
 
-        # All map to valid Kismet function names
-        for friendly, func_name in math_func_map.items():
-            assert isinstance(func_name, str)
-            assert len(func_name) > 0
-            assert friendly in math_func_map
+        expected_keys = {"Add", "Subtract", "Multiply", "Divide", "Clamp", "Lerp"}
+        assert set(_MATH_SHORTCUTS.keys()) == expected_keys
+
+        # All map to valid (function_name, target_class) tuples
+        for friendly, (func_name, target) in _MATH_SHORTCUTS.items():
+            assert (
+                isinstance(func_name, str) and len(func_name) > 0
+            ), f"Math shortcut '{friendly}' has invalid function name"
+            assert (
+                target == "KismetMathLibrary"
+            ), f"Math shortcut '{friendly}' should target KismetMathLibrary, got '{target}'"
 
     def test_no_duplicate_math_mappings(self):
-        """Test no duplicate values in math function mapping."""
-        math_func_map = {
-            "Add": "Add_FloatFloat",
-            "Subtract": "Subtract_FloatFloat",
-            "Multiply": "Multiply_FloatFloat",
-            "Divide": "Divide_FloatFloat",
-            "Clamp": "FClamp",
-            "Lerp": "Lerp",
-        }
+        """Test no duplicate values in production math function mapping."""
+        from ops.blueprint_nodes import _MATH_SHORTCUTS
 
-        values = list(math_func_map.values())
-        assert len(values) == len(set(values)), "Duplicate math function mappings found"
+        func_names = [func for func, _ in _MATH_SHORTCUTS.values()]
+        assert len(func_names) == len(set(func_names)), "Duplicate math function mappings found"
 
 
 class TestNodeTypeCategories:

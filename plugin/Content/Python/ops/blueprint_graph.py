@@ -10,6 +10,7 @@ import unreal
 from utils.blueprint_helpers import compile_and_save, resolve_blueprint
 from utils.error_handling import (
     AssetPathRule,
+    ListLengthRule,
     ProcessingError,
     RequiredRule,
     TypeRule,
@@ -58,7 +59,12 @@ def _make_pin_type(var_type, sub_type=None):
         category, default_sub = _VARIABLE_TYPE_MAP[type_lower]
         pin_type.pin_category = category
         if sub_type:
-            sub_obj = unreal.EditorAssetLibrary.load_asset(sub_type)
+            # Use load_object for /Script/ paths (class references),
+            # fall back to load_asset for /Game/ content paths
+            if sub_type.startswith("/Script/"):
+                sub_obj = unreal.load_object(None, sub_type)
+            else:
+                sub_obj = unreal.EditorAssetLibrary.load_asset(sub_type)
             if not sub_obj:
                 raise ProcessingError(
                     f"Sub-type asset not found: {sub_type}",
@@ -218,9 +224,9 @@ def remove_variable(
         "component_name": [RequiredRule(), TypeRule(str)],
         "component_class": [RequiredRule(), TypeRule(str)],
         "parent_component": [TypeRule(str, allow_none=True)],
-        "location": [TypeRule(list, allow_none=True)],
-        "rotation": [TypeRule(list, allow_none=True)],
-        "scale": [TypeRule(list, allow_none=True)],
+        "location": [TypeRule(list, allow_none=True), ListLengthRule(3, allow_none=True)],
+        "rotation": [TypeRule(list, allow_none=True), ListLengthRule(3, allow_none=True)],
+        "scale": [TypeRule(list, allow_none=True), ListLengthRule(3, allow_none=True)],
     }
 )
 @handle_unreal_errors("blueprint_add_component")
@@ -342,7 +348,11 @@ def add_component(
         if rotation:
             template.set_editor_property(
                 "relative_rotation",
-                unreal.Rotator(rotation[0], rotation[1], rotation[2]),
+                unreal.Rotator(
+                    roll=rotation[0],
+                    pitch=rotation[1],
+                    yaw=rotation[2],
+                ),
             )
         if scale:
             template.set_editor_property(
@@ -374,8 +384,6 @@ def add_component(
         "inputs": [TypeRule(list, allow_none=True)],
         "outputs": [TypeRule(list, allow_none=True)],
         "is_pure": [TypeRule(bool, allow_none=True)],
-        "category": [TypeRule(str, allow_none=True)],
-        "description": [TypeRule(str, allow_none=True)],
     }
 )
 @handle_unreal_errors("blueprint_add_function")
@@ -386,8 +394,6 @@ def add_function(
     inputs: Optional[List[Dict[str, str]]] = None,
     outputs: Optional[List[Dict[str, str]]] = None,
     is_pure: bool = False,
-    category: Optional[str] = None,
-    description: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Add a custom function graph to a Blueprint.
@@ -400,8 +406,6 @@ def add_function(
         outputs: Optional list of output parameters, each with 'name' and 'type'
                  (e.g., [{"name": "Success", "type": "bool"}])
         is_pure: Whether the function is pure (no side effects, no exec pins)
-        category: Optional category for organizing the function
-        description: Optional function description/tooltip
 
     Returns:
         Dictionary with function creation result
@@ -993,7 +997,7 @@ def compile_enhanced(blueprint_path: str) -> Dict[str, Any]:
 @validate_inputs(
     {
         "blueprint_path": [RequiredRule(), AssetPathRule()],
-        "interface_path": [RequiredRule(), TypeRule(str)],
+        "interface_path": [RequiredRule(), AssetPathRule()],
     }
 )
 @handle_unreal_errors("blueprint_implement_interface")

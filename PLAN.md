@@ -18,34 +18,37 @@ The #1 gap vs competitors: we can create/compile/document Blueprints but cannot 
 
 ### Phase 1: Blueprint Node & Graph Manipulation
 
-- [ ] `blueprint_add_node` — Add nodes to Blueprint event graphs
+- [x] `blueprint_add_node` — Add nodes to Blueprint event graphs
   - Event nodes (BeginPlay, Tick, EndPlay, custom events)
   - Function call nodes (any BlueprintCallable function)
   - Control flow (Branch, Sequence, ForEachLoop, Cast)
   - Math/utility operations (Kismet Math Library)
   - Variable get/set nodes
-- [ ] `blueprint_connect_nodes` — Connect output pins to input pins between nodes
-- [ ] `blueprint_disconnect_nodes` — Break pin connections
-- [ ] `blueprint_get_graph` — Get node graph structure with connections
+- [x] `blueprint_connect_nodes` — Connect output pins to input pins between nodes
+- [x] `blueprint_disconnect_pin` — Break pin connections
+- [x] `blueprint_get_graph` — Get node graph structure with connections
   - Support detail levels: `summary`, `flow`, `full`
-- [ ] `blueprint_remove_node` — Remove nodes from graphs
-- [ ] `blueprint_add_variable` — Add typed variables with exposure/replication flags
-- [ ] `blueprint_add_event_dispatcher` — Create multicast delegates
-- [ ] `blueprint_add_custom_event` — Create named custom events
-- [ ] `blueprint_add_function` — Create custom functions with inputs/outputs
+- [x] `blueprint_remove_node` — Remove nodes from graphs
+- [x] `blueprint_add_variable` — Add typed variables with exposure/replication flags
+- [x] `blueprint_remove_variable` — Remove variables from Blueprints
+- [x] `blueprint_add_event_dispatcher` — Create multicast delegates
+- [x] `blueprint_add_function` — Create custom functions with inputs/outputs
+- [x] `blueprint_remove_function` — Remove custom functions from Blueprints
+- [x] `blueprint_add_component` — Add components with transform & hierarchy support
 
-### Phase 2: Blueprint Action Discovery
+### Phase 2: Enhanced Compilation
 
+- [x] `blueprint_compile_enhanced` — Return structured errors (node-level, graph-level, component-level) to enable AI self-correction
 - [ ] `blueprint_discover_actions` — Query UE's FBlueprintActionDatabase for available nodes
   - Discover nodes compatible with a specific pin type
   - List all functions available for a class (including inherited)
   - Mirror UE's right-click context menu dynamically
-- [ ] Enhanced `blueprint_compile` — Return structured errors (node-level, graph-level, component-level) to enable AI self-correction
 
-### Phase 3: Blueprint Interfaces & Components
+### Phase 3: Blueprint Interfaces & Console
 
+- [x] `blueprint_implement_interface` — Add interface to existing Blueprint
+- [x] `console_command` — Execute UE console commands
 - [ ] `blueprint_create_interface` — Create Blueprint interface assets
-- [ ] `blueprint_implement_interface` — Add interface to existing Blueprint
 - [ ] `blueprint_modify_component` — Set any component property via reflection
 - [ ] `blueprint_set_variable_default` — Set default values on CDO
 

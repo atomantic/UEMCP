@@ -264,20 +264,43 @@ class TestGraphNodeExtraction:
         assert "pins" not in result["nodes"][0]
 
     def test_detail_level_validation(self):
-        """Test that invalid detail levels are handled."""
-        valid_levels = ("summary", "flow", "full")
-        for level in valid_levels:
-            assert level in valid_levels
+        """Test that invalid detail levels default to 'flow' in production code."""
+        import inspect
 
-        # Invalid level should default to 'flow' in the actual code
-        assert "invalid" not in valid_levels
+        from ops.blueprint_graph import get_graph
+
+        # Verify the production code contains the detail_level validation logic
+        func = get_graph
+        while hasattr(func, "__wrapped__"):
+            func = func.__wrapped__
+        source = inspect.getsource(func)
+
+        # Confirm valid levels are checked and invalid defaults to 'flow'
+        assert '"summary"' in source
+        assert '"flow"' in source
+        assert '"full"' in source
+        assert 'detail_level = "flow"' in source, "Invalid detail_level should default to 'flow'"
 
 
 class TestComponentClassMapping:
     """Test component class resolution logic."""
 
     def test_supported_component_classes(self):
-        """Test that common component classes are in the mapping."""
+        """Test that common component classes are supported by add_component.
+
+        We inspect the production source to extract the component_class_map keys
+        and verify the expected classes are present.
+        """
+        import inspect
+
+        from ops.blueprint_graph import add_component
+
+        # Get source code of the wrapped function (unwrap decorators)
+        func = add_component
+        while hasattr(func, "__wrapped__"):
+            func = func.__wrapped__
+        source = inspect.getsource(func)
+
         expected_classes = [
             "StaticMeshComponent",
             "SkeletalMeshComponent",
@@ -297,7 +320,10 @@ class TestComponentClassMapping:
             "BillboardComponent",
             "TextRenderComponent",
         ]
-        # This tests the structure of what the add_component function supports
-        assert len(expected_classes) == 17
-        # Verify no duplicates
+
+        # Verify each expected class appears as a key in the source
+        for cls_name in expected_classes:
+            assert f'"{cls_name}"' in source, f"Expected component class '{cls_name}' not found in add_component"
+
+        # Verify no duplicates in expected list
         assert len(expected_classes) == len(set(expected_classes))
