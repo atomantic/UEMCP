@@ -1360,29 +1360,13 @@ def _deep_copy_action(action):
     return copy
 
 
-def _snake_to_pascal(name):
-    """Convert a snake_case Python name to PascalCase UE function name.
-
-    UE Python bindings expose PascalCase functions as snake_case (e.g.,
-    ``GetActorTransform`` becomes ``get_actor_transform``). This reverses
-    that convention for use with ``blueprint_add_node``.
-
-    Args:
-        name: Python-style snake_case method name
-
-    Returns:
-        PascalCase function name suitable for UE Blueprint operations
-    """
-    return "".join(word.capitalize() for word in name.split("_"))
-
-
 def _enrich_with_add_node_params(actions):
     """Add blueprint_add_node parameter mapping to each action.
 
     Provides an ``addNodeParams`` dict showing which parameters to pass
-    to ``blueprint_add_node`` for each discovered action. For CallFunction
-    nodes, the ``function_name`` is converted from Python's snake_case to
-    UE's PascalCase convention.
+    to ``blueprint_add_node`` for each discovered action. Function names
+    use the exact UE Python binding name (snake_case), which is accepted
+    by ``BlueprintEditorLibrary.add_call_function_node``.
 
     Args:
         actions: List of action info dicts (modified in place)
@@ -1398,11 +1382,9 @@ def _enrich_with_add_node_params(actions):
             else:
                 action["addNodeParams"] = {"node_type": action["name"]}
         elif node_type == "CallFunction":
-            # Convert snake_case Python name to PascalCase UE function name
-            ue_func_name = _snake_to_pascal(action["name"])
             params = {
                 "node_type": "CallFunction",
-                "function_name": ue_func_name,
+                "function_name": action["name"],
             }
             class_name = action.get("className")
             if class_name:
@@ -1505,11 +1487,12 @@ def discover_actions(
     events, and flow control nodes.
 
     Usage with blueprint_add_node:
-        - Events: use the action's ``name`` as ``node_type`` (e.g., 'BeginPlay', 'Tick')
-        - Flow nodes: use the action's ``name`` as ``node_type`` (e.g., 'Branch', 'Delay')
-        - CallFunction nodes: use ``node_type='CallFunction'``,
-          ``function_name=<action's name>``, and ``target_class=<action's className>``
-        Each action also includes an ``addNodeParams`` dict with the exact parameters.
+        Each action includes an ``addNodeParams`` dict with the exact parameters
+        to pass to ``blueprint_add_node``. For example:
+        - Events: ``addNodeParams = {"node_type": "BeginPlay"}``
+        - Flow: ``addNodeParams = {"node_type": "Branch"}``
+        - CallFunction: ``addNodeParams = {"node_type": "CallFunction",
+          "function_name": "get_actor_transform", "target_class": "Actor"}``
 
     Args:
         blueprint_path: Optional Blueprint asset path (uses its parent class as context)
