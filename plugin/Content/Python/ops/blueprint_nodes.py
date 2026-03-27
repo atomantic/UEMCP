@@ -37,7 +37,7 @@ _FLOW_NODES = {
     "FlipFlop": "K2Node_FlipFlop",
     "Gate": "K2Node_Gate",
     "Delay": "K2Node_Delay",
-    "ForEachLoop": "K2Node_ForEachElementInEnum",
+    "ForEachLoop": "K2Node_ForEachArrayLoop",
     "WhileLoop": "K2Node_WhileLoop",
     "Select": "K2Node_Select",
     "MultiGate": "K2Node_MultiGate",
@@ -234,8 +234,7 @@ def add_node(
                   'Delay', 'ForEachLoop', 'Select', 'MultiGate'
             Functions: 'CallFunction' (requires function_name)
             Variables: 'VariableGet', 'VariableSet' (requires variable_name)
-            Utility: 'PrintString', 'PrintText', 'SetTimer', 'ClearTimer',
-                     'IsValid', 'Cast', 'MakeArray', 'SpawnActor'
+            Utility: 'PrintString', 'SetTimer', 'IsValid'
             Math: 'Add', 'Subtract', 'Multiply', 'Divide', 'Clamp',
                   'Lerp', 'RandomFloat', 'RandomInteger'
         graph_name: Optional graph name (defaults to EventGraph)
@@ -646,8 +645,8 @@ def execute_console_command(
     Returns:
         Dictionary with command execution result
     """
-    # Get the editor world
-    world = unreal.EditorLevelLibrary.get_editor_world()
+    subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+    world = subsystem.get_editor_world()
     if not world:
         raise ProcessingError(
             "No editor world available",

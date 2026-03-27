@@ -58,10 +58,14 @@ def _make_pin_type(var_type, sub_type=None):
         category, default_sub = _VARIABLE_TYPE_MAP[type_lower]
         pin_type.pin_category = category
         if sub_type:
-            # User-specified sub-type overrides default
             sub_obj = unreal.EditorAssetLibrary.load_asset(sub_type)
-            if sub_obj:
-                pin_type.pin_sub_category_object = sub_obj
+            if not sub_obj:
+                raise ProcessingError(
+                    f"Sub-type asset not found: {sub_type}",
+                    operation="blueprint_graph",
+                    details={"sub_type": sub_type},
+                )
+            pin_type.pin_sub_category_object = sub_obj
         elif default_sub:
             sub_obj = unreal.load_object(None, default_sub)
             if sub_obj:
@@ -96,11 +100,8 @@ def _make_pin_type(var_type, sub_type=None):
         "variable_name": [RequiredRule(), TypeRule(str)],
         "variable_type": [RequiredRule(), TypeRule(str)],
         "is_instance_editable": [TypeRule(bool, allow_none=True)],
-        "is_blueprint_read_only": [TypeRule(bool, allow_none=True)],
         "is_expose_on_spawn": [TypeRule(bool, allow_none=True)],
         "category": [TypeRule(str, allow_none=True)],
-        "tooltip": [TypeRule(str, allow_none=True)],
-        "is_replicated": [TypeRule(bool, allow_none=True)],
         "sub_type": [TypeRule(str, allow_none=True)],
     }
 )
@@ -111,11 +112,8 @@ def add_variable(
     variable_name: str,
     variable_type: str,
     is_instance_editable: bool = True,
-    is_blueprint_read_only: bool = False,
     is_expose_on_spawn: bool = False,
     category: Optional[str] = None,
-    tooltip: Optional[str] = None,
-    is_replicated: bool = False,
     sub_type: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
@@ -127,11 +125,8 @@ def add_variable(
         variable_type: Type of variable (bool, int, float, string, vector,
                        rotator, transform, object, actor, class, etc.)
         is_instance_editable: Whether variable is editable per-instance in details panel
-        is_blueprint_read_only: Whether variable is read-only in Blueprint graph
         is_expose_on_spawn: Whether to expose as a spawn parameter
         category: Optional category for organizing in details panel
-        tooltip: Optional tooltip description
-        is_replicated: Whether variable replicates in multiplayer
         sub_type: Optional sub-type path for object/struct types
                   (e.g., '/Script/Engine.StaticMesh' for object type)
 
@@ -157,9 +152,6 @@ def add_variable(
 
     if is_expose_on_spawn:
         unreal.BlueprintEditorLibrary.set_blueprint_variable_expose_on_spawn(blueprint, variable_name, True)
-
-    if is_replicated:
-        unreal.BlueprintEditorLibrary.set_blueprint_variable_instance_editable(blueprint, variable_name, True)
 
     compile_and_save(blueprint, blueprint_path)
     log_info(f"Added variable '{variable_name}' ({variable_type}) to {blueprint_path}")
@@ -517,7 +509,6 @@ def remove_function(
     {
         "blueprint_path": [RequiredRule(), AssetPathRule()],
         "dispatcher_name": [RequiredRule(), TypeRule(str)],
-        "parameters": [TypeRule(list, allow_none=True)],
     }
 )
 @handle_unreal_errors("blueprint_add_event_dispatcher")
@@ -525,7 +516,6 @@ def remove_function(
 def add_event_dispatcher(
     blueprint_path: str,
     dispatcher_name: str,
-    parameters: Optional[List[Dict[str, str]]] = None,
 ) -> Dict[str, Any]:
     """
     Add an event dispatcher (multicast delegate) to a Blueprint.
@@ -533,15 +523,12 @@ def add_event_dispatcher(
     Args:
         blueprint_path: Path to the Blueprint asset
         dispatcher_name: Name for the event dispatcher
-        parameters: Optional list of parameters, each with 'name' and 'type'
-                    (e.g., [{"name": "Damage", "type": "float"}, {"name": "Instigator", "type": "actor"}])
 
     Returns:
         Dictionary with event dispatcher creation result
     """
     blueprint = resolve_blueprint(blueprint_path)
 
-    # Create the dispatcher as a variable with multicast delegate type
     pin_type = unreal.EdGraphPinType()
     pin_type.pin_category = "delegate"
 
@@ -564,7 +551,6 @@ def add_event_dispatcher(
         "success": True,
         "blueprintPath": blueprint_path,
         "dispatcherName": dispatcher_name,
-        "parameterCount": len(parameters) if parameters else 0,
     }
 
 
