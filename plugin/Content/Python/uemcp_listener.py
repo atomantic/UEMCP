@@ -100,7 +100,11 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             command_queue.put((request_id, command))
 
             # Determine timeout: explicit (from MCP server) > per-command fallback > 10s default
-            timeout = command.get("timeout", _COMMAND_TIMEOUTS.get(command.get("type", ""), _DEFAULT_TIMEOUT))
+            # Normalize legacy dot-style types (e.g., "viewport.screenshot") to underscore form
+            command_type = command.get("type", "")
+            normalized_type = command_type.replace(".", "_") if isinstance(command_type, str) else ""
+            fallback_timeout = _COMMAND_TIMEOUTS.get(normalized_type, _DEFAULT_TIMEOUT)
+            timeout = command.get("timeout", fallback_timeout)
 
             # Wait for response
             result = self._wait_for_response(request_id, timeout=timeout, event=event)

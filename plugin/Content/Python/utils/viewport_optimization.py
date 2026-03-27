@@ -5,7 +5,7 @@ UEMCP Viewport Optimization - Disable viewport updates during bulk operations
 from contextlib import contextmanager
 from typing import Any, Optional, Union
 
-from utils import execute_console_command, get_unreal_editor_subsystem, log_debug
+from .general import execute_console_command, get_unreal_editor_subsystem, log_debug
 
 
 class ViewportManager:

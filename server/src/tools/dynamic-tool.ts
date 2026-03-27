@@ -39,11 +39,14 @@ export interface DynamicToolDefinition {
 }
 
 // Per-category default timeouts (seconds) for the TypeScript bridge side
+// Keys must match the category strings produced by the Python tool manifest
 const CATEGORY_TIMEOUTS: Record<string, number> = {
   viewport: 30,
-  asset: 30,
-  blueprint: 30,
-  batch: 30,
+  actors: 30,
+  assets: 30,
+  blueprints: 30,
+  materials: 30,
+  level: 30,
   system: 30,
 };
 const DEFAULT_TIMEOUT = 10;
