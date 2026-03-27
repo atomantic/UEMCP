@@ -1,8 +1,9 @@
 """
 Blueprint graph editing operations for manipulating Blueprint variables,
-components, functions, event dispatchers, and graph introspection.
+components, functions, event dispatchers, graph introspection, and action discovery.
 """
 
+import inspect as _inspect
 from typing import Any, Dict, List, Optional
 
 import unreal
@@ -1089,4 +1090,419 @@ def implement_interface(
         "success": True,
         "blueprintPath": blueprint_path,
         "interfacePath": interface_path,
+    }
+
+
+# ============================================================================
+# Action Discovery
+# ============================================================================
+
+# UE function libraries to search for available Blueprint actions
+_FUNCTION_LIBRARY_NAMES = [
+    "KismetMathLibrary",
+    "MathLibrary",
+    "KismetSystemLibrary",
+    "SystemLibrary",
+    "GameplayStatics",
+    "KismetStringLibrary",
+    "StringLibrary",
+    "KismetArrayLibrary",
+    "ArrayLibrary",
+    "KismetTextLibrary",
+    "TextLibrary",
+    "BlueprintMapLibrary",
+    "MapLibrary",
+    "BlueprintSetLibrary",
+    "SetLibrary",
+    "KismetNodeHelperLibrary",
+    "KismetInputLibrary",
+    "BlueprintPathsLibrary",
+    "KismetRenderingLibrary",
+    "AIBlueprintHelperLibrary",
+    "NavigationSystemV1",
+    "HeadMountedDisplayFunctionLibrary",
+    "WidgetBlueprintLibrary",
+    "WidgetLayoutLibrary",
+    "SlateBlueprintLibrary",
+]
+
+_LIBRARY_CATEGORY_MAP = {
+    "KismetMathLibrary": "math",
+    "MathLibrary": "math",
+    "KismetSystemLibrary": "system",
+    "SystemLibrary": "system",
+    "GameplayStatics": "gameplay",
+    "KismetStringLibrary": "string",
+    "StringLibrary": "string",
+    "KismetArrayLibrary": "array",
+    "ArrayLibrary": "array",
+    "KismetTextLibrary": "text",
+    "TextLibrary": "text",
+    "BlueprintMapLibrary": "map",
+    "MapLibrary": "map",
+    "BlueprintSetLibrary": "set",
+    "SetLibrary": "set",
+    "KismetNodeHelperLibrary": "utility",
+    "KismetInputLibrary": "input",
+    "BlueprintPathsLibrary": "utility",
+    "KismetRenderingLibrary": "rendering",
+    "AIBlueprintHelperLibrary": "ai",
+    "NavigationSystemV1": "navigation",
+    "HeadMountedDisplayFunctionLibrary": "vr",
+    "WidgetBlueprintLibrary": "ui",
+    "WidgetLayoutLibrary": "ui",
+    "SlateBlueprintLibrary": "ui",
+}
+
+# Derived from _LIBRARY_CATEGORY_MAP — single source of truth for valid categories
+_VALID_LIBRARY_CATEGORIES = frozenset(_LIBRARY_CATEGORY_MAP.values()) | {None, "all"}
+
+# Common event types available in Blueprints
+_COMMON_EVENTS = [
+    {
+        "name": "BeginPlay",
+        "nodeType": "Event",
+        "category": "events",
+        "description": "Called when play begins for this actor",
+    },
+    {
+        "name": "Tick",
+        "nodeType": "Event",
+        "category": "events",
+        "description": "Called every frame",
+        "parameters": [{"name": "DeltaSeconds", "type": "float"}],
+    },
+    {
+        "name": "EndPlay",
+        "nodeType": "Event",
+        "category": "events",
+        "description": "Called when play ends for this actor",
+    },
+    {
+        "name": "ActorBeginOverlap",
+        "nodeType": "Event",
+        "category": "events",
+        "description": "Called when another actor begins to overlap",
+    },
+    {
+        "name": "ActorEndOverlap",
+        "nodeType": "Event",
+        "category": "events",
+        "description": "Called when another actor stops overlapping",
+    },
+    {
+        "name": "AnyDamage",
+        "nodeType": "Event",
+        "category": "events",
+        "description": "Called when the actor receives damage",
+    },
+    {
+        "name": "OnHit",
+        "nodeType": "Event",
+        "category": "events",
+        "description": "Called when this actor hits or is hit by something",
+    },
+    {
+        "name": "CustomEvent",
+        "nodeType": "Event",
+        "category": "events",
+        "description": "Create a custom event (specify event_name in blueprint_add_node)",
+    },
+]
+
+# Control flow nodes available in Blueprints
+_FLOW_NODES = [
+    {"name": "Branch", "nodeType": "Branch", "category": "flow", "description": "Conditional branch (if/else)"},
+    {
+        "name": "Sequence",
+        "nodeType": "Sequence",
+        "category": "flow",
+        "description": "Execute output pins in sequential order",
+    },
+    {
+        "name": "ForEachLoop",
+        "nodeType": "ForEachLoop",
+        "category": "flow",
+        "description": "Loop over each element in an array",
+    },
+    {"name": "WhileLoop", "nodeType": "WhileLoop", "category": "flow", "description": "Loop while condition is true"},
+    {
+        "name": "FlipFlop",
+        "nodeType": "FlipFlop",
+        "category": "flow",
+        "description": "Toggle between two execution paths each call",
+    },
+    {
+        "name": "DoOnce",
+        "nodeType": "DoOnce",
+        "category": "flow",
+        "description": "Execute only the first time, ignore subsequent calls",
+    },
+    {
+        "name": "Gate",
+        "nodeType": "Gate",
+        "category": "flow",
+        "description": "Controllable gate that can be opened/closed",
+    },
+    {
+        "name": "Delay",
+        "nodeType": "Delay",
+        "category": "flow",
+        "description": "Wait for a specified duration before continuing",
+    },
+    {
+        "name": "Select",
+        "nodeType": "Select",
+        "category": "flow",
+        "description": "Select output value based on an index",
+    },
+    {"name": "DoN", "nodeType": "DoN", "category": "flow", "description": "Execute up to N times then stop"},
+    {
+        "name": "MultiGate",
+        "nodeType": "MultiGate",
+        "category": "flow",
+        "description": "Route execution to multiple outputs sequentially or randomly",
+    },
+    {
+        "name": "ForLoopWithBreak",
+        "nodeType": "ForLoopWithBreak",
+        "category": "flow",
+        "description": "For loop with integer index and optional break",
+    },
+]
+
+
+def _extract_method_info(cls, method_name, class_name, category="class", attr=None):
+    """Extract callable method info for discover_actions results.
+
+    Args:
+        cls: The UE class object
+        method_name: Name of the method to inspect
+        class_name: String name of the class (for display)
+        category: Category label for this action
+        attr: Pre-fetched attribute (avoids redundant getattr if caller already has it)
+
+    Returns:
+        Method info dict or None if not callable
+    """
+    if attr is None:
+        attr = getattr(cls, method_name, None)
+    if attr is None or not callable(attr):
+        return None
+
+    info = {
+        "name": method_name,
+        "functionName": f"{class_name}.{method_name}",
+        "nodeType": "CallFunction",
+        "className": class_name,
+        "category": category,
+    }
+
+    doc = getattr(attr, "__doc__", None)
+    if doc:
+        first_line = doc.strip().split("\n")[0].strip()
+        if first_line:
+            info["description"] = first_line
+
+    return info
+
+
+def _enrich_with_parameters(actions):
+    """Add parameter details to action infos via inspect.signature.
+
+    Called only on the final result set to avoid expensive reflection on
+    items that will be filtered out or exceed the limit.
+
+    Args:
+        actions: List of action info dicts (modified in place)
+    """
+    for info in actions:
+        class_name = info.get("className")
+        method_name = info.get("name")
+        if not class_name or not method_name:
+            continue
+
+        cls = getattr(unreal, class_name, None)
+        if cls is None:
+            continue
+
+        attr = getattr(cls, method_name, None)
+        if attr is None:
+            continue
+
+        try:
+            sig = _inspect.signature(attr)
+            params = []
+            for pname, param in sig.parameters.items():
+                if pname == "self":
+                    continue
+                param_info = {"name": pname}
+                if param.annotation != _inspect.Parameter.empty:
+                    ann = param.annotation
+                    param_info["type"] = getattr(ann, "__name__", str(ann))
+                if param.default != _inspect.Parameter.empty:
+                    param_info["hasDefault"] = True
+                params.append(param_info)
+            info["parameters"] = params
+        except (ValueError, TypeError):
+            info["parameters"] = []
+
+
+def _discover_class_actions(class_name):
+    """Discover callable methods on a UE class via reflection.
+
+    Args:
+        class_name: Name of the UE class (e.g., 'Actor', 'Character')
+
+    Returns:
+        List of action info dicts
+    """
+    cls = getattr(unreal, class_name, None)
+    if cls is None:
+        return []
+
+    actions = []
+    for name in sorted(dir(cls)):
+        if name.startswith("_"):
+            continue
+        attr = getattr(cls, name, None)
+        if attr is None or not callable(attr):
+            continue
+        info = _extract_method_info(cls, name, class_name, category="class", attr=attr)
+        if info:
+            actions.append(info)
+
+    return actions
+
+
+def _discover_library_actions(filter_category=None):
+    """Discover functions from UE function libraries.
+
+    Args:
+        filter_category: If set, only scan libraries matching this category.
+                         Skips irrelevant libraries entirely for efficiency.
+
+    Returns:
+        List of action info dicts from matching libraries
+    """
+    actions = []
+    seen_libraries = set()
+
+    for lib_name in _FUNCTION_LIBRARY_NAMES:
+        lib_category = _LIBRARY_CATEGORY_MAP.get(lib_name, "library")
+        if filter_category and lib_category != filter_category:
+            continue
+
+        cls = getattr(unreal, lib_name, None)
+        if cls is None:
+            continue
+        # Deduplicate aliases (e.g., MathLibrary == KismetMathLibrary)
+        cls_id = id(cls)
+        if cls_id in seen_libraries:
+            continue
+        seen_libraries.add(cls_id)
+
+        for name in sorted(dir(cls)):
+            if name.startswith("_"):
+                continue
+            attr = getattr(cls, name, None)
+            if attr is None or not callable(attr):
+                continue
+            info = _extract_method_info(cls, name, lib_name, category=lib_category, attr=attr)
+            if info:
+                actions.append(info)
+
+    return actions
+
+
+@validate_inputs(
+    {
+        "blueprint_path": [TypeRule(str, allow_none=True)],
+        "class_name": [TypeRule(str, allow_none=True)],
+        "search": [TypeRule(str, allow_none=True)],
+        "category": [TypeRule(str, allow_none=True)],
+        "limit": [TypeRule(int, allow_none=True)],
+    }
+)
+@handle_unreal_errors("blueprint_discover_actions")
+@safe_operation("blueprint")
+def discover_actions(
+    blueprint_path: Optional[str] = None,
+    class_name: Optional[str] = None,
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    limit: int = 50,
+) -> Dict[str, Any]:
+    """
+    Discover available Blueprint actions, functions, and nodes.
+
+    Queries UE's reflection system to find Blueprint-callable functions,
+    events, and flow control nodes. Results include function names directly
+    usable with blueprint_add_node.
+
+    Args:
+        blueprint_path: Optional Blueprint asset path (uses its parent class as context)
+        class_name: UE class name to discover functions on (e.g., 'Actor',
+                    'Character', 'KismetMathLibrary'). Ignored if blueprint_path given.
+        search: Search term to filter results (case-insensitive, matches name and description)
+        category: Filter by category: 'math', 'system', 'gameplay', 'string',
+                  'class', 'events', 'flow', 'ui', 'ai', 'rendering', or 'all'
+        limit: Maximum results to return (default 50, max 200)
+
+    Returns:
+        Dictionary with discovered actions and their function names for blueprint_add_node
+    """
+    limit = min(max(1, limit if limit is not None else 50), 200)
+
+    context_class = None
+    if blueprint_path:
+        blueprint = resolve_blueprint(blueprint_path)
+        parent = blueprint.get_editor_property("parent_class")
+        if parent:
+            context_class = parent.get_name()
+    elif class_name:
+        context_class = class_name
+
+    actions = []
+
+    if category in (None, "all", "events"):
+        actions.extend(_COMMON_EVENTS)
+
+    if category in (None, "all", "flow"):
+        actions.extend(_FLOW_NODES)
+
+    if context_class and category in (None, "all", "class"):
+        actions.extend(_discover_class_actions(context_class))
+
+    if category in _VALID_LIBRARY_CATEGORIES:
+        # Pass specific category to skip irrelevant libraries entirely
+        filter_cat = category if category not in (None, "all") else None
+        actions.extend(_discover_library_actions(filter_category=filter_cat))
+
+    if search:
+        search_lower = search.lower()
+        actions = [
+            a
+            for a in actions
+            if search_lower in a.get("name", "").lower()
+            or search_lower in a.get("description", "").lower()
+            or search_lower in a.get("functionName", "").lower()
+        ]
+
+    total = len(actions)
+    actions = actions[:limit]
+
+    # Defer expensive signature extraction to the final limited result set
+    _enrich_with_parameters(actions)
+
+    log_info(f"Discovered {total} actions, returning {len(actions)}")
+
+    return {
+        "success": True,
+        "actions": actions,
+        "totalAvailable": total,
+        "returned": len(actions),
+        "contextClass": context_class,
+        "searchTerm": search,
+        "categoryFilter": category,
     }
