@@ -180,9 +180,12 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             _response_events.pop(request_id, None)
             return response_queue.pop(request_id)
 
-        # Timeout: mark request as abandoned so process_commands discards the result
-        _response_events.pop(request_id, None)
+        # Timeout: mark as abandoned BEFORE removing event to close the race window
+        # where _post_response could store a result between these two operations.
         abandoned_requests.add(request_id)
+        _response_events.pop(request_id, None)
+        # Clean up any result that snuck in before we marked abandoned
+        response_queue.pop(request_id, None)
         return None
 
     def _send_json_response(self, code, data):
@@ -283,15 +286,18 @@ def execute_on_main_thread(command):
 def _post_response(request_id, result):
     """Store result and signal the waiting HTTP handler thread.
 
-    If the request was already abandoned (timed out), discard the result.
+    If the request was already abandoned (timed out) or no event is registered
+    (handler already left), discard the result to prevent memory leaks.
     """
     if request_id in abandoned_requests:
         abandoned_requests.discard(request_id)
         return
-    response_queue[request_id] = result
     event = _response_events.get(request_id)
-    if event is not None:
-        event.set()
+    if event is None:
+        # No handler waiting — discard to prevent response_queue leak
+        return
+    response_queue[request_id] = result
+    event.set()
 
 
 def process_commands():

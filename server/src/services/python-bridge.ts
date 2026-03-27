@@ -37,9 +37,18 @@ export class PythonBridge {
         body: JSON.stringify(command),
         signal: controller.signal,
       });
-    } finally {
+    } catch (error) {
       clearTimeout(timer);
+      // Log enriched context for diagnosability, then rethrow
+      logger.error('Python bridge connection error', {
+        command: command.type,
+        endpoint: this.httpEndpoint,
+        error: error instanceof Error ? error.message : String(error),
+        isTimeout: error instanceof Error && error.name === 'AbortError',
+      });
+      throw error;
     }
+    clearTimeout(timer);
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'No error body');

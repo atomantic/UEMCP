@@ -135,28 +135,32 @@ export class DynamicToolRegistry {
   }
 
   /**
-   * Refresh the manifest and tools from Python (atomic swap to avoid request gaps)
+   * Refresh the manifest and tools from Python.
+   * Keeps existing state active during reload — only swaps on success.
    */
   async refresh(): Promise<boolean> {
-    const prevTools = this.tools;
-    const prevManifest = this.manifest;
+    // Build new state without touching current fields so concurrent
+    // requests keep seeing the old (valid) tools during the await.
+    const prevInitialized = this.initialized;
     this.initialized = false;
+    const savedTools = this.tools;
+    const savedManifest = this.manifest;
     this.tools = new Map();
     this.manifest = null;
+
     try {
       const success = await this.initialize();
       if (!success) {
         // Restore previous state on failure
-        this.tools = prevTools;
-        this.manifest = prevManifest;
-        this.initialized = true;
+        this.tools = savedTools;
+        this.manifest = savedManifest;
+        this.initialized = prevInitialized;
       }
       return success;
     } catch (error) {
-      // Restore previous state if initialize() throws
-      this.tools = prevTools;
-      this.manifest = prevManifest;
-      this.initialized = true;
+      this.tools = savedTools;
+      this.manifest = savedManifest;
+      this.initialized = prevInitialized;
       logger.error('Exception during registry refresh, restored previous state:', {
         error: error instanceof Error ? error.message : String(error)
       });

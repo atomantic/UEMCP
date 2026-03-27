@@ -365,6 +365,7 @@ class SystemOperations:
             "success": True,
             "logPath": log_path,
             "lines": recent_lines,
+            "totalLines": None,  # Not available with tail-read; kept for response shape compat
             "requestedLines": lines,
         }
 
