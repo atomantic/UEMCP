@@ -1314,8 +1314,16 @@ def create_interface(
     # Add function signatures
     function_count = 0
     function_names = []
+    failed_functions = []
     if functions:
         for func_def in functions:
+            if not isinstance(func_def, dict):
+                raise ValidationError(
+                    "Each function definition must be a dict with at least a 'name' key",
+                    operation="blueprint_create_interface",
+                    details={"invalid_element": str(func_def)},
+                )
+
             func_name = func_def.get("name")
             if not func_name:
                 continue
@@ -1323,6 +1331,7 @@ def create_interface(
             func_graph = unreal.BlueprintEditorLibrary.add_function_graph(interface_bp, func_name)
             if not func_graph:
                 log_error(f"Failed to add function '{func_name}' to interface")
+                failed_functions.append(func_name)
                 continue
 
             _add_function_params(
@@ -1338,12 +1347,18 @@ def create_interface(
     compile_and_save(interface_bp, interface_path)
     log_info(f"Created Blueprint Interface: {interface_path} with {function_count} functions")
 
-    return {
+    result = {
         "success": True,
         "interfacePath": interface_path,
         "functionCount": function_count,
         "functions": function_names,
     }
+
+    if failed_functions:
+        result["failedFunctions"] = failed_functions
+        result["warning"] = f"Failed to add {len(failed_functions)} function(s): {', '.join(failed_functions)}"
+
+    return result
 
 
 # ============================================================================
