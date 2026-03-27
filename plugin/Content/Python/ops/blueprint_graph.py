@@ -130,6 +130,34 @@ def _make_pin_type(var_type, sub_type=None):
     return pin_type
 
 
+def _validate_param_list(params, direction, function_name):
+    """Validate that a parameter list contains only dicts with a 'name' key.
+
+    Args:
+        params: The list to validate (may be None)
+        direction: 'input' or 'output' — used in error messages
+        function_name: Name of the parent function — used in error messages
+
+    Raises:
+        ValidationError: If params is not a list or contains non-dict elements
+    """
+    if params is None:
+        return
+    if not isinstance(params, list):
+        raise ValidationError(
+            f"Function '{function_name}' {direction}s must be a list, got {type(params).__name__}",
+            operation="blueprint_function_params",
+            details={"function_name": function_name, "direction": direction},
+        )
+    for i, item in enumerate(params):
+        if not isinstance(item, dict):
+            raise ValidationError(
+                f"Function '{function_name}' {direction}[{i}] must be a dict, got {type(item).__name__}",
+                operation="blueprint_function_params",
+                details={"function_name": function_name, "direction": direction, "index": i},
+            )
+
+
 def _add_function_params(blueprint, function_name, inputs=None, outputs=None):
     """Add input and output parameters to a function graph on a Blueprint.
 
@@ -141,7 +169,13 @@ def _add_function_params(blueprint, function_name, inputs=None, outputs=None):
 
     Returns:
         Tuple of (input_count, output_count)
+
+    Raises:
+        ValidationError: If inputs/outputs is not a list or contains non-dict elements
     """
+    _validate_param_list(inputs, "input", function_name)
+    _validate_param_list(outputs, "output", function_name)
+
     input_count = 0
     if inputs:
         for param in inputs:
@@ -1261,13 +1295,14 @@ def create_interface(
     Args:
         interface_path: Full asset path for the interface
                         (e.g., '/Game/Interfaces/BPI_Interactable')
-        functions: Optional list of function definitions, each with:
-                   - name (str, required): Function name
-                   - inputs (list, optional): Input params [{name, type}]
-                   - outputs (list, optional): Output params [{name, type}]
+        functions: Optional list of function definitions, each a dict with:
+                   - name (str): Function name. Entries without 'name' are skipped.
+                   - inputs (list[dict], optional): Input params [{name, type}]
+                   - outputs (list[dict], optional): Output params [{name, type}]
 
     Returns:
-        Dictionary with interface creation result
+        Dictionary with interface creation result including functionCount,
+        functions list, and optional failedFunctions/warning if any failed.
     """
     last_slash = interface_path.rfind("/")
     target_folder = interface_path[:last_slash]
