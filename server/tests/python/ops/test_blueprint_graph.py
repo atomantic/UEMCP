@@ -1004,6 +1004,127 @@ class TestModifyComponentRotationDetection:
         mock_unreal.Vector.assert_called_with(1.0, 2.0, 3.0)
 
 
+class TestModifyComponentIntegration:
+    """Integration-level tests for modify_component function."""
+
+    def _make_mock_blueprint_with_component(self, component_name="MyMesh"):
+        """Create a mock Blueprint with a named component in its SCS."""
+        mock_template = Mock()
+        mock_template.get_name.return_value = component_name
+
+        mock_node = Mock()
+        mock_node.component_template = mock_template
+
+        mock_scs = Mock()
+        mock_scs.get_all_nodes.return_value = [mock_node]
+
+        mock_bp = Mock()
+        mock_bp.simple_construction_script = mock_scs
+
+        return mock_bp, mock_template
+
+    def test_sets_editor_property_on_template(self, monkeypatch):
+        """Test that modify_component calls set_editor_property on the found template."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp, mock_template = self._make_mock_blueprint_with_component("Light1")
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+        monkeypatch.setattr("ops.blueprint_graph.compile_and_save", lambda *a: None)
+
+        result = modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="Light1",
+            properties={"intensity": 500.0},
+        )
+
+        assert result["success"] is True
+        assert result["propertiesSet"] == ["intensity"]
+        mock_template.set_editor_property.assert_called_once_with("intensity", 500.0)
+
+    def test_calls_compile_and_save(self, monkeypatch):
+        """Test that modify_component compiles and saves after modification."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp, _ = self._make_mock_blueprint_with_component("Mesh1")
+        compile_calls = []
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+        monkeypatch.setattr("ops.blueprint_graph.compile_and_save", lambda bp, path: compile_calls.append((bp, path)))
+
+        modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="Mesh1",
+            properties={"visible": True},
+        )
+
+        assert len(compile_calls) == 1
+        assert compile_calls[0][1] == "/Game/BP_Test"
+
+    def test_missing_component_returns_error(self, monkeypatch):
+        """Test that missing component returns error with available component names."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp, _ = self._make_mock_blueprint_with_component("ExistingComp")
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+
+        result = modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="NonExistent",
+            properties={"foo": 1},
+        )
+        assert result["success"] is False
+        assert "not found" in result["error"]
+
+    def test_no_scs_returns_error(self, monkeypatch):
+        """Test that Blueprint without SCS returns error dict."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp = Mock()
+        mock_bp.simple_construction_script = None
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+
+        result = modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="Anything",
+            properties={"foo": 1},
+        )
+        assert result["success"] is False
+        assert "SimpleConstructionScript" in result["error"]
+
+    def test_rotation_property_coerced_to_rotator(self, monkeypatch):
+        """Test that rotation-named properties use Rotator instead of Vector."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp, mock_template = self._make_mock_blueprint_with_component("Root")
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+        monkeypatch.setattr("ops.blueprint_graph.compile_and_save", lambda *a: None)
+        mock_unreal.Rotator.reset_mock()
+
+        modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="Root",
+            properties={"relative_rotation": [0.0, 45.0, 90.0]},
+        )
+
+        mock_unreal.Rotator.assert_called_once_with(roll=0.0, pitch=45.0, yaw=90.0)
+
+    def test_multiple_properties_set(self, monkeypatch):
+        """Test that multiple properties are all set."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp, mock_template = self._make_mock_blueprint_with_component("Mesh")
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+        monkeypatch.setattr("ops.blueprint_graph.compile_and_save", lambda *a: None)
+
+        result = modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="Mesh",
+            properties={"visible": True, "cast_shadow": False},
+        )
+
+        assert set(result["propertiesSet"]) == {"visible", "cast_shadow"}
+        assert mock_template.set_editor_property.call_count == 2
+
+
 class TestFindComponentNode:
     """Test the _find_component_node helper."""
 

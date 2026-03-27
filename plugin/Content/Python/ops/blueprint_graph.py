@@ -712,9 +712,9 @@ def modify_component(
         blueprint_path: Path to the Blueprint asset
         component_name: Name of the component to modify
         properties: Dictionary of property_name -> value pairs.
-                    Values are auto-coerced: [x,y,z] arrays become Vectors,
-                    [r,p,y] arrays become Rotators (for rotation properties),
-                    [r,g,b,a] arrays become LinearColors, asset path strings
+                    Values are auto-coerced: [X,Y,Z] arrays become Vectors,
+                    [Roll,Pitch,Yaw] arrays become Rotators (for rotation properties),
+                    [R,G,B,A] arrays become LinearColors, asset path strings
                     (starting with /Game/ or /Engine/) are loaded automatically.
 
     Returns:
