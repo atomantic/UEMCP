@@ -17,6 +17,7 @@ from utils.error_handling import (
     safe_operation,
     validate_inputs,
 )
+from utils.general import execute_console_command as _run_console_command
 from utils.general import log_debug as log_info
 
 _EVENT_NODES = {
@@ -232,9 +233,9 @@ def add_node(
                   'Delay', 'ForEachLoop', 'WhileLoop', 'Select', 'MultiGate'
             Functions: 'CallFunction' (requires function_name)
             Variables: 'VariableGet', 'VariableSet' (requires variable_name)
-            Utility: 'PrintString', 'SetTimer', 'IsValid'
-            Math: 'Add', 'Subtract', 'Multiply', 'Divide', 'Clamp',
-                  'Lerp', 'RandomFloat', 'RandomInteger'
+            Utility: 'PrintString', 'SetTimer', 'IsValid',
+                     'RandomFloat', 'RandomInteger'
+            Math: 'Add', 'Subtract', 'Multiply', 'Divide', 'Clamp', 'Lerp'
         graph_name: Optional graph name (defaults to EventGraph)
         position_x: X position in graph editor
         position_y: Y position in graph editor
@@ -652,21 +653,8 @@ def execute_console_command(
     Returns:
         Dictionary with command execution result
     """
-    subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
-    if not subsystem:
-        raise ProcessingError(
-            "UnrealEditorSubsystem not available",
-            operation="console_command",
-        )
-    world = subsystem.get_editor_world()
-    if not world:
-        raise ProcessingError(
-            "No editor world available",
-            operation="console_command",
-        )
-
-    # Execute the command
-    unreal.SystemLibrary.execute_console_command(world, command)
+    # Delegate to shared utility (handles subsystem/world resolution)
+    _run_console_command(command)
 
     log_info(f"Executed console command: {command}")
 
