@@ -26,7 +26,7 @@ export class PythonBridge {
     logger.debug('Executing Python command via HTTP', { command, endpoint: this.httpEndpoint });
 
     const DEFAULT_BRIDGE_TIMEOUT_S = 10;
-    const MAX_BRIDGE_TIMEOUT_S = 300;
+    const MAX_BRIDGE_TIMEOUT_S = 120; // must match Python listener max (uemcp_listener.py)
     const rawTimeout = command.timeout ?? DEFAULT_BRIDGE_TIMEOUT_S;
     const clampedTimeout = Number.isFinite(rawTimeout) && rawTimeout > 0
       ? Math.min(rawTimeout, MAX_BRIDGE_TIMEOUT_S)
