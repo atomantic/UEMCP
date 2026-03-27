@@ -270,3 +270,122 @@ Successfully diagnosed and fixed skydome/sky material error in Calibration level
 - Resiliency and property-based tests increase robustness of error paths
 - Test configuration and documentation clear and consistent
 - Optional transports and richer content outputs improve interoperability
+
+## Better Audit — 2026-03-26
+
+Summary: 62 findings across 30+ files. 0 shared utilities to extract (ResponseFormatter.getErrorMessage already exists).
+
+### File Ownership Map
+
+| File | Primary Category | Reason |
+|------|-----------------|--------|
+| `plugin/Content/Python/ops/system.py` | Security | Path traversal (HIGH) is highest severity |
+| `plugin/Content/Python/ops/blueprint.py` | Security | Arbitrary write path (MEDIUM) |
+| `plugin/Content/Python/ops/asset.py` | Security | Source path traversal (MEDIUM) |
+| `server/src/index.ts` | Code Quality | Version mismatch (HIGH) |
+| `server/tests/tools/**` | DRY | Orphaned test suite (CRITICAL) — delete |
+| `server/src/services/operation-history.ts` | DRY | Never used (CRITICAL) — delete |
+| `server/tests/utils/**` | DRY | Duplicate tests (HIGH) — delete |
+| `plugin/Content/Python/ops/tool_manifest_poc.py` | DRY | Dead POC (HIGH) — delete |
+| `plugin/Content/Python/utils/validation.py` | DRY | Duplicate functions (HIGH) |
+| `server/src/services/dynamic-tool-registry.ts` | DRY | Duplicate handler lambda (HIGH) |
+| `server/src/tools/base/base-tool.ts` | DRY | Dead PythonBridge field (HIGH) |
+| `plugin/Content/Python/uemcp_helpers.py` | DRY | Duplicate port kill logic (MEDIUM) |
+| `plugin/Content/Python/test_error_handling.py` | DRY | Dead test file (MEDIUM) — delete |
+| `plugin/Content/Python/utils/error_handling.py` | DRY | Dead functions (MEDIUM) |
+| `plugin/Content/Python/utils/port.py` | DRY | Thin wrappers (MEDIUM) |
+| `plugin/Content/Python/ops/batch_operations.py` | DRY | Hardcoded registry (MEDIUM) |
+| `server/src/index-static.ts` | DRY | Dead file — delete |
+| `plugin/Content/Python/ops/actor.py` | Architecture | placement_validate dead code (CRITICAL) |
+| `server/src/services/config-manager.ts` | Architecture | Unused methods + unsafe cast (MEDIUM) |
+| `server/src/services/server-manager.ts` | Architecture | as any cast + error pattern (MEDIUM) |
+| `server/src/types/index.ts` | Architecture | Dead duplicate type — delete |
+| `plugin/Content/Python/uemcp_listener.py` | Bugs & Perf | response_queue leak + track_thread + NameError (3x CRITICAL) |
+| `plugin/Content/Python/utils/thread_tracker.py` | Bugs & Perf | Fix signature + add untrack (MEDIUM) |
+| `server/src/services/python-bridge.ts` | Stack-Specific | node-fetch replacement (HIGH) |
+| `server/package.json` | Stack-Specific | Remove node-fetch dep |
+| `server/package-lock.json` | Stack-Specific | Updated lockfile |
+| `.env.example` | Stack-Specific | New file (MEDIUM) |
+
+### Security & Secrets
+- [ ] **[CRITICAL]** `plugin/Content/Python/ops/system.py:366` - python_proxy unrestricted exec() — Document as trust boundary (by design)
+- [ ] **[HIGH]** `plugin/Content/Python/ops/system.py:321` - Path traversal in ue_logs via project param — Add regex validation
+- [ ] **[HIGH]** `plugin/Content/Python/ops/system.py:323` - LOCALAPPDATA KeyError on Windows — Use os.environ.get()
+- [ ] **[MEDIUM]** `plugin/Content/Python/ops/system.py:333` - ue_logs reads entire file into memory — Use deque/tail read + cap lines param
+- [ ] **[MEDIUM]** `plugin/Content/Python/ops/system.py:262` - restart_listener callback leak — Add module-level guard flag
+- [ ] **[MEDIUM]** `plugin/Content/Python/ops/blueprint.py:448` - blueprint_document writes to arbitrary output_path — Validate path prefix
+- [ ] **[MEDIUM]** `plugin/Content/Python/ops/asset.py:532` - asset_import accepts any sourcePath — Optional allowlist
+- [ ] **[MEDIUM]** `plugin/Content/Python/ops/asset.py:101` - list_assets loads all assets before filtering — Push type filter to ARFilter
+
+### Code Quality & Style
+- [ ] **[HIGH]** `server/src/index.ts:22` - Version hardcoded as '0.2.0' but package.json is 2.0.0 — Use getVersion()
+- [ ] **[HIGH]** `server/src/index.ts:100,108` - error instanceof Error pattern repeated — Use ResponseFormatter.getErrorMessage()
+
+### DRY & YAGNI
+- [ ] **[CRITICAL]** `server/tests/tools/` (45 files) - Orphaned test suite referencing deleted modules — Delete entire directory
+- [ ] **[CRITICAL]** `server/src/services/operation-history.ts` - Undo/redo system never called — Delete file
+- [ ] **[HIGH]** `server/tests/utils/` (4 files) - Duplicate of tests/unit/utils/ — Delete directory
+- [ ] **[HIGH]** `plugin/Content/Python/ops/tool_manifest_poc.py` - Superseded POC — Delete file
+- [ ] **[HIGH]** `plugin/Content/Python/utils/validation.py:208,62` - Duplicate find_actor_by_name and normalize_angle — Import from utils.general
+- [ ] **[HIGH]** `server/src/services/dynamic-tool-registry.ts:80,104` - Identical handler lambda duplicated — Extract toMCPTool helper
+- [ ] **[HIGH]** `server/src/tools/base/base-tool.ts:40` - Dead PythonBridge field unused by DynamicTool — Remove bridge from BaseTool
+- [ ] **[MEDIUM]** `plugin/Content/Python/uemcp_helpers.py:93` - Port kill logic duplicates utils/port.py — Use force_free_port_silent
+- [ ] **[MEDIUM]** `plugin/Content/Python/test_error_handling.py` - Dead test importing non-existent module — Delete file
+- [ ] **[MEDIUM]** `plugin/Content/Python/utils/error_handling.py:373` - Dead validate_location/validate_rotation — Delete functions
+- [ ] **[MEDIUM]** `plugin/Content/Python/utils/port.py:55,99` - Thin wrappers (find_process_using_port, check_port_available) — Inline/delete
+- [ ] **[MEDIUM]** `plugin/Content/Python/ops/batch_operations.py:123` - Hardcoded _supported_operations duplicates registry — Use CommandRegistry
+- [ ] **[MEDIUM]** `server/src/services/dynamic-tool-registry.ts:140` - refresh() not atomic — Build new map, then swap
+
+### Architecture & SOLID
+- [ ] **[CRITICAL]** `plugin/Content/Python/ops/actor.py:848` - placement_validate unreachable code after raise — Dedent lines 851-863
+- [ ] **[HIGH]** `plugin/Content/Python/ops/actor.py:643` - batch_spawn raises on any failure, discards partial results — Remove ProcessingError throw
+- [ ] **[HIGH]** `plugin/Content/Python/ops/actor.py:1282` - _find_source_and_target_actors dead method — Delete
+- [ ] **[MEDIUM]** `plugin/Content/Python/ops/actor.py:620` - Viewport disable/restore duplicates DisableViewportUpdates — Use context manager
+- [ ] **[MEDIUM]** `plugin/Content/Python/ops/actor.py:370` - duplicate() uses TypeRule(dict) instead of OffsetRule — Replace
+- [ ] **[MEDIUM]** `server/src/services/config-manager.ts:165` - updateConfig unsafe cast, never called — Delete method
+- [ ] **[MEDIUM]** `server/src/services/config-manager.ts` - Unused methods (getSystemInfo, getEnvironmentSummary, etc.) — Delete
+- [ ] **[MEDIUM]** `server/src/services/server-manager.ts:93` - as any cast on MCP boundary — Align ToolResponse with SDK type
+- [ ] **[MEDIUM]** `server/src/services/server-manager.ts:123,166` - Inline error pattern — Use ResponseFormatter.getErrorMessage()
+- [ ] **[MEDIUM]** `server/src/types/index.ts` - Dead duplicate ToolDefinition — Delete file
+
+### Bugs, Performance & Error Handling
+- [ ] **[CRITICAL]** `plugin/Content/Python/uemcp_listener.py:39,294` - response_queue leak on timeout — Add TTL/cleanup
+- [ ] **[CRITICAL]** `plugin/Content/Python/uemcp_listener.py:425` - track_thread called with wrong arity — Fix call site
+- [ ] **[CRITICAL]** `plugin/Content/Python/uemcp_listener.py:306` - NameError: request_id may be undefined in except — Initialize to None + guard
+- [ ] **[HIGH]** `plugin/Content/Python/uemcp_listener.py:95` - Content-Length not guarded, no body size cap — Add 411/413 checks
+- [ ] **[HIGH]** `plugin/Content/Python/uemcp_listener.py:119` - _log_command reads "parameters" but bridge sends "params" — Fix key name
+- [ ] **[HIGH]** `plugin/Content/Python/uemcp_listener.py:62` - Wildcard CORS Access-Control-Allow-Origin: * — Remove or restrict
+- [ ] **[HIGH]** `plugin/Content/Python/uemcp_listener.py:202` - Legacy command_map with 55 entries, many self-mappings — Strip no-ops
+- [ ] **[MEDIUM]** `plugin/Content/Python/uemcp_listener.py:154` - Busy-wait polling with time.sleep(0.01) — Use threading.Event
+- [ ] **[MEDIUM]** `plugin/Content/Python/uemcp_listener.py:283` - Traceback exposed in error responses — Strip from response, log server-side
+- [ ] **[MEDIUM]** `plugin/Content/Python/utils/thread_tracker.py` - Missing untrack_thread function — Add it
+
+### Stack-Specific
+- [ ] **[HIGH]** `server/src/services/python-bridge.ts:2` - node-fetch v2 on Node 18+ with silently-ignored timeout — Replace with native fetch + AbortController
+- [ ] **[HIGH]** `server/src/services/python-bridge.ts:60` - executeCommand swallows network errors as soft success — Re-throw, let callers handle
+- [ ] **[HIGH]** `server/src/services/python-bridge.ts:21` - parseInt without radix — Add radix 10
+- [ ] **[MEDIUM]** `server/src/services/python-bridge.ts:19` - Port read independent from ConfigManager — Accept port parameter
+- [ ] **[MEDIUM]** `.env.example` - Missing environment variable documentation — Create file
+
+### Test Quality & Coverage
+- [ ] **[HIGH][VACUOUS]** Python test suite provides zero coverage of production code — Tests import nothing from production
+- [ ] **[HIGH][MISSING]** HybridToolRegistry/DynamicToolRegistry have no tests
+- [ ] **[HIGH][MISSING]** BaseTool has no tests
+- [ ] **[MEDIUM][WEAK]** PythonBridge tests miss all HTTP error paths
+- [ ] **[MEDIUM][WEAK]** ServerManager constructor tests are vacuous (only check instanceof)
+- [ ] **[MEDIUM][WEAK]** ConfigManager.validateConfiguration happy path not explicitly tested
+
+### Summary
+
+| Category          | CRITICAL | HIGH | MEDIUM | LOW | Total |
+|-------------------|----------|------|--------|-----|-------|
+| Security          | 1*       | 2    | 4      | 0   | 7     |
+| Code Quality      | 0        | 2    | 0      | 0   | 2     |
+| DRY & YAGNI       | 2        | 4    | 6      | 0   | 12    |
+| Architecture      | 1        | 2    | 6      | 0   | 9     |
+| Bugs & Perf       | 3        | 4    | 3      | 0   | 10    |
+| Stack-Specific    | 0        | 3    | 2      | 0   | 5     |
+| Tests             | 0        | 3    | 3      | 0   | 6     |
+| **TOTAL**         | **7**    | **20** | **24** | 0 | **51** |
+
+*CRITICAL Security finding (python_proxy exec) is by-design — document only, not remediate.
