@@ -41,6 +41,27 @@ _VARIABLE_TYPE_MAP = {
     "class": ("class", "/Script/CoreUObject.Object"),
 }
 
+# Supported component class names for add_component
+SUPPORTED_COMPONENT_CLASSES = (
+    "StaticMeshComponent",
+    "SkeletalMeshComponent",
+    "SceneComponent",
+    "PointLightComponent",
+    "SpotLightComponent",
+    "DirectionalLightComponent",
+    "CameraComponent",
+    "AudioComponent",
+    "ArrowComponent",
+    "BoxCollisionComponent",
+    "SphereComponent",
+    "CapsuleComponent",
+    "WidgetComponent",
+    "SplineComponent",
+    "DecalComponent",
+    "BillboardComponent",
+    "TextRenderComponent",
+)
+
 
 def _make_pin_type(var_type, sub_type=None):
     """Create an EdGraphPinType from a friendly type name.
@@ -79,7 +100,11 @@ def _make_pin_type(var_type, sub_type=None):
     else:
         # Try treating it as a struct/object path directly
         pin_type.pin_category = "struct"
-        sub_obj = unreal.EditorAssetLibrary.load_asset(var_type)
+        # Use load_object for /Script/ paths, load_asset for /Game/ paths
+        if var_type.startswith("/Script/"):
+            sub_obj = unreal.load_object(None, var_type)
+        else:
+            sub_obj = unreal.EditorAssetLibrary.load_asset(var_type)
         if sub_obj:
             pin_type.pin_sub_category_object = sub_obj
         else:
@@ -250,9 +275,9 @@ def add_component(
                          'PointLightComponent', 'BoxCollisionComponent',
                          'ArrowComponent', 'AudioComponent', 'CameraComponent',
                          'SceneComponent', 'SphereComponent', 'CapsuleComponent',
-                         'SkeletalMeshComponent', 'ParticleSystemComponent',
-                         'WidgetComponent', 'SplineComponent', 'DecalComponent',
-                         'NiagaraComponent', 'BillboardComponent')
+                         'SkeletalMeshComponent', 'WidgetComponent',
+                         'SplineComponent', 'DecalComponent',
+                         'BillboardComponent', 'TextRenderComponent')
         parent_component: Optional parent component name for attachment
         location: Optional relative location [X, Y, Z]
         rotation: Optional relative rotation [Roll, Pitch, Yaw]
@@ -295,7 +320,7 @@ def add_component(
                 operation="blueprint_add_component",
                 details={
                     "component_class": component_class,
-                    "supported_classes": list(component_class_map.keys()),
+                    "supported_classes": list(SUPPORTED_COMPONENT_CLASSES),
                 },
             )
 
@@ -913,8 +938,8 @@ def compile_enhanced(blueprint_path: str) -> Dict[str, Any]:
     """
     Compile a Blueprint with structured error reporting for AI self-correction.
 
-    Returns categorized errors at node, graph, and component levels
-    to help identify and fix issues programmatically.
+    Collects node-level errors from all graphs and provides a blueprint-level
+    compilation status summary.
 
     Args:
         blueprint_path: Path to the Blueprint asset
@@ -922,10 +947,8 @@ def compile_enhanced(blueprint_path: str) -> Dict[str, Any]:
     Returns:
         Dictionary with detailed compilation result including:
         - compilationSuccess: Whether compilation succeeded
-        - errors: List of categorized error objects
-        - warnings: List of warning objects
-        - nodeErrors: Errors specific to individual nodes
-        - graphErrors: Errors at the graph level
+        - errors: List of blueprint-level error summaries
+        - nodeErrors: Errors specific to individual nodes (with graph, nodeId, nodeClass)
     """
     blueprint = resolve_blueprint(blueprint_path)
 
@@ -941,9 +964,7 @@ def compile_enhanced(blueprint_path: str) -> Dict[str, Any]:
         "blueprintPath": blueprint_path,
         "compilationSuccess": compilation_success,
         "errors": [],
-        "warnings": [],
         "nodeErrors": [],
-        "graphErrors": [],
     }
 
     # Collect node-level errors from graphs

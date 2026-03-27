@@ -150,7 +150,7 @@ def _dispatch_node_creation(blueprint, graph, node_type, pos_x, pos_y, **kwargs)
         return _create_event_node(blueprint, graph, node_type, pos_x, pos_y)
 
     if node_type == "CustomEvent":
-        name = kwargs.get("event_name") or kwargs.get("node_name") or "NewCustomEvent"
+        name = kwargs.get("event_name") or "NewCustomEvent"
         return _create_custom_event_node(blueprint, graph, name, pos_x, pos_y)
 
     if node_type in _FLOW_NODES:
@@ -203,7 +203,6 @@ def _dispatch_node_creation(blueprint, graph, node_type, pos_x, pos_y, **kwargs)
         "function_name": [TypeRule(str, allow_none=True)],
         "target_class": [TypeRule(str, allow_none=True)],
         "variable_name": [TypeRule(str, allow_none=True)],
-        "is_getter": [TypeRule(bool, allow_none=True)],
         "event_name": [TypeRule(str, allow_none=True)],
     }
 )
@@ -219,7 +218,6 @@ def add_node(
     function_name: Optional[str] = None,
     target_class: Optional[str] = None,
     variable_name: Optional[str] = None,
-    is_getter: bool = True,
     event_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
@@ -229,9 +227,9 @@ def add_node(
         blueprint_path: Path to the Blueprint asset
         node_type: Type of node to add. Options:
             Events: 'BeginPlay', 'Tick', 'EndPlay', 'ActorBeginOverlap',
-                    'ActorEndOverlap', 'AnyDamage', 'CustomEvent'
+                    'ActorEndOverlap', 'AnyDamage', 'OnDestroyed', 'CustomEvent'
             Flow: 'Branch', 'Sequence', 'DoOnce', 'FlipFlop', 'Gate',
-                  'Delay', 'ForEachLoop', 'Select', 'MultiGate'
+                  'Delay', 'ForEachLoop', 'WhileLoop', 'Select', 'MultiGate'
             Functions: 'CallFunction' (requires function_name)
             Variables: 'VariableGet', 'VariableSet' (requires variable_name)
             Utility: 'PrintString', 'SetTimer', 'IsValid'
@@ -244,7 +242,6 @@ def add_node(
         function_name: Required for 'CallFunction' type — the function to call
         target_class: Optional target class for function calls (e.g., 'KismetSystemLibrary')
         variable_name: Required for 'VariableGet'/'VariableSet' — the variable name
-        is_getter: For variable nodes — True for getter, False for setter (default: True)
         event_name: Custom event name for 'CustomEvent' type
 
     Returns:
@@ -263,7 +260,6 @@ def add_node(
         function_name=function_name,
         target_class=target_class,
         variable_name=variable_name,
-        is_getter=is_getter,
         event_name=event_name,
     )
 

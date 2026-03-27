@@ -21,7 +21,7 @@ The #1 gap vs competitors: we can create/compile/document Blueprints but cannot 
 - [x] `blueprint_add_node` — Add nodes to Blueprint event graphs
   - Event nodes (BeginPlay, Tick, EndPlay, custom events)
   - Function call nodes (any BlueprintCallable function)
-  - Control flow (Branch, Sequence, ForEachLoop, Cast)
+  - Control flow (Branch, Sequence, ForEachLoop)
   - Math/utility operations (Kismet Math Library)
   - Variable get/set nodes
 - [x] `blueprint_connect_nodes` — Connect output pins to input pins between nodes
@@ -29,7 +29,7 @@ The #1 gap vs competitors: we can create/compile/document Blueprints but cannot 
 - [x] `blueprint_get_graph` — Get node graph structure with connections
   - Support detail levels: `summary`, `flow`, `full`
 - [x] `blueprint_remove_node` — Remove nodes from graphs
-- [x] `blueprint_add_variable` — Add typed variables with exposure/replication flags
+- [x] `blueprint_add_variable` — Add typed variables with instance editability and expose-on-spawn flags
 - [x] `blueprint_remove_variable` — Remove variables from Blueprints
 - [x] `blueprint_add_event_dispatcher` — Create multicast delegates
 - [x] `blueprint_add_function` — Create custom functions with inputs/outputs

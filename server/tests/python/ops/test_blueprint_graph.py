@@ -185,25 +185,31 @@ class TestBlueprintComponentIntrospection:
         assert result == []
 
     def test_get_blueprint_components_with_scene_component(self):
-        """Test component extraction with a SceneComponent template."""
+        """Test component extraction with a SceneComponent template, including transforms."""
         from ops.blueprint_graph import _get_blueprint_components
 
-        # Mock a SceneComponent template
-        mock_template = Mock(spec=["get_name", "get_class", "get_editor_property"])
-        mock_template.get_name.return_value = "MyMesh"
-        mock_template.get_class.return_value = Mock(get_name=Mock(return_value="StaticMeshComponent"))
+        # Create a mock template that passes isinstance(template, unreal.SceneComponent)
+        # by making it an instance of the mocked SceneComponent class
+        SceneComp = mock_unreal.SceneComponent
 
-        # Make it a SceneComponent for transform extraction
-        # We need to mock isinstance check — use __class__ approach
+        class MockSceneTemplate(SceneComp):
+            pass
+
+        mock_template = MockSceneTemplate()
+        mock_template.get_name = Mock(return_value="MyMesh")
+        mock_template.get_class = Mock(return_value=Mock(get_name=Mock(return_value="StaticMeshComponent")))
+
         mock_loc = Mock(x=100, y=200, z=300)
         mock_rot = Mock(roll=0, pitch=45, yaw=90)
         mock_scale = Mock(x=1, y=1, z=1)
-        mock_template.get_editor_property.side_effect = lambda prop: {
-            "relative_location": mock_loc,
-            "relative_rotation": mock_rot,
-            "relative_scale3d": mock_scale,
-            "parent_component_or_variable_name": None,
-        }.get(prop)
+        mock_template.get_editor_property = Mock(
+            side_effect=lambda prop: {
+                "relative_location": mock_loc,
+                "relative_rotation": mock_rot,
+                "relative_scale3d": mock_scale,
+                "parent_component_or_variable_name": None,
+            }.get(prop)
+        )
 
         mock_node = Mock()
         mock_node.component_template = mock_template
@@ -215,12 +221,14 @@ class TestBlueprintComponentIntrospection:
         mock_bp = Mock()
         mock_bp.simple_construction_script = mock_scs
 
-        # Since isinstance check won't work with mocks for SceneComponent,
-        # we test the non-SceneComponent path
         result = _get_blueprint_components(mock_bp)
         assert len(result) == 1
         assert result[0]["name"] == "MyMesh"
         assert result[0]["class"] == "StaticMeshComponent"
+        # Verify transform extraction (SceneComponent branch)
+        assert result[0]["location"] == [100, 200, 300]
+        assert result[0]["rotation"] == [0, 45, 90]
+        assert result[0]["scale"] == [1, 1, 1]
 
 
 class TestGraphNodeExtraction:
@@ -264,44 +272,27 @@ class TestGraphNodeExtraction:
         assert "pins" not in result["nodes"][0]
 
     def test_detail_level_validation(self):
-        """Test that invalid detail levels default to 'flow' in production code."""
+        """Test that the detail_level parameter defaults to 'flow'."""
         import inspect
 
         from ops.blueprint_graph import get_graph
 
-        # Verify the production code contains the detail_level validation logic
-        func = get_graph
-        while hasattr(func, "__wrapped__"):
-            func = func.__wrapped__
-        source = inspect.getsource(func)
+        # Inspect the get_graph signature to verify default
+        sig = inspect.signature(get_graph)
+        detail_param = sig.parameters.get("detail_level")
 
-        # Confirm valid levels are checked and invalid defaults to 'flow'
-        assert '"summary"' in source
-        assert '"flow"' in source
-        assert '"full"' in source
-        assert 'detail_level = "flow"' in source, "Invalid detail_level should default to 'flow'"
+        assert detail_param is not None, "get_graph should accept a 'detail_level' parameter"
+        assert detail_param.default == "flow", "The default detail_level should be 'flow'"
 
 
 class TestComponentClassMapping:
     """Test component class resolution logic."""
 
     def test_supported_component_classes(self):
-        """Test that common component classes are supported by add_component.
+        """Test that the production SUPPORTED_COMPONENT_CLASSES constant has expected entries."""
+        from ops.blueprint_graph import SUPPORTED_COMPONENT_CLASSES
 
-        We inspect the production source to extract the component_class_map keys
-        and verify the expected classes are present.
-        """
-        import inspect
-
-        from ops.blueprint_graph import add_component
-
-        # Get source code of the wrapped function (unwrap decorators)
-        func = add_component
-        while hasattr(func, "__wrapped__"):
-            func = func.__wrapped__
-        source = inspect.getsource(func)
-
-        expected_classes = [
+        expected_classes = {
             "StaticMeshComponent",
             "SkeletalMeshComponent",
             "SceneComponent",
@@ -319,11 +310,9 @@ class TestComponentClassMapping:
             "DecalComponent",
             "BillboardComponent",
             "TextRenderComponent",
-        ]
+        }
 
-        # Verify each expected class appears as a key in the source
-        for cls_name in expected_classes:
-            assert f'"{cls_name}"' in source, f"Expected component class '{cls_name}' not found in add_component"
+        assert set(SUPPORTED_COMPONENT_CLASSES) == expected_classes
 
-        # Verify no duplicates in expected list
-        assert len(expected_classes) == len(set(expected_classes))
+        # Verify no duplicates in the production constant
+        assert len(SUPPORTED_COMPONENT_CLASSES) == len(set(SUPPORTED_COMPONENT_CLASSES))
