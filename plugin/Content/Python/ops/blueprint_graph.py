@@ -1360,11 +1360,29 @@ def _deep_copy_action(action):
     return copy
 
 
+def _snake_to_pascal(name):
+    """Convert a snake_case Python name to PascalCase UE function name.
+
+    UE Python bindings expose PascalCase functions as snake_case (e.g.,
+    ``GetActorTransform`` becomes ``get_actor_transform``). This reverses
+    that convention for use with ``blueprint_add_node``.
+
+    Args:
+        name: Python-style snake_case method name
+
+    Returns:
+        PascalCase function name suitable for UE Blueprint operations
+    """
+    return "".join(word.capitalize() for word in name.split("_"))
+
+
 def _enrich_with_add_node_params(actions):
     """Add blueprint_add_node parameter mapping to each action.
 
-    Provides an ``addNodeParams`` dict showing exactly which parameters
-    to pass to ``blueprint_add_node`` for each discovered action.
+    Provides an ``addNodeParams`` dict showing which parameters to pass
+    to ``blueprint_add_node`` for each discovered action. For CallFunction
+    nodes, the ``function_name`` is converted from Python's snake_case to
+    UE's PascalCase convention.
 
     Args:
         actions: List of action info dicts (modified in place)
@@ -1380,9 +1398,11 @@ def _enrich_with_add_node_params(actions):
             else:
                 action["addNodeParams"] = {"node_type": action["name"]}
         elif node_type == "CallFunction":
+            # Convert snake_case Python name to PascalCase UE function name
+            ue_func_name = _snake_to_pascal(action["name"])
             params = {
                 "node_type": "CallFunction",
-                "function_name": action["name"],
+                "function_name": ue_func_name,
             }
             class_name = action.get("className")
             if class_name:
