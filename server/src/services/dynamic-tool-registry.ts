@@ -9,6 +9,7 @@
 import { logger } from '../utils/logger.js';
 import { PythonBridge } from './python-bridge.js';
 import { DynamicToolRegistry } from '../tools/dynamic-registry.js';
+import { DynamicTool } from '../tools/dynamic-tool.js';
 
 export interface MCPTool {
   definition: {
@@ -70,25 +71,30 @@ export class HybridToolRegistry {
   }
 
   /**
+   * Create an MCPTool handler for a dynamic tool
+   */
+  private createToolHandler(tool: DynamicTool): MCPTool {
+    return {
+      definition: tool.definition,
+      handler: async (args: unknown): Promise<{ content: Array<{ type: string; text: string }> }> => {
+        const typedArgs = args as Record<string, unknown> | undefined;
+        const response = await tool.execute(typedArgs);
+        return {
+          content: response.content.map(item => ({
+            type: item.type,
+            text: item.text || ''
+          }))
+        };
+      }
+    };
+  }
+
+  /**
    * Get all available tools
    */
   getAllTools(): MCPTool[] {
     if (this.isDynamic && this.dynamicRegistry) {
-      // Convert dynamic tools to MCPTool format
-      return this.dynamicRegistry.getTools().map(tool => ({
-        definition: tool.definition,
-        handler: async (args: unknown): Promise<{ content: Array<{ type: string; text: string }> }> => {
-          const typedArgs = args as Record<string, unknown> | undefined;
-          const response = await tool.execute(typedArgs);
-          // Convert ToolResponse to expected format
-          return {
-            content: response.content.map(item => ({
-              type: item.type,
-              text: item.text || ''
-            }))
-          };
-        }
-      }));
+      return this.dynamicRegistry.getTools().map(tool => this.createToolHandler(tool));
     }
     return [];
   }
@@ -100,20 +106,7 @@ export class HybridToolRegistry {
     if (this.isDynamic && this.dynamicRegistry) {
       const tool = this.dynamicRegistry.getTool(name);
       if (tool) {
-        return {
-          definition: tool.definition,
-          handler: async (args: unknown): Promise<{ content: Array<{ type: string; text: string }> }> => {
-            const typedArgs = args as Record<string, unknown> | undefined;
-            const response = await tool.execute(typedArgs);
-            // Convert ToolResponse to expected format
-            return {
-              content: response.content.map(item => ({
-                type: item.type,
-                text: item.text || ''
-              }))
-            };
-          }
-        };
+        return this.createToolHandler(tool);
       }
     }
     return undefined;

@@ -1,5 +1,4 @@
 import { logger } from '../../utils/logger.js';
-import { PythonBridge } from '../../services/python-bridge.js';
 import { ResponseFormatter, ToolResponse } from '../../utils/response-formatter.js';
 
 export interface ToolDefinition {
@@ -32,13 +31,7 @@ export interface PythonResult {
  * Base class for all MCP tools
  */
 export abstract class BaseTool<TArgs = unknown> {
-  protected bridge: PythonBridge;
-  
   abstract get definition(): ToolDefinition;
-  
-  constructor() {
-    this.bridge = new PythonBridge();
-  }
 
   /**
    * The main handler function called by MCP
@@ -67,25 +60,6 @@ export abstract class BaseTool<TArgs = unknown> {
     );
     logger.error(errorMessage, { tool: this.definition.name, error });
     throw new Error(errorMessage);
-  }
-
-  /**
-   * Execute a Python command through the bridge
-   */
-  protected async executePythonCommand(
-    commandType: string,
-    params: unknown
-  ): Promise<PythonResult> {
-    const result = await this.bridge.executeCommand({
-      type: commandType,
-      params: params as Record<string, unknown>,
-    });
-
-    if (!result.success) {
-      throw new Error(result.error || `Command ${commandType} failed`);
-    }
-
-    return result;
   }
 
   /**

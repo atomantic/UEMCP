@@ -135,12 +135,21 @@ export class DynamicToolRegistry {
   }
 
   /**
-   * Refresh the manifest and tools from Python
+   * Refresh the manifest and tools from Python (atomic swap to avoid request gaps)
    */
   async refresh(): Promise<boolean> {
+    const prevTools = this.tools;
+    const prevManifest = this.manifest;
     this.initialized = false;
-    this.tools.clear();
+    this.tools = new Map();
     this.manifest = null;
-    return this.initialize();
+    const success = await this.initialize();
+    if (!success) {
+      // Restore previous state on failure
+      this.tools = prevTools;
+      this.manifest = prevManifest;
+      this.initialized = true;
+    }
+    return success;
   }
 }
