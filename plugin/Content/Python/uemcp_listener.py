@@ -61,7 +61,6 @@ class UEMCPHandler(BaseHTTPRequestHandler):
 
         self.send_response(200)
         self.send_header("Content-type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")  # Allow browser access
         self.end_headers()
 
         self.wfile.write(json.dumps(response, indent=2).encode("utf-8"))
@@ -94,7 +93,14 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         Returns:
             dict: Parsed command
         """
-        content_length = int(self.headers["Content-Length"])
+        raw_length = self.headers.get("Content-Length")
+        if raw_length is None:
+            self.send_error(411, "Content-Length required")
+            raise ValueError("Missing Content-Length header")
+        content_length = int(raw_length)
+        if content_length > 10 * 1024 * 1024:  # 10 MB cap
+            self.send_error(413, "Request body too large")
+            raise ValueError(f"Request body exceeds 10 MB limit: {content_length}")
         post_data = self.rfile.read(content_length)
         return json.loads(post_data.decode("utf-8"))
 
@@ -118,7 +124,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             # Don't log full code for python_proxy
             unreal.log(f"UEMCP: Handling MCP tool: {cmd_type}")
         else:
-            params = command.get("parameters", {})
+            params = command.get("params", {})
             param_str = self._format_params_for_logging(params)
             unreal.log(f"UEMCP: Handling MCP tool: {cmd_type}({param_str})")
 
@@ -221,19 +227,13 @@ def execute_on_main_thread(command):
             "actor.organize": "actor_organize",
             "actor.batch_spawn": "actor_batch_spawn",  # Direct MCP mapping
             "batch_spawn": "actor_batch_spawn",  # MCP tool name
-            "actor_snap_to_socket": "actor_snap_to_socket",  # Direct MCP mapping
             "material_create": "material_create_material",  # Direct MCP mapping
-            "material_create_material": "material_create_material",  # Direct MCP mapping
             "material_info": "material_get_material_info",  # Direct MCP mapping
             "material_get_info": "material_get_material_info",  # Direct MCP mapping
             "material_apply": "material_apply_material_to_actor",  # Direct MCP mapping
             "material_apply_to_actor": "material_apply_material_to_actor",  # Direct MCP mapping
             "material_list": "material_list_materials",  # Direct MCP mapping
-            "blueprint_create": "blueprint_create",  # Direct MCP mapping (standalone function)
-            "blueprint_get_info": "blueprint_get_info",  # Direct MCP mapping (standalone function)
-            "blueprint_list": "blueprint_list_blueprints",  # Direct MCP mapping (standalone function)
-            "blueprint_compile": "blueprint_compile",  # Direct MCP mapping (standalone function)
-            "blueprint_document": "blueprint_document",  # Direct MCP mapping (standalone function)
+            "blueprint_list": "blueprint_list_blueprints",  # Direct MCP mapping
             "viewport.screenshot": "viewport_screenshot",
             "viewport.camera": "viewport_set_camera",
             "viewport.mode": "viewport_set_mode",
@@ -250,42 +250,18 @@ def execute_on_main_thread(command):
             "system.test_connection": "test_connection",  # Alternative mapping
             "system.logs": "ue_logs",
             "system.ue_logs": "ue_logs",  # Alternative mapping
-            # Note: undo/redo/history/checkpoint tools exist only in MCP server layer
-            # These operations are handled by the MCP server's operation history system
-            # and don't need Python plugin implementations
-            "system.undo": "not_implemented_python_layer",
-            "system.redo": "not_implemented_python_layer",
-            "system.history_list": "not_implemented_python_layer",
-            "system.checkpoint_create": "not_implemented_python_layer",
-            "system.checkpoint_restore": "not_implemented_python_layer",
-            "placement.validate": "not_implemented_python_layer",
         }
 
-        # Get the new command name
-        new_command = command_map.get(cmd_type)
-        if new_command:
-            # Check for server-layer-only commands
-            if new_command == "not_implemented_python_layer":
-                return {
-                    "success": False,
-                    "error": f"Command '{cmd_type}' is handled by MCP server layer, not Python plugin",
-                    "note": (
-                        "This command should be called through the MCP server API, "
-                        "not directly to the Python listener"
-                    ),
-                }
-            # Dispatch through the registry
-            return dispatch_command(new_command, params)
-        else:
-            # Try direct dispatch (for commands already in new format)
-            return dispatch_command(cmd_type, params)
+        # Get the new command name, fall back to direct dispatch
+        new_command = command_map.get(cmd_type, cmd_type)
+        return dispatch_command(new_command, params)
 
     except Exception as e:
-        log_error(f"Failed to execute command {cmd_type}: {str(e)}")
         import traceback
 
+        log_error(f"Failed to execute command {cmd_type}: {str(e)}")
         log_error(f"Traceback: {traceback.format_exc()}")
-        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
+        return {"success": False, "error": str(e)}
 
 
 def _post_response(request_id, result):
