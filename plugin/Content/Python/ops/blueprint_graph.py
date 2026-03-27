@@ -291,7 +291,7 @@ def _coerce_value_for_cdo(value, variable_name: str):
         if len(value) == 3:
             return create_vector(value)
         if len(value) == 4:
-            return unreal.LinearColor(r=value[0], g=value[1], b=value[2], a=value[3])
+            return unreal.LinearColor(value[0], value[1], value[2], value[3])
         raise ProcessingError(
             f"List value for '{variable_name}' must have 3 or 4 elements, got {len(value)}",
             operation="blueprint_set_variable_default",
@@ -305,7 +305,7 @@ def _coerce_value_for_cdo(value, variable_name: str):
     {
         "blueprint_path": [RequiredRule(), AssetPathRule()],
         "variable_name": [RequiredRule(), TypeRule(str)],
-        "value": [RequiredRule()],
+        "value": [],
         "value_type": [TypeRule(str, allow_none=True)],
     }
 )

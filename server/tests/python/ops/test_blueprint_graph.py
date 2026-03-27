@@ -650,7 +650,7 @@ class TestCoerceValueForCdo:
         from ops.blueprint_graph import _coerce_value_for_cdo
 
         _coerce_value_for_cdo([1.0, 0.5, 0.0, 1.0], "MyColor")
-        mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.5, b=0.0, a=1.0)
+        mock_unreal.LinearColor.assert_called_with(1.0, 0.5, 0.0, 1.0)
 
     def test_invalid_list_length_raises(self):
         """Test that lists with invalid length raise ProcessingError."""
