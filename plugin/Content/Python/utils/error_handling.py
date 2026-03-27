@@ -370,26 +370,6 @@ def require_asset(asset_path: str) -> unreal.Object:
     return asset
 
 
-def validate_location(location: List[float], field_name: str = "location"):
-    """Validate location parameter."""
-    if not isinstance(location, (list, tuple)):
-        raise ValidationError(f"{field_name} must be a list or tuple")
-    if len(location) != 3:
-        raise ValidationError(f"{field_name} must have 3 elements [X, Y, Z]")
-    if not all(isinstance(x, (int, float)) for x in location):
-        raise ValidationError(f"{field_name} elements must be numeric")
-
-
-def validate_rotation(rotation: List[float], field_name: str = "rotation"):
-    """Validate rotation parameter."""
-    if not isinstance(rotation, (list, tuple)):
-        raise ValidationError(f"{field_name} must be a list or tuple")
-    if len(rotation) != 3:
-        raise ValidationError(f"{field_name} must have 3 elements [Roll, Pitch, Yaw]")
-    if not all(isinstance(x, (int, float)) for x in rotation):
-        raise ValidationError(f"{field_name} elements must be numeric")
-
-
 # ============================================================================
 # Context Managers for Resource Management
 # ============================================================================

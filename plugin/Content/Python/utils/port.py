@@ -52,14 +52,6 @@ def find_all_processes_using_port(port):
     return processes
 
 
-def find_process_using_port(port):
-    """Find which process is using a specific port (returns first one)"""
-    processes = find_all_processes_using_port(port)
-    if processes:
-        return processes[0]
-    return None, None
-
-
 def kill_process_on_port(port):
     """Kill all processes using a specific port"""
     processes = find_all_processes_using_port(port)
@@ -96,11 +88,6 @@ def is_port_available(port):
         sock.close()
 
 
-def check_port_available(port):
-    """Alias for is_port_available - check if a port is available for binding"""
-    return is_port_available(port)
-
-
 def wait_for_port_available(port, timeout=5):
     """Wait for a port to become available"""
     start_time = time.time()
@@ -117,7 +104,8 @@ def force_free_port(port):
         unreal.log(f"UEMCP: Port {port} is already available")
         return True
 
-    pid, process_name = find_process_using_port(port)
+    processes = find_all_processes_using_port(port)
+    pid, process_name = processes[0] if processes else (None, None)
     if not pid:
         unreal.log_warning(f"Port {port} is in use but could not find process")
         return False

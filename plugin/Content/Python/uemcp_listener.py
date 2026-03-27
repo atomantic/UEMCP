@@ -37,6 +37,8 @@ except ImportError:
 # Queue for main thread execution
 command_queue = queue.Queue()
 response_queue = {}
+abandoned_requests = set()  # Request IDs whose HTTP handler timed out
+_response_events = {}  # Per-request threading.Event objects
 
 
 class UEMCPHandler(BaseHTTPRequestHandler):
@@ -149,14 +151,17 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         Returns:
             dict or None: Response if received, None on timeout
         """
-        start_time = time.time()
+        event = threading.Event()
+        _response_events[request_id] = event
 
-        while request_id not in response_queue:
-            if time.time() - start_time > timeout:
-                return None
-            time.sleep(0.01)
+        if event.wait(timeout=timeout) and request_id in response_queue:
+            _response_events.pop(request_id, None)
+            return response_queue.pop(request_id)
 
-        return response_queue.pop(request_id)
+        # Timeout: mark request as abandoned so process_commands discards the result
+        _response_events.pop(request_id, None)
+        abandoned_requests.add(request_id)
+        return None
 
     def _send_json_response(self, code, data):
         """Send JSON response.
@@ -283,15 +288,30 @@ def execute_on_main_thread(command):
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
+def _post_response(request_id, result):
+    """Store result and signal the waiting HTTP handler thread.
+
+    If the request was already abandoned (timed out), discard the result.
+    """
+    if request_id in abandoned_requests:
+        abandoned_requests.discard(request_id)
+        return
+    response_queue[request_id] = result
+    event = _response_events.get(request_id)
+    if event is not None:
+        event.set()
+
+
 def process_commands():
     """Process queued commands on main thread"""
     try:
         while not command_queue.empty():
+            request_id = None
             try:
                 request_id, command = command_queue.get_nowait()
                 cmd_type = command.get("type", "unknown")
                 result = execute_on_main_thread(command)
-                response_queue[request_id] = result
+                _post_response(request_id, result)
 
                 # Log command completion
                 if result.get("success"):
@@ -303,7 +323,8 @@ def process_commands():
                 break
             except Exception as e:
                 log_error(f"Error processing command: {str(e)}")
-                response_queue[request_id] = {"success": False, "error": str(e)}
+                if request_id is not None:
+                    _post_response(request_id, {"success": False, "error": str(e)})
     except Exception as e:
         log_error(f"Command processing error: {str(e)}")
 
@@ -428,7 +449,21 @@ def _track_server_thread(thread):
         thread: The server thread to track
     """
     try:
-        uemcp_thread_tracker.track_thread("uemcp_server", thread)
+        uemcp_thread_tracker.track_thread(thread)
+    except Exception:
+        pass
+
+
+def _untrack_server_thread(thread):
+    """Remove server thread from tracking.
+
+    Args:
+        thread: The server thread to untrack (no-op if None)
+    """
+    if thread is None:
+        return
+    try:
+        uemcp_thread_tracker.untrack_thread(thread)
     except Exception:
         pass
 
@@ -490,15 +525,12 @@ def stop_server():
                 except Exception:
                     pass
 
+        # Clean up thread tracking before nullifying the reference
+        _untrack_server_thread(server_thread)
+
         # Clean up references
         httpd = None
         server_thread = None
-
-        # Clean up thread tracking
-        try:
-            uemcp_thread_tracker.untrack_thread("uemcp_server")
-        except Exception:
-            pass
 
         unreal.log("UEMCP: Modular listener stopped")
         return True
