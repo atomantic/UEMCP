@@ -15,6 +15,7 @@ from utils.error_handling import (
     ProcessingError,
     RequiredRule,
     TypeRule,
+    ValidationError,
     handle_unreal_errors,
     safe_operation,
     validate_inputs,
@@ -368,7 +369,7 @@ def add_component(
         if parent_node:
             parent_node.add_child_node(new_node, False)
         else:
-            log_info(f"Parent component '{parent_component}' not found, " f"adding '{component_name}' as root")
+            log_info(f"Parent component '{parent_component}' not found, adding '{component_name}' as root")
             scs.add_node(new_node)
     else:
         scs.add_node(new_node)
@@ -1157,6 +1158,9 @@ _LIBRARY_CATEGORY_MAP = {
 # Derived from _LIBRARY_CATEGORY_MAP — single source of truth for valid categories
 _VALID_LIBRARY_CATEGORIES = frozenset(_LIBRARY_CATEGORY_MAP.values()) | {None, "all"}
 
+# All valid category values accepted by discover_actions (libraries + special)
+_ALL_VALID_CATEGORIES = _VALID_LIBRARY_CATEGORIES | {"class", "events", "flow"}
+
 # Common event types available in Blueprints
 _COMMON_EVENTS = [
     {
@@ -1348,6 +1352,33 @@ def _enrich_with_parameters(actions):
             info["parameters"] = []
 
 
+def _enrich_with_add_node_params(actions):
+    """Add blueprint_add_node parameter mapping to each action.
+
+    Provides an ``addNodeParams`` dict showing exactly which parameters
+    to pass to ``blueprint_add_node`` for each discovered action.
+
+    Args:
+        actions: List of action info dicts (modified in place)
+    """
+    for action in actions:
+        node_type = action.get("nodeType", "")
+        if node_type == "Event":
+            action["addNodeParams"] = {"node_type": action["name"]}
+        elif node_type == "CallFunction":
+            params = {
+                "node_type": "CallFunction",
+                "function_name": action["name"],
+            }
+            class_name = action.get("className")
+            if class_name:
+                params["target_class"] = class_name
+            action["addNodeParams"] = params
+        else:
+            # Flow nodes and others — name maps directly to node_type
+            action["addNodeParams"] = {"node_type": action["name"]}
+
+
 def _discover_class_actions(class_name):
     """Discover callable methods on a UE class via reflection.
 
@@ -1437,22 +1468,41 @@ def discover_actions(
     Discover available Blueprint actions, functions, and nodes.
 
     Queries UE's reflection system to find Blueprint-callable functions,
-    events, and flow control nodes. Results include function names directly
-    usable with blueprint_add_node.
+    events, and flow control nodes.
+
+    Usage with blueprint_add_node:
+        - Events: use the action's ``name`` as ``node_type`` (e.g., 'BeginPlay', 'Tick')
+        - Flow nodes: use the action's ``name`` as ``node_type`` (e.g., 'Branch', 'Delay')
+        - CallFunction nodes: use ``node_type='CallFunction'``,
+          ``function_name=<action's name>``, and ``target_class=<action's className>``
+        Each action also includes an ``addNodeParams`` dict with the exact parameters.
 
     Args:
         blueprint_path: Optional Blueprint asset path (uses its parent class as context)
         class_name: UE class name to discover functions on (e.g., 'Actor',
                     'Character', 'KismetMathLibrary'). Ignored if blueprint_path given.
         search: Search term to filter results (case-insensitive, matches name and description)
-        category: Filter by category: 'math', 'system', 'gameplay', 'string',
-                  'class', 'events', 'flow', 'ui', 'ai', 'rendering', or 'all'
+        category: Filter by category. Valid values: 'all', 'class', 'events', 'flow',
+                  plus library categories derived from _LIBRARY_CATEGORY_MAP: 'ai',
+                  'array', 'gameplay', 'input', 'map', 'math', 'navigation',
+                  'rendering', 'set', 'string', 'system', 'text', 'ui', 'utility',
+                  'vr'. Defaults to 'all' if omitted.
         limit: Maximum results to return (default 50, max 200)
 
     Returns:
-        Dictionary with discovered actions and their function names for blueprint_add_node
+        Dictionary with discovered actions including addNodeParams with node_type,
+        function_name, and target_class fields for use with blueprint_add_node
     """
     limit = min(max(1, limit if limit is not None else 50), 200)
+
+    # Validate category
+    if category is not None and category not in _ALL_VALID_CATEGORIES:
+        valid_list = sorted(c for c in _ALL_VALID_CATEGORIES if c is not None)
+        raise ValidationError(
+            f"Invalid category '{category}'. Valid categories: {', '.join(valid_list)}",
+            field="category",
+            value=category,
+        )
 
     context_class = None
     if blueprint_path:
@@ -1494,6 +1544,9 @@ def discover_actions(
 
     # Defer expensive signature extraction to the final limited result set
     _enrich_with_parameters(actions)
+
+    # Add blueprint_add_node parameter mapping for direct usability
+    _enrich_with_add_node_params(actions)
 
     log_info(f"Discovered {total} actions, returning {len(actions)}")
 
