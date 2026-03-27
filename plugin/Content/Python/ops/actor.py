@@ -9,7 +9,15 @@ from typing import Any, Dict, List, Optional
 
 import unreal
 
-from utils import create_rotator, create_transform, create_vector, find_actor_by_name, load_asset, log_debug
+from utils import (
+    create_rotator,
+    create_transform,
+    create_vector,
+    find_actor_by_name,
+    get_actor_subsystem,
+    load_asset,
+    log_debug,
+)
 
 # Enhanced error handling framework
 from utils.error_handling import (
@@ -87,10 +95,11 @@ class ActorOperations:
         asset = require_asset(assetPath)
 
         # Spawn based on asset type
+        editor_actor_subsystem = get_actor_subsystem()
         actor = None
         if isinstance(asset, unreal.StaticMesh):
             # Spawn static mesh actor
-            actor = unreal.EditorLevelLibrary.spawn_actor_from_class(
+            actor = editor_actor_subsystem.spawn_actor_from_class(
                 unreal.StaticMeshActor.static_class(), ue_location, ue_rotation
             )
 
@@ -101,7 +110,7 @@ class ActorOperations:
 
         elif isinstance(asset, unreal.Blueprint):
             # Spawn blueprint actor
-            actor = unreal.EditorLevelLibrary.spawn_actor_from_object(asset, ue_location, ue_rotation)
+            actor = editor_actor_subsystem.spawn_actor_from_object(asset, ue_location, ue_rotation)
         else:
             raise ProcessingError(
                 f"Unsupported asset type: {type(asset).__name__}",
@@ -192,7 +201,8 @@ class ActorOperations:
         actor = require_actor(actorName)
 
         # Delete the actor
-        unreal.EditorLevelLibrary.destroy_actor(actor)
+        editor_actor_subsystem = get_actor_subsystem()
+        editor_actor_subsystem.destroy_actor(actor)
         log_debug(f"Deleted actor {actorName}")
 
         result = {"message": f"Deleted actor: {actorName}"}
@@ -374,7 +384,9 @@ class ActorOperations:
     )
     @handle_unreal_errors("duplicate_actor")
     @safe_operation("actor")
-    def duplicate(self, sourceName, name=None, offset=None, validate=True):
+    def duplicate(
+        self, sourceName: str, name: Optional[str] = None, offset: Optional[Dict] = None, validate: bool = True
+    ):
         """Duplicate an existing actor.
 
         Args:
@@ -410,7 +422,8 @@ class ActorOperations:
             mesh_component = source_actor.static_mesh_component
             if mesh_component and mesh_component.static_mesh:
                 # Spawn new actor with same mesh
-                new_actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
+                editor_actor_subsystem = get_actor_subsystem()
+                new_actor = editor_actor_subsystem.spawn_actor_from_object(
                     mesh_component.static_mesh, new_location, source_rotation
                 )
 
@@ -470,7 +483,7 @@ class ActorOperations:
     )
     @handle_unreal_errors("organize_actors")
     @safe_operation("actor")
-    def organize(self, actors=None, pattern=None, folder=""):
+    def organize(self, actors: Optional[List] = None, pattern: Optional[str] = None, folder: str = ""):
         """Organize actors into World Outliner folders.
 
         Args:
@@ -498,7 +511,7 @@ class ActorOperations:
         Returns:
             list: All level actors
         """
-        editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+        editor_actor_subsystem = get_actor_subsystem()
         return editor_actor_subsystem.get_all_level_actors()
 
     def _organize_actors_by_criteria(self, all_actors, actor_names, pattern, folder):
@@ -692,7 +705,8 @@ class ActorOperations:
         rotation = unreal.Rotator(*actor_config.get("rotation", [0, 0, 0]))
         scale = unreal.Vector(*actor_config.get("scale", [1, 1, 1]))
 
-        spawned_actor = unreal.EditorLevelLibrary.spawn_actor_from_object(asset, location, rotation)
+        editor_actor_subsystem = get_actor_subsystem()
+        spawned_actor = editor_actor_subsystem.spawn_actor_from_object(asset, location, rotation)
         if spawned_actor:
             spawned_actor.set_actor_scale3d(scale)
         return spawned_actor
@@ -783,7 +797,9 @@ class ActorOperations:
     )
     @handle_unreal_errors("validate_placement")
     @safe_operation("actor")
-    def placement_validate(self, actors, tolerance=10.0, checkAlignment=True, modularSize=300.0):
+    def placement_validate(
+        self, actors: List, tolerance: float = 10.0, checkAlignment: bool = True, modularSize: float = 300.0
+    ):
         """Validate placement of modular building components.
 
         Detects gaps, overlaps, and alignment issues in modular building placement.
@@ -1194,7 +1210,15 @@ class ActorOperations:
     )
     @handle_unreal_errors("snap_to_socket")
     @safe_operation("actor")
-    def snap_to_socket(self, sourceActor, targetActor, targetSocket, sourceSocket=None, offset=None, validate=True):
+    def snap_to_socket(
+        self,
+        sourceActor: str,
+        targetActor: str,
+        targetSocket: str,
+        sourceSocket: Optional[str] = None,
+        offset: Optional[Dict] = None,
+        validate: bool = True,
+    ):
         """Snap an actor to another actor's socket for precise modular placement.
 
         Args:

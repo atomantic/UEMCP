@@ -29,6 +29,7 @@ export interface DynamicToolDefinition {
   name: string;
   description: string;
   category: string;
+  timeout?: number;
   inputSchema: {
     type: 'object';
     properties: Record<string, JSONSchemaProperty>;
@@ -36,6 +37,16 @@ export interface DynamicToolDefinition {
     additionalProperties: boolean;
   };
 }
+
+// Per-category default timeouts (seconds) for the TypeScript bridge side
+const CATEGORY_TIMEOUTS: Record<string, number> = {
+  viewport: 30,
+  asset: 30,
+  blueprint: 30,
+  batch: 30,
+  system: 30,
+};
+const DEFAULT_TIMEOUT = 10;
 
 /**
  * A tool that forwards all execution to Python based on manifest definition
@@ -65,10 +76,16 @@ export class DynamicTool extends BaseTool<Record<string, unknown>> {
   }
 
   protected async executeInternal(args: Record<string, unknown> | undefined): Promise<ToolResponse> {
-    // Simply forward to Python with the tool name
+    // Resolve timeout: tool-level > category-level > default
+    const timeout = this.toolDef.timeout
+      ?? CATEGORY_TIMEOUTS[this.category]
+      ?? DEFAULT_TIMEOUT;
+
+    // Forward to Python with the tool name and timeout
     const pythonResult = await this.pythonBridge.executeCommand({
       type: this.toolDef.name,
-      params: args || {}
+      params: args || {},
+      timeout,
     });
 
     // Convert PythonResponse to ToolResponse

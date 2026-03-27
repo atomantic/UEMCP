@@ -22,7 +22,25 @@ def mock_unreal():
 
     # Mock asset loading
     unreal_mock.EditorAssetLibrary = Mock()
-    unreal_mock.EditorLevelLibrary = Mock()
+
+    # Mock subsystems (modern API - replaces deprecated EditorLevelLibrary)
+    editor_actor_subsystem = Mock()
+    level_editor_subsystem = Mock()
+    unreal_editor_subsystem = Mock()
+    unreal_mock.EditorActorSubsystem = Mock()
+    unreal_mock.LevelEditorSubsystem = Mock()
+    unreal_mock.UnrealEditorSubsystem = Mock()
+
+    def get_editor_subsystem(subsystem_class):
+        if subsystem_class == unreal_mock.EditorActorSubsystem:
+            return editor_actor_subsystem
+        if subsystem_class == unreal_mock.LevelEditorSubsystem:
+            return level_editor_subsystem
+        if subsystem_class == unreal_mock.UnrealEditorSubsystem:
+            return unreal_editor_subsystem
+        return Mock()
+
+    unreal_mock.get_editor_subsystem = Mock(side_effect=get_editor_subsystem)
 
     # Mock common enums
     unreal_mock.TextureCompressionSettings = Mock()

@@ -6,12 +6,12 @@ This is the single source of truth for version numbers in Python code.
 """
 
 # UEMCP Plugin Version
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
 # Version info for programmatic access
 VERSION_INFO = {
     "major": 2,
-    "minor": 0,
+    "minor": 1,
     "patch": 0,
     "prerelease": None,  # e.g., "beta", "alpha", "rc1"
 }

@@ -11,8 +11,11 @@ from .general import (
     execute_console_command,
     find_actor_by_name,
     format_unreal_type,
+    get_actor_subsystem,
     get_all_actors,
+    get_level_editor_subsystem,
     get_project_info,
+    get_unreal_editor_subsystem,
     load_asset,
     log_debug,
     log_error,
@@ -38,6 +41,10 @@ from .viewport_optimization import (
 )
 
 __all__ = [
+    # Subsystem accessors
+    "get_actor_subsystem",
+    "get_level_editor_subsystem",
+    "get_unreal_editor_subsystem",
     # General utils
     "log_debug",
     "log_error",

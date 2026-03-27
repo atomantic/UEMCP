@@ -41,6 +41,22 @@ abandoned_requests = {}  # request_id -> abandon timestamp (float); cleaned up p
 _response_events = {}  # Per-request threading.Event objects
 _response_lock = threading.Lock()  # Protects response_queue, abandoned_requests, _response_events
 
+# Fallback timeout defaults for direct HTTP callers that don't send a timeout field.
+# The MCP server (TypeScript) always sends timeout — these only apply to raw HTTP calls.
+_COMMAND_TIMEOUTS = {
+    "viewport_screenshot": 30,
+    "asset_import": 60,
+    "batch_operations": 30,
+    "actor_batch_spawn": 30,
+    "blueprint_compile": 30,
+    "blueprint_create": 30,
+    "blueprint_document": 30,
+    "python_proxy": 30,
+    "material_create_simple": 20,
+    "material_create_instance": 20,
+}
+_DEFAULT_TIMEOUT = 10
+
 
 class UEMCPHandler(BaseHTTPRequestHandler):
     """HTTP handler for UEMCP commands"""
@@ -83,10 +99,13 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             # Queue command for main thread
             command_queue.put((request_id, command))
 
+            # Determine timeout: explicit (from MCP server) > per-command fallback > 10s default
+            timeout = command.get("timeout", _COMMAND_TIMEOUTS.get(command.get("type", ""), _DEFAULT_TIMEOUT))
+
             # Wait for response
-            result = self._wait_for_response(request_id, event=event)
+            result = self._wait_for_response(request_id, timeout=timeout, event=event)
             if result is None:
-                self.send_error(504, "Command execution timeout")
+                self.send_error(504, f"Command execution timeout after {timeout}s")
                 return
 
             # Send response

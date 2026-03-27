@@ -341,7 +341,7 @@ blueprint_document({
 import unreal
 
 # Batch operations
-actors = unreal.EditorLevelLibrary.get_all_level_actors()
+actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
 for actor in actors:
     if "Old" in actor.get_actor_label():
         actor.destroy_actor()
@@ -354,7 +354,7 @@ for mat_path in materials:
 
 # Editor automation
 def auto_layout_actors(spacing=500):
-    selected = unreal.EditorLevelLibrary.get_selected_level_actors()
+    selected = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_selected_level_actors()
     for i, actor in enumerate(selected):
         actor.set_actor_location(unreal.Vector(i * spacing, 0, 0))
 ```

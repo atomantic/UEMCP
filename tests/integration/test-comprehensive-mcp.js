@@ -493,11 +493,11 @@ result = {
 
 # Create first actor with socket
 cube_mesh = unreal.EditorAssetLibrary.load_asset('/Engine/BasicShapes/Cube')
-socket_actor1 = unreal.EditorLevelLibrary.spawn_actor_from_object(cube_mesh, unreal.Vector(2000, 0, 0))
+socket_actor1 = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).spawn_actor_from_object(cube_mesh, unreal.Vector(2000, 0, 0))
 socket_actor1.set_actor_label('SocketActor1')
 
 # Create second actor to snap
-socket_actor2 = unreal.EditorLevelLibrary.spawn_actor_from_object(cube_mesh, unreal.Vector(2500, 500, 0))
+socket_actor2 = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).spawn_actor_from_object(cube_mesh, unreal.Vector(2500, 500, 0))
 socket_actor2.set_actor_label('SocketActor2')
 
 result = {'success': True, 'message': 'Socket test actors created'}
@@ -731,7 +731,7 @@ result = {'success': True, 'message': 'Socket test actors created'}
       const result = await this.client.callTool('python_proxy', {
         code: `import unreal
 # Get all actors and count them
-actors = unreal.EditorLevelLibrary.get_all_level_actors()
+actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
 result = {
     'success': True,
     'total_actors': len(actors),

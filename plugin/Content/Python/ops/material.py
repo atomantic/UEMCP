@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 
 import unreal
 
-from utils import asset_exists, load_asset, log_debug
+from utils import asset_exists, get_actor_subsystem, load_asset, log_debug
 
 # Enhanced error handling framework
 from utils.error_handling import (
@@ -457,7 +457,7 @@ class MaterialOperations:
         static_mesh_component.set_material(slot_index, material)
 
         # Mark actor as modified
-        editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+        editor_actor_subsystem = get_actor_subsystem()
         editor_actor_subsystem.set_actor_selection_state(actor, True)
 
         return {

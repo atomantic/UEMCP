@@ -3,6 +3,7 @@ import { logger } from '../utils/logger.js';
 export interface PythonCommand {
   type: string;
   params: Record<string, unknown>;
+  timeout?: number;
 }
 
 export interface PythonResponse {
@@ -24,8 +25,10 @@ export class PythonBridge {
   async executeCommand(command: PythonCommand): Promise<PythonResponse> {
     logger.debug('Executing Python command via HTTP', { command, endpoint: this.httpEndpoint });
 
+    const DEFAULT_BRIDGE_TIMEOUT_S = 10;
+    const timeoutMs = (command.timeout ?? DEFAULT_BRIDGE_TIMEOUT_S) * 1000;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     let response: Response;
     try {

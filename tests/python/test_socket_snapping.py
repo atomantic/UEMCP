@@ -50,7 +50,8 @@ class SocketSnappingUnitTest:
             raise RuntimeError("Could not load cube mesh")
 
         # Spawn actor
-        actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
+        editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+        actor = editor_actor_subsystem.spawn_actor_from_object(
             cube_mesh, unreal.Vector(*location), unreal.Rotator(0, 0, 0)
         )
 

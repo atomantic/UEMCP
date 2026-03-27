@@ -54,6 +54,21 @@ def create_transform(location, rotation, scale):
     return ue_location, ue_rotation, ue_scale
 
 
+def get_actor_subsystem():
+    """Get the EditorActorSubsystem (replaces deprecated EditorLevelLibrary)."""
+    return unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+
+
+def get_level_editor_subsystem():
+    """Get the LevelEditorSubsystem (replaces deprecated EditorLevelLibrary)."""
+    return unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+
+
+def get_unreal_editor_subsystem():
+    """Get the UnrealEditorSubsystem."""
+    return unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+
+
 def find_actor_by_name(actor_name):
     """Find an actor in the level by name.
 
@@ -63,8 +78,7 @@ def find_actor_by_name(actor_name):
     Returns:
         Actor object or None if not found
     """
-    editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
-    all_actors = editor_actor_subsystem.get_all_level_actors()
+    all_actors = get_actor_subsystem().get_all_level_actors()
 
     for actor in all_actors:
         try:
@@ -87,8 +101,7 @@ def get_all_actors(filter_text=None, limit=30):
     Returns:
         list: List of actor dictionaries with properties
     """
-    editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
-    all_actors = editor_actor_subsystem.get_all_level_actors()
+    all_actors = get_actor_subsystem().get_all_level_actors()
 
     # Apply filter if provided
     if filter_text:
@@ -154,7 +167,7 @@ def get_project_info():
         "projectName": unreal.Paths.get_project_file_path().split("/")[-1].replace(".uproject", ""),
         "projectDirectory": unreal.Paths.project_dir(),
         "engineVersion": unreal.SystemLibrary.get_engine_version(),
-        "currentLevel": unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world().get_name(),
+        "currentLevel": get_unreal_editor_subsystem().get_editor_world().get_name(),
     }
 
 
@@ -166,8 +179,7 @@ def execute_console_command(command, world=None):
         world: Optional world context (uses editor world if not provided)
     """
     if world is None:
-        editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
-        world = editor_subsystem.get_editor_world()
+        world = get_unreal_editor_subsystem().get_editor_world()
 
     unreal.SystemLibrary.execute_console_command(world, command)
 

@@ -4,7 +4,7 @@ UEMCP Validation Framework - Validates operations succeeded by checking actual s
 
 import unreal
 
-from .general import find_actor_by_name, normalize_angle
+from .general import find_actor_by_name, get_actor_subsystem, normalize_angle
 
 # import time
 # import math
@@ -163,7 +163,7 @@ def validate_actor_exists(actor_name):
     result = ValidationResult()
 
     try:
-        all_actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
+        all_actors = get_actor_subsystem().get_all_level_actors()
 
         for actor in all_actors:
             try:
@@ -184,7 +184,7 @@ def validate_actor_deleted(actor_name):
     result = ValidationResult()
 
     try:
-        all_actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
+        all_actors = get_actor_subsystem().get_all_level_actors()
 
         for actor in all_actors:
             try:
