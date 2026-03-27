@@ -45,15 +45,15 @@ _response_lock = threading.Lock()  # Protects response_queue, abandoned_requests
 # The MCP server (TypeScript) always sends timeout — these only apply to raw HTTP calls.
 _COMMAND_TIMEOUTS = {
     "viewport_screenshot": 30,
-    "asset_import": 60,
+    "asset_import_assets": 60,
     "batch_operations": 30,
     "actor_batch_spawn": 30,
     "blueprint_compile": 30,
     "blueprint_create": 30,
     "blueprint_document": 30,
     "python_proxy": 30,
-    "material_create_simple": 20,
-    "material_create_instance": 20,
+    "material_create_simple_material": 20,
+    "material_create_material_instance": 20,
 }
 _DEFAULT_TIMEOUT = 10
 
