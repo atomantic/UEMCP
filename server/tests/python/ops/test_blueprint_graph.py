@@ -478,6 +478,7 @@ class TestActionDiscovery:
 
     def test_discover_library_actions_deduplicates(self, monkeypatch):
         """Test that library discovery deduplicates alias classes."""
+        import ops.blueprint_graph as bg
         from ops.blueprint_graph import _discover_library_actions
 
         # Make two library names point to the same mock class
@@ -490,6 +491,8 @@ class TestActionDiscovery:
         )()
         monkeypatch.setattr(mock_unreal, "KismetMathLibrary", mock_lib)
         monkeypatch.setattr(mock_unreal, "MathLibrary", mock_lib)
+        # Constrain to only these two libraries to avoid scanning MagicMock attrs
+        monkeypatch.setattr(bg, "_FUNCTION_LIBRARY_NAMES", ["KismetMathLibrary", "MathLibrary"])
 
         result = _discover_library_actions()
         # Should only include "add" once since both names point to same id()

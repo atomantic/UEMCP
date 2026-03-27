@@ -1352,6 +1352,14 @@ def _enrich_with_parameters(actions):
             info["parameters"] = []
 
 
+def _deep_copy_action(action):
+    """Create a deep copy of an action dict, including nested lists/dicts."""
+    copy = dict(action)
+    if "parameters" in copy and isinstance(copy["parameters"], list):
+        copy["parameters"] = [dict(p) for p in copy["parameters"]]
+    return copy
+
+
 def _enrich_with_add_node_params(actions):
     """Add blueprint_add_node parameter mapping to each action.
 
@@ -1492,7 +1500,7 @@ def discover_actions(
                   plus library categories derived from _LIBRARY_CATEGORY_MAP: 'ai',
                   'array', 'gameplay', 'input', 'map', 'math', 'navigation',
                   'rendering', 'set', 'string', 'system', 'text', 'ui', 'utility',
-                  'vr'. Defaults to 'all' if omitted.
+                  'vr'. Defaults to None (meaning 'all') if omitted.
         limit: Maximum results to return (default 50, max 200)
 
     Returns:
@@ -1521,13 +1529,13 @@ def discover_actions(
 
     actions = []
 
-    # Shallow-copy global entries to avoid mutating shared constants
-    # during enrichment (_enrich_with_parameters, _enrich_with_add_node_params)
+    # Deep-copy global entries to avoid mutating shared constants
+    # (some entries contain nested lists like 'parameters')
     if category in (None, "all", "events"):
-        actions.extend(dict(e) for e in _COMMON_EVENTS)
+        actions.extend(_deep_copy_action(e) for e in _COMMON_EVENTS)
 
     if category in (None, "all", "flow"):
-        actions.extend(dict(n) for n in _FLOW_NODES)
+        actions.extend(_deep_copy_action(n) for n in _FLOW_NODES)
 
     if context_class and category in (None, "all", "class"):
         actions.extend(_discover_class_actions(context_class))
