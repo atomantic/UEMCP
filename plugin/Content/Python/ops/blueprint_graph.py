@@ -298,7 +298,15 @@ def _coerce_value_for_cdo(value, variable_name: str):
             details={"variable_name": variable_name, "value": value},
         )
 
-    return value
+    raise ProcessingError(
+        f"Unsupported value type for '{variable_name}': {type(value).__name__}",
+        operation="blueprint_set_variable_default",
+        details={
+            "variable_name": variable_name,
+            "value_type": type(value).__name__,
+            "supported_types": ["bool", "int", "float", "str", "list"],
+        },
+    )
 
 
 @validate_inputs(

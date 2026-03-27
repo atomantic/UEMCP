@@ -662,6 +662,16 @@ class TestCoerceValueForCdo:
         with pytest.raises(ProcessingError, match="must have 3 or 4 elements"):
             _coerce_value_for_cdo([1.0, 2.0], "MyVar")
 
+    def test_dict_value_raises(self):
+        """Test that dict values are rejected with a clear error."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_value_for_cdo
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError, match="Unsupported value type"):
+            _coerce_value_for_cdo({"key": "val"}, "MyVar")
+
     def test_script_path_loads_object(self):
         """Test that /Script/ paths use unreal.load_object for native class refs."""
         from ops.blueprint_graph import _coerce_value_for_cdo
