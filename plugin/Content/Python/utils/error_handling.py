@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Union
 import unreal
 
 from utils import log_debug, log_error
+from utils.general import get_actor_subsystem, get_level_editor_subsystem
 
 # ============================================================================
 # Custom Exception Types - More specific than generic Exception
@@ -380,15 +381,24 @@ class DisableViewportUpdates:
 
     def __enter__(self):
         try:
-            unreal.EditorLevelLibrary.set_level_viewport_realtime(False)
+            self._subsystem = get_level_editor_subsystem()
+            self._subsystem.editor_set_viewport_realtime(False)
             log_debug("Disabled viewport updates for performance")
         except Exception as e:
+            self._subsystem = None
             log_debug(f"Could not disable viewport updates: {str(e)}")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        subsystem = getattr(self, "_subsystem", None)
+        if subsystem is None:
+            try:
+                subsystem = get_level_editor_subsystem()
+            except RuntimeError:
+                log_debug("Skipping viewport re-enable: subsystem unavailable")
+                return
         try:
-            unreal.EditorLevelLibrary.set_level_viewport_realtime(True)
+            subsystem.editor_set_viewport_realtime(True)
             log_debug("Re-enabled viewport updates")
         except Exception as e:
             log_error(f"Failed to re-enable viewport updates: {str(e)}")
@@ -423,7 +433,8 @@ if __name__ == "__main__":
         ue_location, ue_rotation, ue_scale = create_transform(location, [0, 0, 0], [1, 1, 1])
 
         # This might raise ProcessingError which will be caught and converted
-        actor = unreal.EditorLevelLibrary.spawn_actor_from_object(asset, ue_location, ue_rotation)
+        editor_actor_subsystem = get_actor_subsystem()
+        actor = editor_actor_subsystem.spawn_actor_from_object(asset, ue_location, ue_rotation)
 
         if not actor:
             raise ProcessingError("Failed to spawn actor from asset")

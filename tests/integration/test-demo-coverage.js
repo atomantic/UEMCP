@@ -315,8 +315,8 @@ class DemoCoverageTest {
           code: `
 # Test Python proxy with simple operation
 import unreal
-editor_level = unreal.EditorLevelLibrary
-num_actors = len(editor_level.get_all_level_actors())
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+num_actors = len(editor_actor_subsystem.get_all_level_actors())
 result = {'actor_count': num_actors, 'test': 'success'}
           `.trim()
         }

@@ -280,7 +280,7 @@ const tests = {
         code: `
 import unreal
 print("Python proxy test successful!")
-actors = unreal.EditorLevelLibrary.get_all_level_actors()
+actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
 result = f"Found {len(actors)} actors in the level"
 `
       });

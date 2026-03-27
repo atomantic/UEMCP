@@ -54,7 +54,13 @@ class MockUnreal:
     def log_warning(msg):
         print(f"[WARNING] {msg}")
 
-    class EditorLevelLibrary:
+    class EditorActorSubsystem:
+        pass
+
+    class LevelEditorSubsystem:
+        pass
+
+    class UnrealEditorSubsystem:
         pass
 
     class EditorAssetLibrary:
@@ -63,7 +69,11 @@ class MockUnreal:
     class SystemLibrary:
         @staticmethod
         def get_engine_version():
-            return "5.4.0"
+            return "5.7.0"
+
+    @staticmethod
+    def get_editor_subsystem(subsystem_class):
+        return subsystem_class()
 
 
 sys.modules["unreal"] = MockUnreal()

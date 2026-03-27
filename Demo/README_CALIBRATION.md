@@ -34,7 +34,7 @@ You can manipulate the grid colors directly in the UE Python console:
 import unreal
 
 # Get all calibration grid actors
-actors = unreal.EditorLevelLibrary.get_all_level_actors()
+actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
 grid_actors = [a for a in actors if 'CalibCube' in a.get_actor_label()]
 
 # Change colors using dynamic materials
@@ -53,7 +53,7 @@ for actor in grid_actors:
 // Change individual element colors
 mcp.python_proxy({
   code: `
-    actor = unreal.EditorLevelLibrary.get_actor_reference("CalibCube_3_3_Orange")
+    actor = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_actor_reference("CalibCube_3_3_Orange")
     mesh_comp = actor.get_component_by_class(unreal.StaticMeshComponent)
     mid = mesh_comp.create_dynamic_material_instance(0)
     mid.set_vector_parameter_value("BaseColor", unreal.LinearColor(1, 0, 1, 1))

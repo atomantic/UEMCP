@@ -342,9 +342,10 @@ else:
     spawn_location = unreal.Vector(1000, 0, 0)
     spawn_rotation = unreal.Rotator(0, 0, 90)
     
-    actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
-        asset, 
-        spawn_location, 
+    editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    actor = editor_actor_subsystem.spawn_actor_from_object(
+        asset,
+        spawn_location,
         spawn_rotation
     )
     
@@ -390,7 +391,8 @@ await python_proxy({
 import unreal
 
 # Find the actor
-all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+all_actors = editor_actor_subsystem.get_all_level_actors()
 target_actor = None
 
 for actor in all_actors:
@@ -435,12 +437,13 @@ await python_proxy({
 import unreal
 
 # Find and delete the actor
-all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+all_actors = editor_actor_subsystem.get_all_level_actors()
 deleted = False
 
 for actor in all_actors:
     if actor.get_actor_label() == 'NorthWall':
-        unreal.EditorLevelLibrary.destroy_actor(actor)
+        editor_actor_subsystem.destroy_actor(actor)
         deleted = True
         break
 
@@ -473,7 +476,8 @@ await python_proxy({
 import unreal
 
 # Find all actors matching pattern
-all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+all_actors = editor_actor_subsystem.get_all_level_actors()
 organized_count = 0
 
 for actor in all_actors:
@@ -523,11 +527,13 @@ await python_proxy({
 import unreal
 
 # Get current level name
-world = unreal.EditorLevelLibrary.get_editor_world()
+editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+world = editor_subsystem.get_editor_world()
 level_name = world.get_name()
 
 # Get all actors
-all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+all_actors = editor_actor_subsystem.get_all_level_actors()
 
 # Filter actors
 filter_text = 'Wall'
@@ -577,11 +583,13 @@ await python_proxy({
 import unreal
 
 # Get current level
-world = unreal.EditorLevelLibrary.get_editor_world()
+editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+world = editor_subsystem.get_editor_world()
 level_name = world.get_name()
 
 # Save the level
-success = unreal.EditorLevelLibrary.save_current_level()
+level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+success = level_editor_subsystem.save_current_level()
 
 if success:
     # Get level path
@@ -627,7 +635,8 @@ await python_proxy({
 import unreal
 
 # Get all actors
-all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+all_actors = editor_actor_subsystem.get_all_level_actors()
 
 # Build folder structure
 folder_structure = {}
@@ -744,10 +753,11 @@ editor_subsystem.set_level_viewport_camera_info(camera_location, camera_rotation
 
 # Focus on actor if specified
 actor_name = 'HouseFoundation'
-all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+all_actors = editor_actor_subsystem.get_all_level_actors()
 for actor in all_actors:
     if actor.get_actor_label() == actor_name:
-        unreal.EditorLevelLibrary.set_actor_selection_state(actor, True)
+        editor_actor_subsystem.set_actor_selection_state(actor, True)
         break
 
 result = f"✓ Viewport camera updated\\n"
@@ -787,7 +797,8 @@ top_rotation.yaw = 0.0      # Face north
 top_rotation.roll = 0.0     # No tilt
 
 # Check for selected actors to center on
-selected_actors = unreal.EditorLevelLibrary.get_selected_level_actors()
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+selected_actors = editor_actor_subsystem.get_selected_level_actors()
 if selected_actors:
     # Calculate center of selection
     bounds_min = unreal.Vector(float('inf'), float('inf'), float('inf'))
@@ -848,7 +859,8 @@ import unreal
 
 # Find the actor
 actor_name = 'HouseFoundation'
-all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+all_actors = editor_actor_subsystem.get_all_level_actors()
 found_actor = None
 
 for actor in all_actors:
@@ -858,7 +870,7 @@ for actor in all_actors:
 
 if found_actor:
     # Select the actor
-    unreal.EditorLevelLibrary.set_selected_level_actors([found_actor])
+    editor_actor_subsystem.set_selected_level_actors([found_actor])
     
     # Get current camera info
     editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
@@ -912,7 +924,8 @@ await python_proxy({
 import unreal
 
 # Execute console command to change render mode
-world = unreal.EditorLevelLibrary.get_editor_world()
+editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+world = editor_subsystem.get_editor_world()
 unreal.SystemLibrary.execute_console_command(world, "viewmode wireframe")
 
 result = "✓ Viewport render mode changed to wireframe"
@@ -980,7 +993,8 @@ except Exception as e:
 # Test level actors  
 # ❌ NOTE: This demonstrates old error handling patterns - avoid in new code
 try:
-    actors = unreal.EditorLevelLibrary.get_all_level_actors()
+    editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    actors = editor_actor_subsystem.get_all_level_actors()
     result += "🎭 Testing level.actors command...\\n"
     result += f"✅ Level actors retrieved: {len(actors)} total actors\\n\\n"
 except Exception as e:
@@ -1231,7 +1245,8 @@ if instance:
     )
 
 # Apply material (requires component access and slot management)
-actors = unreal.EditorLevelLibrary.get_all_level_actors()
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+actors = editor_actor_subsystem.get_all_level_actors()
 for actor in actors:
     if actor.get_actor_label() == "Floor_01":
         mesh_comp = actor.get_component_by_class(unreal.StaticMeshComponent)

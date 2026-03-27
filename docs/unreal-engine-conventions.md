@@ -188,7 +188,8 @@ import math
 
 # Find all actors in a radius and rotate them
 center = unreal.Vector(0, 0, 0)
-all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+all_actors = editor_actor_subsystem.get_all_level_actors()
 
 for actor in all_actors:
     loc = actor.get_actor_location()
@@ -209,10 +210,11 @@ for asset_path in assets:
 # Example 3: Custom editor automation
 def place_actors_in_grid(asset_path, grid_size=5, spacing=200):
     """Place actors in a grid pattern"""
+    editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
     for x in range(grid_size):
         for y in range(grid_size):
             location = unreal.Vector(x * spacing, y * spacing, 0)
-            unreal.EditorLevelLibrary.spawn_actor_from_object(
+            editor_actor_subsystem.spawn_actor_from_object(
                 unreal.EditorAssetLibrary.load_asset(asset_path),
                 location
             )

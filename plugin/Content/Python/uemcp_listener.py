@@ -41,6 +41,29 @@ abandoned_requests = {}  # request_id -> abandon timestamp (float); cleaned up p
 _response_events = {}  # Per-request threading.Event objects
 _response_lock = threading.Lock()  # Protects response_queue, abandoned_requests, _response_events
 
+# Fallback timeout defaults for direct HTTP callers that don't send a timeout field.
+# The MCP server (TypeScript) always sends timeout — these only apply to raw HTTP calls.
+_COMMAND_TIMEOUTS = {
+    "viewport_screenshot": 30,
+    "asset_import_assets": 60,
+    "batch_operations": 30,
+    "actor_batch_spawn": 30,
+    "blueprint_compile": 30,
+    "blueprint_create": 30,
+    "blueprint_document": 30,
+    "python_proxy": 30,
+    "material_create_simple_material": 20,
+    "material_create_material_instance": 20,
+}
+_DEFAULT_TIMEOUT = 10
+
+# Maps legacy dot-style command types to their registered command names for timeout lookup.
+# Only entries whose registered name differs from the normalized (dot->underscore) form are needed.
+_LEGACY_COMMAND_MAP = {
+    "python.execute": "python_proxy",
+    "python.proxy": "python_proxy",
+}
+
 
 class UEMCPHandler(BaseHTTPRequestHandler):
     """HTTP handler for UEMCP commands"""
@@ -83,10 +106,26 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             # Queue command for main thread
             command_queue.put((request_id, command))
 
+            # Determine timeout: explicit (from MCP server) > per-command fallback > 10s default
+            # Normalize legacy dot-style types (e.g., "viewport.screenshot") to underscore form
+            # then also check the mapped command name (e.g., "python.execute" -> "python_proxy")
+            command_type = command.get("type", "")
+            normalized_type = command_type.replace(".", "_") if isinstance(command_type, str) else ""
+            mapped_type = _LEGACY_COMMAND_MAP.get(command_type, normalized_type)
+            fallback_timeout = _COMMAND_TIMEOUTS.get(
+                mapped_type, _COMMAND_TIMEOUTS.get(normalized_type, _DEFAULT_TIMEOUT)
+            )
+            raw_timeout = command.get("timeout", fallback_timeout)
+            # Validate/coerce timeout to a bounded positive number
+            try:
+                timeout = max(1, min(float(raw_timeout), 120))
+            except (TypeError, ValueError):
+                timeout = fallback_timeout
+
             # Wait for response
-            result = self._wait_for_response(request_id, event=event)
+            result = self._wait_for_response(request_id, timeout=timeout, event=event)
             if result is None:
-                self.send_error(504, "Command execution timeout")
+                self.send_error(504, f"Command execution timeout after {timeout}s")
                 return
 
             # Send response

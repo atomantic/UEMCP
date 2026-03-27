@@ -29,7 +29,7 @@ async function testPythonProxy() {
       type: 'python.execute',
       params: {
         code: `# Get all actors in the level
-actors = unreal.EditorLevelLibrary.get_all_level_actors()
+actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
 result = [actor.get_actor_label() for actor in actors[:5]]`
       }
     });
@@ -48,7 +48,7 @@ result = [actor.get_actor_label() for actor in actors[:5]]`
       params: {
         code: `# Find actors near a position
 position = unreal.Vector(x, y, z)
-actors = unreal.EditorLevelLibrary.get_all_level_actors()
+actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
 nearby = []
 for actor in actors:
     distance = (actor.get_actor_location() - position).length()
@@ -96,7 +96,7 @@ result = {
       type: 'python.execute',
       params: {
         code: `# Find all actors that are underground (z < -100)
-actors = unreal.EditorLevelLibrary.get_all_level_actors()
+actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
 underground_actors = []
 
 for actor in actors:

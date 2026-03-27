@@ -238,7 +238,7 @@ if not cube_mesh:
     result = {'success': False, 'error': 'Could not load cube mesh'}
 else:
     # Spawn the cube as an actor
-    actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
+    actor = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).spawn_actor_from_object(
         cube_mesh,
         unreal.Vector(${position[0]}, ${position[1]}, ${position[2]})
     )
@@ -284,7 +284,7 @@ if not cube_mesh:
     result = {'success': False, 'error': 'Could not load cube mesh'}
 else:
     # Spawn the cube as an actor
-    actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
+    actor = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).spawn_actor_from_object(
         cube_mesh,
         unreal.Vector(${socketLocation[0] * 2}, ${socketLocation[1] * 2}, 0)  # Spawn away from origin
     )
@@ -428,8 +428,8 @@ else:
     // Verify position with offset
     const verifyResult = await this.client.callTool('python_proxy', {
       code: `import unreal
-window = unreal.EditorLevelLibrary.get_actor_reference('TestWindow_Offset')
-wall = unreal.EditorLevelLibrary.get_actor_reference('TestWall_Offset')
+window = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_actor_reference('TestWindow_Offset')
+wall = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_actor_reference('TestWall_Offset')
 
 if window and wall:
     window_loc = window.get_actor_location()

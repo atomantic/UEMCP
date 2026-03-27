@@ -2,9 +2,15 @@
 UEMCP Level Operations - All level and project-related operations
 """
 
-import unreal
+from typing import Optional
 
-from utils import get_all_actors, get_project_info
+from utils import (
+    get_actor_subsystem,
+    get_all_actors,
+    get_level_editor_subsystem,
+    get_project_info,
+    get_unreal_editor_subsystem,
+)
 
 # Enhanced error handling framework
 from utils.error_handling import ProcessingError, TypeRule, handle_unreal_errors, safe_operation, validate_inputs
@@ -24,7 +30,8 @@ class LevelOperations:
         Raises:
             ProcessingError: If level save operation fails
         """
-        success = unreal.EditorLevelLibrary.save_current_level()
+        level_editor_subsystem = get_level_editor_subsystem()
+        success = level_editor_subsystem.save_current_level()
         if not success:
             raise ProcessingError("Failed to save level")
         return {"message": "Level saved successfully"}
@@ -43,7 +50,7 @@ class LevelOperations:
     @validate_inputs({"filter": [TypeRule(str, allow_none=True)], "limit": [TypeRule(int)]})
     @handle_unreal_errors("get_level_actors")
     @safe_operation("level")
-    def get_level_actors(self, filter=None, limit=30):
+    def get_level_actors(self, filter: Optional[str] = None, limit: int = 30):
         """Get all actors in the current level.
 
         Args:
@@ -56,7 +63,7 @@ class LevelOperations:
         actors = get_all_actors(filter_text=filter, limit=limit)
 
         # Count total actors
-        editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+        editor_actor_subsystem = get_actor_subsystem()
         all_actors = editor_actor_subsystem.get_all_level_actors()
 
         if filter:
@@ -78,13 +85,13 @@ class LevelOperations:
         return {
             "actors": actors,
             "totalCount": total_count,
-            "currentLevel": unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world().get_name(),
+            "currentLevel": get_unreal_editor_subsystem().get_editor_world().get_name(),
         }
 
     @validate_inputs({"showEmpty": [TypeRule(bool)], "maxDepth": [TypeRule(int)]})
     @handle_unreal_errors("get_outliner_structure")
     @safe_operation("level")
-    def get_outliner_structure(self, showEmpty=False, maxDepth=10):
+    def get_outliner_structure(self, showEmpty: bool = False, maxDepth: int = 10):
         """Get the World Outliner folder structure.
 
         Args:
@@ -95,7 +102,7 @@ class LevelOperations:
             dict: Outliner structure
         """
         # Get all actors
-        editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+        editor_actor_subsystem = get_actor_subsystem()
         all_actors = editor_actor_subsystem.get_all_level_actors()
 
         # Build folder structure

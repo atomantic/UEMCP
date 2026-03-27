@@ -8,6 +8,7 @@ import collections
 import os
 import re
 import sys
+from typing import Optional
 
 # import importlib
 import unreal
@@ -34,7 +35,7 @@ class SystemOperations:
     @validate_inputs({"tool": [TypeRule(str, allow_none=True)], "category": [TypeRule(str, allow_none=True)]})
     @handle_unreal_errors("get_help")
     @safe_operation("system")
-    def help(self, tool=None, category=None):
+    def help(self, tool: Optional[str] = None, category: Optional[str] = None):
         """Get help information about UEMCP tools and commands.
 
         Args:
@@ -117,7 +118,8 @@ class SystemOperations:
                 "parameters": {"code": "Python code to execute", "context": "Optional context variables (dict)"},
                 "examples": [
                     'python_proxy({ code: "import unreal\\nprint(unreal.SystemLibrary.get_project_name())" })',
-                    'python_proxy({ code: "result = len(unreal.EditorLevelLibrary.get_all_level_actors())" })',
+                    'python_proxy({ code: "eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)\\n'
+                    'result = len(eas.get_all_level_actors())" })',
                 ],
             },
             "material_list": {
@@ -254,7 +256,7 @@ class SystemOperations:
     @validate_inputs({"force": [TypeRule(bool)]})
     @handle_unreal_errors("restart_listener")
     @safe_operation("system")
-    def restart_listener(self, force=False):
+    def restart_listener(self, force: bool = False):
         """Restart the Python listener to reload code changes.
 
         Args:
@@ -322,7 +324,7 @@ class SystemOperations:
     @validate_inputs({"project": [TypeRule(str)], "lines": [TypeRule(int)]})
     @handle_unreal_errors("read_ue_logs")
     @safe_operation("system")
-    def ue_logs(self, project="Home", lines=100):
+    def ue_logs(self, project: str = "Home", lines: int = 100):
         """Fetch recent lines from the Unreal Engine log file.
 
         Args:
@@ -376,7 +378,7 @@ class SystemOperations:
     @validate_inputs({"code": [RequiredRule(), TypeRule(str)], "context": [TypeRule(dict, allow_none=True)]})
     @handle_unreal_errors("execute_python")
     @safe_operation("system")
-    def python_proxy(self, code, context=None):
+    def python_proxy(self, code: str, context: Optional[dict] = None):
         """Execute arbitrary Python code in Unreal Engine.
 
         Args:

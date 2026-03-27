@@ -215,6 +215,7 @@ import random
 
 def create_city_block(center_x, center_y, block_size=3000, building_spacing=600):
     """Generate a procedural city block with random buildings"""
+    editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
     buildings = []
     
     # Define building types and sizes
@@ -231,7 +232,7 @@ def create_city_block(center_x, center_y, block_size=3000, building_spacing=600)
                 building_type, size = random.choice(building_types)
                 rotation = random.choice([0, 90, 180, 270])
                 
-                actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
+                actor = editor_actor_subsystem.spawn_actor_from_object(
                     unreal.EditorAssetLibrary.load_asset(building_type),
                     unreal.Vector(center_x + x, center_y + y, 0),
                     unreal.Rotator(0, rotation, 0)

@@ -1,6 +1,6 @@
 {
   "name": "uemcp",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Unreal Engine Model Context Protocol - AI Assistant Integration",
   "keywords": [
     "unreal-engine",
@@ -30,7 +30,7 @@
     "typecheck": "cd server && npm run typecheck"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.19.0"
   },
   "devDependencies": {},
   "dependencies": {}

@@ -5,7 +5,7 @@ This document lists confirmed issues with Unreal Engine's Python API and their w
 ## Confirmed Issues
 
 ### 1. Actor Reference by Display Name
-**Issue:** `EditorLevelLibrary.get_actor_reference()` doesn't work with display names (actor labels), only with internal actor names.
+**Issue:** `EditorActorSubsystem.get_actor_reference()` doesn't work with display names (actor labels), only with internal actor names.
 
 **Status:** ✅ Confirmed - This is a real limitation of the UE Python API
 
@@ -108,13 +108,15 @@ The Python API doesn't provide built-in batch operations, but this is a feature 
 def spawn_actors_batch(spawn_list):
     """Custom batch spawn implementation for efficiency"""
     spawned = []
-    
+    editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+
     # Optional: Disable viewport updates for performance
-    unreal.EditorLevelLibrary.set_level_viewport_realtime(False)
-    
+    level_editor_subsystem.editor_set_viewport_realtime(False)
+
     try:
         for item in spawn_list:
-            actor = unreal.EditorLevelLibrary.spawn_actor_from_object(
+            actor = editor_actor_subsystem.spawn_actor_from_object(
                 item['asset'],
                 item.get('location', unreal.Vector()),
                 item.get('rotation', unreal.Rotator())
@@ -124,8 +126,8 @@ def spawn_actors_batch(spawn_list):
             spawned.append(actor)
     finally:
         # Re-enable viewport
-        unreal.EditorLevelLibrary.set_level_viewport_realtime(True)
-    
+        level_editor_subsystem.editor_set_viewport_realtime(True)
+
     return spawned
 ```
 
@@ -152,7 +154,8 @@ def safe_actor_operation(actor_name, operation):
             return False
             
         # Verify actor is still valid
-        all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+        editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+        all_actors = editor_actor_subsystem.get_all_level_actors()
         if actor not in all_actors:
             unreal.log_error(f"Actor '{actor_name}' is no longer valid")
             return False
@@ -200,17 +203,19 @@ class EditorOperations:
 
 ### 2. Viewport Update Control
 ```python
+level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 # Disable viewport updates during heavy operations
-unreal.EditorLevelLibrary.set_level_viewport_realtime(False)
+level_editor_subsystem.editor_set_viewport_realtime(False)
 # ... perform many operations ...
-unreal.EditorLevelLibrary.set_level_viewport_realtime(True)
+level_editor_subsystem.editor_set_viewport_realtime(True)
 ```
 
 ### 3. Use List Comprehensions for Filtering
 ```python
 # Efficient actor filtering
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
 walls = [
-    actor for actor in unreal.EditorLevelLibrary.get_all_level_actors()
+    actor for actor in editor_actor_subsystem.get_all_level_actors()
     if actor and 'Wall' in actor.get_actor_label()
 ]
 ```

@@ -157,13 +157,15 @@ def spawn(self, assetPath: str, location: List[float], rotation: List[float] = [
 ```python
 # ❌ ANTI-PATTERN: Using exceptions to validate
 try:
-    actor = unreal.EditorLevelLibrary.get_all_level_actors()[0]
+    editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    actor = editor_actor_subsystem.get_all_level_actors()[0]
     name = actor.get_actor_label()
 except (IndexError, AttributeError):
     actor = None
 
 # ✅ CORRECT: Validate before using
-all_actors = unreal.EditorLevelLibrary.get_all_level_actors()
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+all_actors = editor_actor_subsystem.get_all_level_actors()
 if not all_actors or not hasattr(all_actors[0], 'get_actor_label'):
     actor = None
 else:

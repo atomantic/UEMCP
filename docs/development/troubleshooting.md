@@ -5,7 +5,7 @@
 Before troubleshooting, run these diagnostics:
 
 ```bash
-# Check Node.js version (should be 18+)
+# Check Node.js version (should be 20+)
 node --version
 
 # Test the server directly
@@ -107,7 +107,7 @@ npm install --verbose
 #### "Build fails with TypeScript errors"
 
 **Solutions:**
-1. Check Node version: `node --version` (needs 18+)
+1. Check Node version: `node --version` (needs 20+)
 2. Delete and reinstall:
    ```bash
    rm -rf node_modules package-lock.json
@@ -256,13 +256,27 @@ restart_listener()
 #### "Deprecation warnings for EditorLevelLibrary"
 
 **Symptoms:**
-- Warning about deprecated `get_editor_world()` function
+- Warning about deprecated `EditorLevelLibrary` methods
 
 **Solution:**
-This has been fixed in the latest version. The plugin now uses:
+All `EditorLevelLibrary` methods have been fully migrated to their modern subsystem equivalents:
 ```python
-unreal.UnrealEditorSubsystem().get_editor_world()
+# Actor operations (spawn, delete, get, select)
+editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+editor_actor_subsystem.get_all_level_actors()
+editor_actor_subsystem.spawn_actor_from_object(asset, location, rotation)
+editor_actor_subsystem.destroy_actor(actor)
+
+# Level operations (save, viewport realtime, pilot)
+level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+level_editor_subsystem.save_current_level()
+level_editor_subsystem.editor_set_viewport_realtime(True)
+
+# World/editor operations
+editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+editor_subsystem.get_editor_world()
 ```
+No further action is needed -- these warnings should no longer appear.
 
 ### Platform-Specific Issues
 

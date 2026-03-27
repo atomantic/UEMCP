@@ -14,7 +14,15 @@ from typing import List, Optional
 
 import unreal
 
-from utils import create_rotator, create_vector, execute_console_command, log_debug
+from utils import (
+    create_rotator,
+    create_vector,
+    execute_console_command,
+    get_actor_subsystem,
+    get_level_editor_subsystem,
+    get_unreal_editor_subsystem,
+    log_debug,
+)
 
 # Enhanced error handling framework
 from utils.error_handling import (
@@ -124,7 +132,7 @@ class ViewportOperations:
         Returns:
             dict: Result with camera info
         """
-        editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+        editor_subsystem = get_unreal_editor_subsystem()
 
         if focusActor:
             # Find and focus on specific actor using error handling framework
@@ -147,8 +155,9 @@ class ViewportOperations:
             editor_subsystem.set_level_viewport_camera_info(camera_location, camera_rotation)
 
             # Also pilot the actor for better framing
-            unreal.EditorLevelLibrary.pilot_level_actor(target_actor)
-            unreal.EditorLevelLibrary.eject_pilot_level_actor()
+            level_editor_subsystem = get_level_editor_subsystem()
+            level_editor_subsystem.pilot_level_actor(target_actor)
+            level_editor_subsystem.eject_pilot_level_actor()
 
             current_loc = camera_location
             current_rot = camera_rotation
@@ -198,11 +207,11 @@ class ViewportOperations:
         actor = require_actor(actorName)
 
         # Select the actor
-        editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+        editor_actor_subsystem = get_actor_subsystem()
         editor_actor_subsystem.set_selected_level_actors([actor])
 
         # Get editor subsystem
-        editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+        editor_subsystem = get_unreal_editor_subsystem()
 
         # Get actor's location and bounds
         actor_location = actor.get_actor_location()
@@ -269,7 +278,7 @@ class ViewportOperations:
             raise ValidationError(f'Invalid render mode: {mode}. Valid modes: {", ".join(mode_map.keys())}')
 
         # Get editor world for console commands
-        editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+        editor_subsystem = get_unreal_editor_subsystem()
         world = editor_subsystem.get_editor_world()
 
         # Apply the render mode
@@ -311,7 +320,15 @@ class ViewportOperations:
     )
     @handle_unreal_errors("look_at_target")
     @safe_operation("viewport")
-    def look_at_target(self, target=None, actorName=None, distance=1000, pitch=-30, height=500, angle=-135):
+    def look_at_target(
+        self,
+        target: Optional[str] = None,
+        actorName: Optional[str] = None,
+        distance: float = 1000,
+        pitch: float = -30,
+        height: float = 500,
+        angle: float = -135,
+    ):
         """Point viewport camera to look at specific coordinates or actor.
 
         Args:
@@ -356,7 +373,7 @@ class ViewportOperations:
         camera_rotation = unreal.Rotator(0, pitch, yaw)
 
         # Apply to viewport
-        editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+        editor_subsystem = get_unreal_editor_subsystem()
         editor_subsystem.set_level_viewport_camera_info(camera_location, camera_rotation)
 
         return {
@@ -384,7 +401,7 @@ class ViewportOperations:
         mode = mode.lower()
 
         # Get editor subsystem
-        editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+        editor_subsystem = get_unreal_editor_subsystem()
 
         # Get current location to maintain position
         current_location, current_rotation = editor_subsystem.get_level_viewport_camera_info()
@@ -449,7 +466,7 @@ class ViewportOperations:
             unreal.Vector: Camera location
         """
         # Check if any actors are selected for centering
-        editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+        editor_actor_subsystem = get_actor_subsystem()
         selected_actors = editor_actor_subsystem.get_selected_level_actors()
 
         if not selected_actors:
@@ -556,7 +573,7 @@ class ViewportOperations:
             dict: Viewport bounds information
         """
         # Get viewport camera info
-        editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+        editor_subsystem = get_unreal_editor_subsystem()
         camera_location, camera_rotation = editor_subsystem.get_level_viewport_camera_info()
 
         # Get FOV (default to 90 if not available)
@@ -606,7 +623,7 @@ class ViewportOperations:
     )
     @handle_unreal_errors("fit_actors")
     @safe_operation("viewport")
-    def fit_actors(self, actors=None, filter=None, padding=20):
+    def fit_actors(self, actors: Optional[list] = None, filter: Optional[str] = None, padding: float = 20):
         """Fit actors in viewport by adjusting camera position.
 
         Args:
@@ -618,7 +635,7 @@ class ViewportOperations:
             dict: Result with camera adjustment info
         """
         # Get all actors to check
-        editor_actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+        editor_actor_subsystem = get_actor_subsystem()
         all_actors = editor_actor_subsystem.get_all_level_actors()
 
         # Filter actors based on provided criteria
@@ -680,7 +697,7 @@ class ViewportOperations:
         camera_distance = max_dimension * padding_factor
 
         # Get current camera rotation to maintain view angle
-        editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+        editor_subsystem = get_unreal_editor_subsystem()
         current_location, current_rotation = editor_subsystem.get_level_viewport_camera_info()
 
         # Position camera to fit all actors
