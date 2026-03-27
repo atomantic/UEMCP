@@ -1364,7 +1364,13 @@ def _enrich_with_add_node_params(actions):
     for action in actions:
         node_type = action.get("nodeType", "")
         if node_type == "Event":
-            action["addNodeParams"] = {"node_type": action["name"]}
+            if action.get("name") == "CustomEvent":
+                action["addNodeParams"] = {
+                    "node_type": "CustomEvent",
+                    "event_name": "<your_event_name>",
+                }
+            else:
+                action["addNodeParams"] = {"node_type": action["name"]}
         elif node_type == "CallFunction":
             params = {
                 "node_type": "CallFunction",
@@ -1500,8 +1506,8 @@ def discover_actions(
         valid_list = sorted(c for c in _ALL_VALID_CATEGORIES if c is not None)
         raise ValidationError(
             f"Invalid category '{category}'. Valid categories: {', '.join(valid_list)}",
-            field="category",
-            value=category,
+            operation="blueprint_discover_actions",
+            details={"field": "category", "value": category},
         )
 
     context_class = None
@@ -1515,11 +1521,13 @@ def discover_actions(
 
     actions = []
 
+    # Shallow-copy global entries to avoid mutating shared constants
+    # during enrichment (_enrich_with_parameters, _enrich_with_add_node_params)
     if category in (None, "all", "events"):
-        actions.extend(_COMMON_EVENTS)
+        actions.extend(dict(e) for e in _COMMON_EVENTS)
 
     if category in (None, "all", "flow"):
-        actions.extend(_FLOW_NODES)
+        actions.extend(dict(n) for n in _FLOW_NODES)
 
     if context_class and category in (None, "all", "class"):
         actions.extend(_discover_class_actions(context_class))
@@ -1528,6 +1536,18 @@ def discover_actions(
         # Pass specific category to skip irrelevant libraries entirely
         filter_cat = category if category not in (None, "all") else None
         actions.extend(_discover_library_actions(filter_category=filter_cat))
+
+    # Deduplicate actions discovered via multiple paths
+    # (e.g., function libraries discovered both as class and library actions)
+    seen_keys = set()
+    deduped = []
+    for action in actions:
+        key = (action.get("nodeType"), action.get("name"), action.get("className"))
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        deduped.append(action)
+    actions = deduped
 
     if search:
         search_lower = search.lower()

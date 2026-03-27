@@ -442,17 +442,16 @@ class TestActionDiscovery:
         result = _extract_method_info(FakeClass, "nonexistent", "FakeClass")
         assert result is None
 
-    def test_discover_class_actions_unknown_class(self):
+    def test_discover_class_actions_unknown_class(self, monkeypatch):
         """Test _discover_class_actions returns empty for unknown class."""
         from ops.blueprint_graph import _discover_class_actions
 
         # MagicMock auto-creates attrs; explicitly set to None to simulate missing class
-        mock_unreal.NonExistentClass12345 = None
+        monkeypatch.setattr(mock_unreal, "NonExistentClass12345", None)
         result = _discover_class_actions("NonExistentClass12345")
         assert result == []
-        del mock_unreal.NonExistentClass12345
 
-    def test_discover_class_actions_with_mock(self):
+    def test_discover_class_actions_with_mock(self, monkeypatch):
         """Test _discover_class_actions discovers methods on a mocked UE class."""
         from ops.blueprint_graph import _discover_class_actions
 
@@ -466,7 +465,7 @@ class TestActionDiscovery:
                 "_private": lambda self: None,
             },
         )
-        mock_unreal.TestActor = mock_cls
+        monkeypatch.setattr(mock_unreal, "TestActor", mock_cls)
 
         result = _discover_class_actions("TestActor")
         names = [a["name"] for a in result]
@@ -477,10 +476,7 @@ class TestActionDiscovery:
             assert action["category"] == "class"
             assert action["nodeType"] == "CallFunction"
 
-        # Cleanup
-        del mock_unreal.TestActor
-
-    def test_discover_library_actions_deduplicates(self):
+    def test_discover_library_actions_deduplicates(self, monkeypatch):
         """Test that library discovery deduplicates alias classes."""
         from ops.blueprint_graph import _discover_library_actions
 
@@ -492,17 +488,13 @@ class TestActionDiscovery:
                 "add": lambda a, b: a + b,
             },
         )()
-        mock_unreal.KismetMathLibrary = mock_lib
-        mock_unreal.MathLibrary = mock_lib  # Same object
+        monkeypatch.setattr(mock_unreal, "KismetMathLibrary", mock_lib)
+        monkeypatch.setattr(mock_unreal, "MathLibrary", mock_lib)
 
         result = _discover_library_actions()
         # Should only include "add" once since both names point to same id()
         add_entries = [a for a in result if a["name"] == "add"]
         assert len(add_entries) == 1
-
-        # Cleanup
-        del mock_unreal.KismetMathLibrary
-        del mock_unreal.MathLibrary
 
     def test_discover_actions_signature(self):
         """Test discover_actions function signature has correct defaults."""
@@ -526,3 +518,12 @@ class TestActionDiscovery:
 
         assert "limit" in sig.parameters
         assert sig.parameters["limit"].default == 50
+
+    def test_discover_actions_invalid_category_returns_error(self):
+        """Test discover_actions returns error dict for invalid category."""
+        from ops.blueprint_graph import discover_actions
+
+        result = discover_actions(category="bogus")
+        assert result["success"] is False
+        assert "Invalid category 'bogus'" in result["error"]
+        assert "category" in result.get("details", {}).get("field", "")
