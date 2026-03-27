@@ -143,13 +143,24 @@ export class DynamicToolRegistry {
     this.initialized = false;
     this.tools = new Map();
     this.manifest = null;
-    const success = await this.initialize();
-    if (!success) {
-      // Restore previous state on failure
+    try {
+      const success = await this.initialize();
+      if (!success) {
+        // Restore previous state on failure
+        this.tools = prevTools;
+        this.manifest = prevManifest;
+        this.initialized = true;
+      }
+      return success;
+    } catch (error) {
+      // Restore previous state if initialize() throws
       this.tools = prevTools;
       this.manifest = prevManifest;
       this.initialized = true;
+      logger.error('Exception during registry refresh, restored previous state:', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return false;
     }
-    return success;
   }
 }

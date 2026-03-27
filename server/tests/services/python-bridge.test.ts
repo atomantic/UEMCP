@@ -13,10 +13,12 @@ jest.mock('../../src/utils/logger.js', () => ({
 describe('PythonBridge', () => {
   let pythonBridge: PythonBridge;
   let originalEnv: NodeJS.ProcessEnv;
+  let originalFetch: typeof global.fetch;
   let mockFetch: jest.Mock;
 
   beforeEach(() => {
     originalEnv = { ...process.env };
+    originalFetch = global.fetch;
     jest.clearAllMocks();
     mockFetch = jest.fn();
     global.fetch = mockFetch;
@@ -25,6 +27,7 @@ describe('PythonBridge', () => {
 
   afterEach(() => {
     process.env = originalEnv;
+    global.fetch = originalFetch;
   });
 
   describe('constructor', () => {
@@ -100,6 +103,28 @@ describe('PythonBridge', () => {
       mockFetch.mockResolvedValue(mockResponse);
 
       await expect(pythonBridge.executeCommand(mockCommand)).rejects.toThrow('Python listener HTTP 500');
+    });
+
+    it('should abort the request after 10 seconds', async () => {
+      jest.useFakeTimers();
+
+      // fetch never resolves — simulates a hung connection
+      mockFetch.mockImplementation((_url: string, options: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => {
+            reject(new DOMException('The operation was aborted.', 'AbortError'));
+          });
+        });
+      });
+
+      const executePromise = pythonBridge.executeCommand(mockCommand);
+
+      // Advance past the 10-second AbortController timeout
+      jest.advanceTimersByTime(10001);
+
+      await expect(executePromise).rejects.toThrow('The operation was aborted.');
+
+      jest.useRealTimers();
     });
   });
 

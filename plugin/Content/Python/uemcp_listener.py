@@ -74,11 +74,15 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             request_id = self._generate_request_id()
             self._log_command(command)
 
+            # Register event BEFORE queuing so _post_response never misses it
+            event = threading.Event()
+            _response_events[request_id] = event
+
             # Queue command for main thread
             command_queue.put((request_id, command))
 
             # Wait for response
-            result = self._wait_for_response(request_id)
+            result = self._wait_for_response(request_id, event=event)
             if result is None:
                 self.send_error(504, "Command execution timeout")
                 return
@@ -99,7 +103,14 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         if raw_length is None:
             self.send_error(411, "Content-Length required")
             return None
-        content_length = int(raw_length)
+        try:
+            content_length = int(raw_length)
+        except ValueError:
+            self.send_error(400, "Invalid Content-Length")
+            return None
+        if content_length <= 0:
+            self.send_error(400, "Content-Length must be positive")
+            return None
         if content_length > 10 * 1024 * 1024:  # 10 MB cap
             self.send_error(413, "Request body too large")
             return None
@@ -149,18 +160,21 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             param_info.append(f"{k}={v}")
         return ", ".join(param_info)
 
-    def _wait_for_response(self, request_id, timeout=10.0):
+    def _wait_for_response(self, request_id, timeout=10.0, event=None):
         """Wait for command response.
 
         Args:
             request_id: Request ID to wait for
             timeout: Maximum wait time in seconds
+            event: Pre-created threading.Event already registered in _response_events.
+                   If None, a new event is created and registered here (not race-safe).
 
         Returns:
             dict or None: Response if received, None on timeout
         """
-        event = threading.Event()
-        _response_events[request_id] = event
+        if event is None:
+            event = threading.Event()
+            _response_events[request_id] = event
 
         if event.wait(timeout=timeout) and request_id in response_queue:
             _response_events.pop(request_id, None)

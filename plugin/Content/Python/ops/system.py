@@ -336,8 +336,12 @@ class SystemOperations:
         if not re.match(r"^[A-Za-z0-9_\-]+$", project):
             return {"success": False, "error": f"Invalid project name: {project}"}
 
-        # Cap lines to avoid excessive memory use
-        lines = min(lines, 1000)
+        # Coerce and clamp lines to avoid TypeError or confusing behavior
+        try:
+            lines = int(lines)
+        except (TypeError, ValueError):
+            lines = 100
+        lines = max(1, min(lines, 1000))
 
         # Construct log file path
         if sys.platform == "darwin":  # macOS
