@@ -357,15 +357,19 @@ class SystemOperations:
         if not os.path.exists(log_path):
             return {"success": False, "error": f"Log file not found: {log_path}"}
 
-        # Read last N lines efficiently without loading entire file into memory
+        # Read last N lines efficiently: single pass with a counter and fixed-size deque
+        total_lines = 0
+        tail = collections.deque(maxlen=lines)
         with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
-            recent_lines = list(collections.deque(f, maxlen=lines))
+            for line in f:
+                total_lines += 1
+                tail.append(line)
 
         return {
             "success": True,
             "logPath": log_path,
-            "lines": recent_lines,
-            "totalLines": None,  # Not available with tail-read; kept for response shape compat
+            "lines": list(tail),
+            "totalLines": total_lines,
             "requestedLines": lines,
         }
 

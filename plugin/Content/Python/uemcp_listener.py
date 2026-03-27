@@ -39,6 +39,7 @@ command_queue = queue.Queue()
 response_queue = {}
 abandoned_requests = set()  # Request IDs whose HTTP handler timed out
 _response_events = {}  # Per-request threading.Event objects
+_response_lock = threading.Lock()  # Protects response_queue, abandoned_requests, _response_events
 
 
 class UEMCPHandler(BaseHTTPRequestHandler):
@@ -76,7 +77,8 @@ class UEMCPHandler(BaseHTTPRequestHandler):
 
             # Register event BEFORE queuing so _post_response never misses it
             event = threading.Event()
-            _response_events[request_id] = event
+            with _response_lock:
+                _response_events[request_id] = event
 
             # Queue command for main thread
             command_queue.put((request_id, command))
@@ -167,26 +169,27 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             request_id: Request ID to wait for
             timeout: Maximum wait time in seconds
             event: Pre-created threading.Event already registered in _response_events.
-                   If None, a new event is created and registered here (not race-safe).
 
         Returns:
             dict or None: Response if received, None on timeout
         """
         if event is None:
             event = threading.Event()
-            _response_events[request_id] = event
+            with _response_lock:
+                _response_events[request_id] = event
 
-        if event.wait(timeout=timeout) and request_id in response_queue:
+        # Wait outside the lock — the event is set by _post_response
+        event.wait(timeout=timeout)
+
+        # Atomically check result and clean up under the lock
+        with _response_lock:
+            result = response_queue.pop(request_id, None)
             _response_events.pop(request_id, None)
-            return response_queue.pop(request_id)
-
-        # Timeout: mark as abandoned BEFORE removing event to close the race window
-        # where _post_response could store a result between these two operations.
-        abandoned_requests.add(request_id)
-        _response_events.pop(request_id, None)
-        # Clean up any result that snuck in before we marked abandoned
-        response_queue.pop(request_id, None)
-        return None
+            if result is not None:
+                return result
+            # Timeout: mark abandoned so _post_response discards late results
+            abandoned_requests.add(request_id)
+            return None
 
     def _send_json_response(self, code, data):
         """Send JSON response.
@@ -286,17 +289,17 @@ def execute_on_main_thread(command):
 def _post_response(request_id, result):
     """Store result and signal the waiting HTTP handler thread.
 
-    If the request was already abandoned (timed out) or no event is registered
-    (handler already left), discard the result to prevent memory leaks.
+    All shared state access is protected by _response_lock to prevent races.
     """
-    if request_id in abandoned_requests:
-        abandoned_requests.discard(request_id)
-        return
-    event = _response_events.get(request_id)
-    if event is None:
-        # No handler waiting — discard to prevent response_queue leak
-        return
-    response_queue[request_id] = result
+    with _response_lock:
+        if request_id in abandoned_requests:
+            abandoned_requests.discard(request_id)
+            return
+        event = _response_events.get(request_id)
+        if event is None:
+            return
+        response_queue[request_id] = result
+    # Set event outside lock so the waiter can acquire the lock to read
     event.set()
 
 
