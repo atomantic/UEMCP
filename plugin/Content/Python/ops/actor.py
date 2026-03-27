@@ -14,6 +14,7 @@ from utils import create_rotator, create_transform, create_vector, find_actor_by
 # Enhanced error handling framework
 from utils.error_handling import (
     AssetPathRule,
+    DisableViewportUpdates,
     ListLengthRule,
     OffsetRule,
     ProcessingError,
@@ -367,7 +368,7 @@ class ActorOperations:
         {
             "sourceName": [RequiredRule(), TypeRule(str)],
             "name": [TypeRule(str, allow_none=True)],
-            "offset": [TypeRule(dict)],
+            "offset": [OffsetRule()],
             "validate": [TypeRule(bool)],
         }
     )
@@ -586,20 +587,9 @@ class ActorOperations:
         spawned_actors = []
         failed_spawns = []
 
-        # Manage viewport for performance
-        viewport_disabled = self._try_disable_viewport()
-
-        # Spawn each actor with viewport cleanup guaranteed
-        # Note: Framework handles errors, but we need viewport cleanup regardless
-        spawning_error = None
-        spawning_error = self._spawn_actors_batch_loop(actors, commonFolder, spawned_actors, failed_spawns)
-
-        # Always restore viewport
-        self._restore_viewport(viewport_disabled)
-
-        # Re-raise any framework errors after cleanup
-        if spawning_error:
-            raise spawning_error
+        # Manage viewport for performance, restoring on exit regardless of errors
+        with DisableViewportUpdates():
+            self._spawn_actors_batch_loop(actors, commonFolder, spawned_actors, failed_spawns)
 
         execution_time = time.time() - start_time
 
@@ -617,29 +607,6 @@ class ActorOperations:
             "executionTime": execution_time,
         }
 
-    def _try_disable_viewport(self):
-        """Try to disable viewport updates for performance.
-
-        Returns:
-            bool: True if viewport was disabled
-        """
-        # Check if method exists before calling
-        if hasattr(unreal.EditorLevelLibrary, "set_level_viewport_realtime"):
-            unreal.EditorLevelLibrary.set_level_viewport_realtime(False)
-            return True
-        else:
-            log_debug("Viewport realtime control not available")
-            return False
-
-    def _restore_viewport(self, was_disabled):
-        """Restore viewport if it was disabled.
-
-        Args:
-            was_disabled: Whether viewport was disabled
-        """
-        if was_disabled and hasattr(unreal.EditorLevelLibrary, "set_level_viewport_realtime"):
-            unreal.EditorLevelLibrary.set_level_viewport_realtime(True)
-
     def _spawn_actors_batch_loop(self, actors, commonFolder, spawned_actors, failed_spawns):
         """Spawn actors in a loop, collecting results without framework interference.
 
@@ -650,7 +617,7 @@ class ActorOperations:
             failed_spawns: List to collect failed spawns
 
         Returns:
-            Exception or None: Any error that should be re-raised
+            None
         """
         for actor_config in actors:
             result = self._spawn_single_batch_actor(actor_config, commonFolder)
@@ -659,12 +626,6 @@ class ActorOperations:
             else:
                 failed_spawns.append(result["error_data"])
 
-        if failed_spawns:
-            return ProcessingError(
-                message=f"Failed to spawn {len(failed_spawns)} actors",
-                operation="batch_spawn_actors",
-                details={"failed_spawns": failed_spawns},
-            )
         return None
 
     def _spawn_single_batch_actor(self, actor_config, common_folder):
@@ -847,20 +808,20 @@ class ActorOperations:
         if error:
             raise ValidationError(f"Actor data gathering failed: {error}")
 
-            # Detect placement issues
-            gaps, overlaps = self._detect_placement_issues(actor_data, tolerance, modularSize)
+        # Detect placement issues
+        gaps, overlaps = self._detect_placement_issues(actor_data, tolerance, modularSize)
 
-            # Check alignment if requested
-            alignment_issues = []
-            if checkAlignment:
-                alignment_issues = self._check_all_alignments(actor_data, modularSize, tolerance)
+        # Check alignment if requested
+        alignment_issues = []
+        if checkAlignment:
+            alignment_issues = self._check_all_alignments(actor_data, modularSize, tolerance)
 
-            # Generate summary and status
-            execution_time = time.time() - start_time
-            overall_status = self._determine_overall_status(gaps, overlaps, alignment_issues, GAP_THRESHOLD)
-            return self._build_validation_result(
-                gaps, overlaps, alignment_issues, overall_status, len(actors), execution_time
-            )
+        # Generate summary and status
+        execution_time = time.time() - start_time
+        overall_status = self._determine_overall_status(gaps, overlaps, alignment_issues, GAP_THRESHOLD)
+        return self._build_validation_result(
+            gaps, overlaps, alignment_issues, overall_status, len(actors), execution_time
+        )
 
     def _gather_actor_data(self, actor_names):
         """Gather actor objects and their bounds data.
@@ -1278,22 +1239,6 @@ class ActorOperations:
             result["validation"] = self._validate_snap(source, new_location)
 
         return result
-
-    def _find_source_and_target_actors(self, sourceActor, targetActor):
-        """Find source and target actors.
-
-        Returns:
-            tuple: (source, target, error_dict or None)
-        """
-        source = find_actor_by_name(sourceActor)
-        if not source:
-            return None, None, {"success": False, "error": f"Source actor not found: {sourceActor}"}
-
-        target = find_actor_by_name(targetActor)
-        if not target:
-            return None, None, {"success": False, "error": f"Target actor not found: {targetActor}"}
-
-        return source, target, None
 
     def _get_target_socket_transform(self, target, targetActor, targetSocket):
         """Get the target socket transform.
