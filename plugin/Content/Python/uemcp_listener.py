@@ -37,7 +37,7 @@ except ImportError:
 # Queue for main thread execution
 command_queue = queue.Queue()
 response_queue = {}
-abandoned_requests = set()  # Request IDs whose HTTP handler timed out
+abandoned_requests = {}  # request_id -> abandon timestamp (float); cleaned up periodically
 _response_events = {}  # Per-request threading.Event objects
 _response_lock = threading.Lock()  # Protects response_queue, abandoned_requests, _response_events
 
@@ -187,8 +187,8 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             _response_events.pop(request_id, None)
             if result is not None:
                 return result
-            # Timeout: mark abandoned so _post_response discards late results
-            abandoned_requests.add(request_id)
+            # Timeout: mark abandoned with timestamp for periodic cleanup
+            abandoned_requests[request_id] = time.time()
             return None
 
     def _send_json_response(self, code, data):
@@ -293,7 +293,7 @@ def _post_response(request_id, result):
     """
     with _response_lock:
         if request_id in abandoned_requests:
-            abandoned_requests.discard(request_id)
+            del abandoned_requests[request_id]
             return
         event = _response_events.get(request_id)
         if event is None:
@@ -330,12 +330,20 @@ def process_commands():
         log_error(f"Command processing error: {str(e)}")
 
 
+def _cleanup_abandoned_requests():
+    """Remove abandoned_requests entries older than 30 seconds to prevent unbounded growth."""
+    cutoff = time.time() - 30
+    with _response_lock:
+        stale = [rid for rid, ts in abandoned_requests.items() if ts < cutoff]
+        for rid in stale:
+            del abandoned_requests[rid]
+
+
 def tick_handler(delta_time):
     """Main thread tick handler"""
-    # Only process commands, no restart logic here
     try:
-        # Process any queued commands
         process_commands()
+        _cleanup_abandoned_requests()
     except Exception as e:
         log_error(f"Tick handler error: {str(e)}")
 

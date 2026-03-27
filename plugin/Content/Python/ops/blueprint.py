@@ -450,7 +450,11 @@ def document(
 
         project_dir = os.path.realpath(unreal.Paths.project_dir())
         real_output = os.path.realpath(os.path.abspath(output_path))
-        if not real_output.startswith(project_dir + os.sep) and real_output != project_dir:
+        try:
+            common = os.path.commonpath([project_dir, real_output])
+        except ValueError:
+            common = ""
+        if common != project_dir:
             raise ValidationError(
                 f"output_path must be within the UE project directory: {output_path}",
                 operation="document_blueprints",

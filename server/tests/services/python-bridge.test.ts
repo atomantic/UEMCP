@@ -112,7 +112,10 @@ describe('PythonBridge', () => {
       mockFetch.mockImplementation((_url: string, options: RequestInit) => {
         return new Promise((_resolve, reject) => {
           options.signal?.addEventListener('abort', () => {
-            reject(new DOMException('The operation was aborted.', 'AbortError'));
+            // Use plain Error with AbortError name for portability across Node/Jest versions
+            const err = new Error('The operation was aborted.');
+            err.name = 'AbortError';
+            reject(err);
           });
         });
       });
