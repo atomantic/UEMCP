@@ -348,10 +348,15 @@ def _create_function_call_node(blueprint, graph, function_name, target_class, po
     # Resolve the target class for the function
     target = None
     if target_class:
+        # First, try resolving as a built-in Unreal Python class
         target = getattr(unreal, target_class, None)
         if not target:
-            # Try loading as an asset
-            target = unreal.EditorAssetLibrary.load_asset(f"/Script/Engine.{target_class}")
+            # If an explicit asset path is provided, load it as an asset
+            if isinstance(target_class, str) and target_class.startswith("/"):
+                target = unreal.EditorAssetLibrary.load_asset(target_class)
+            else:
+                # Fallback: try loading as a native class from /Script/Engine
+                target = unreal.load_class(None, f"/Script/Engine.{target_class}")
 
     node = unreal.BlueprintEditorLibrary.add_call_function_node(blueprint, graph, function_name, target)
     return node

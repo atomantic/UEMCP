@@ -94,9 +94,14 @@ def _make_pin_type(var_type, sub_type=None):
                 )
             pin_type.pin_sub_category_object = sub_obj
         elif default_sub:
-            sub_obj = unreal.load_object(None, default_sub)
-            if sub_obj:
-                pin_type.pin_sub_category_object = sub_obj
+            if default_sub.startswith("/Script/"):
+                # Loadable object path (struct/object types)
+                sub_obj = unreal.load_object(None, default_sub)
+                if sub_obj:
+                    pin_type.pin_sub_category_object = sub_obj
+            else:
+                # String sub-category (e.g., "double" for real/float types)
+                pin_type.pin_sub_category = default_sub
     else:
         # Try treating it as a struct/object path directly
         pin_type.pin_category = "struct"
@@ -913,7 +918,9 @@ def get_graph(
         result["status"] = {
             "compiled": generated is not None,
             "isDirty": (
-                blueprint.get_editor_property("is_package_dirty") if hasattr(blueprint, "is_package_dirty") else None
+                blueprint.is_package_dirty()
+                if hasattr(blueprint, "is_package_dirty") and callable(getattr(blueprint, "is_package_dirty", None))
+                else None
             ),
         }
 
