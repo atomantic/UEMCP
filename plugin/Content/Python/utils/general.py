@@ -55,18 +55,48 @@ def create_transform(location, rotation, scale):
 
 
 def get_actor_subsystem():
-    """Get the EditorActorSubsystem (replaces deprecated EditorLevelLibrary)."""
-    return unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    """Get the EditorActorSubsystem (replaces deprecated EditorLevelLibrary).
+
+    Returns:
+        EditorActorSubsystem instance
+
+    Raises:
+        RuntimeError: If subsystem is unavailable (e.g., during early startup)
+    """
+    subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    if subsystem is None:
+        raise RuntimeError("EditorActorSubsystem is not available")
+    return subsystem
 
 
 def get_level_editor_subsystem():
-    """Get the LevelEditorSubsystem (replaces deprecated EditorLevelLibrary)."""
-    return unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+    """Get the LevelEditorSubsystem (replaces deprecated EditorLevelLibrary).
+
+    Returns:
+        LevelEditorSubsystem instance
+
+    Raises:
+        RuntimeError: If subsystem is unavailable (e.g., during early startup)
+    """
+    subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+    if subsystem is None:
+        raise RuntimeError("LevelEditorSubsystem is not available")
+    return subsystem
 
 
 def get_unreal_editor_subsystem():
-    """Get the UnrealEditorSubsystem."""
-    return unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+    """Get the UnrealEditorSubsystem.
+
+    Returns:
+        UnrealEditorSubsystem instance
+
+    Raises:
+        RuntimeError: If subsystem is unavailable (e.g., during early startup)
+    """
+    subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+    if subsystem is None:
+        raise RuntimeError("UnrealEditorSubsystem is not available")
+    return subsystem
 
 
 def find_actor_by_name(actor_name):

@@ -390,8 +390,14 @@ class DisableViewportUpdates:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        subsystem = getattr(self, "_subsystem", None)
+        if subsystem is None:
+            try:
+                subsystem = get_level_editor_subsystem()
+            except RuntimeError:
+                log_debug("Skipping viewport re-enable: subsystem unavailable")
+                return
         try:
-            subsystem = self._subsystem or get_level_editor_subsystem()
             subsystem.editor_set_viewport_realtime(True)
             log_debug("Re-enabled viewport updates")
         except Exception as e:

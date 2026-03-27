@@ -105,6 +105,104 @@ describe('PythonBridge', () => {
       await expect(pythonBridge.executeCommand(mockCommand)).rejects.toThrow('Python listener HTTP 500');
     });
 
+    it('should use custom timeout when provided', async () => {
+      jest.useFakeTimers();
+
+      const commandWithTimeout: PythonCommand = { type: 'test', params: {}, timeout: 30 };
+
+      mockFetch.mockImplementation((_url: string, options: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => {
+            const err = new Error('The operation was aborted.');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        });
+      });
+
+      const executePromise = pythonBridge.executeCommand(commandWithTimeout);
+
+      // Should NOT abort at 10s
+      jest.advanceTimersByTime(10001);
+      // Should abort at 30s
+      jest.advanceTimersByTime(20000);
+
+      await expect(executePromise).rejects.toThrow('The operation was aborted.');
+      jest.useRealTimers();
+    });
+
+    it('should clamp timeout exceeding MAX_BRIDGE_TIMEOUT_S to 120s', async () => {
+      jest.useFakeTimers();
+
+      const commandWithHugeTimeout: PythonCommand = { type: 'test', params: {}, timeout: 999 };
+
+      mockFetch.mockImplementation((_url: string, options: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => {
+            const err = new Error('The operation was aborted.');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        });
+      });
+
+      const executePromise = pythonBridge.executeCommand(commandWithHugeTimeout);
+
+      // Should abort at 120s (clamped), not 999s
+      jest.advanceTimersByTime(120001);
+
+      await expect(executePromise).rejects.toThrow('The operation was aborted.');
+      jest.useRealTimers();
+    });
+
+    it('should fall back to default timeout for invalid values', async () => {
+      jest.useFakeTimers();
+
+      const commandWithNaN: PythonCommand = { type: 'test', params: {}, timeout: NaN };
+
+      mockFetch.mockImplementation((_url: string, options: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => {
+            const err = new Error('The operation was aborted.');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        });
+      });
+
+      const executePromise = pythonBridge.executeCommand(commandWithNaN);
+
+      // Should fall back to default 10s
+      jest.advanceTimersByTime(10001);
+
+      await expect(executePromise).rejects.toThrow('The operation was aborted.');
+      jest.useRealTimers();
+    });
+
+    it('should fall back to default timeout for zero', async () => {
+      jest.useFakeTimers();
+
+      const commandWithZero: PythonCommand = { type: 'test', params: {}, timeout: 0 };
+
+      mockFetch.mockImplementation((_url: string, options: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => {
+            const err = new Error('The operation was aborted.');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        });
+      });
+
+      const executePromise = pythonBridge.executeCommand(commandWithZero);
+
+      // Should fall back to default 10s
+      jest.advanceTimersByTime(10001);
+
+      await expect(executePromise).rejects.toThrow('The operation was aborted.');
+      jest.useRealTimers();
+    });
+
     it('should abort the request after 10 seconds', async () => {
       jest.useFakeTimers();
 
