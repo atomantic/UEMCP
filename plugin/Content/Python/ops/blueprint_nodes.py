@@ -27,6 +27,7 @@ _EVENT_NODES = {
     "ActorBeginOverlap": "K2Node_Event",
     "ActorEndOverlap": "K2Node_Event",
     "AnyDamage": "K2Node_Event",
+    "OnHit": "K2Node_Event",
     "OnDestroyed": "K2Node_Event",
 }
 
@@ -35,10 +36,12 @@ _FLOW_NODES = {
     "Branch": "K2Node_IfThenElse",
     "Sequence": "K2Node_ExecutionSequence",
     "DoOnce": "K2Node_DoOnceMultiInput",
+    "DoN": "K2Node_DoN",
     "FlipFlop": "K2Node_FlipFlop",
     "Gate": "K2Node_Gate",
     "Delay": "K2Node_Delay",
     "ForEachLoop": "K2Node_ForEachArrayLoop",
+    "ForLoopWithBreak": "K2Node_ForLoopWithBreak",
     "WhileLoop": "K2Node_WhileLoop",
     "Select": "K2Node_Select",
     "MultiGate": "K2Node_MultiGate",
@@ -228,9 +231,11 @@ def add_node(
         blueprint_path: Path to the Blueprint asset
         node_type: Type of node to add. Options:
             Events: 'BeginPlay', 'Tick', 'EndPlay', 'ActorBeginOverlap',
-                    'ActorEndOverlap', 'AnyDamage', 'OnDestroyed', 'CustomEvent'
-            Flow: 'Branch', 'Sequence', 'DoOnce', 'FlipFlop', 'Gate',
-                  'Delay', 'ForEachLoop', 'WhileLoop', 'Select', 'MultiGate'
+                    'ActorEndOverlap', 'AnyDamage', 'OnHit', 'OnDestroyed',
+                    'CustomEvent'
+            Flow: 'Branch', 'Sequence', 'DoOnce', 'DoN', 'FlipFlop',
+                  'Gate', 'Delay', 'ForEachLoop', 'ForLoopWithBreak',
+                  'WhileLoop', 'Select', 'MultiGate'
             Functions: 'CallFunction' (requires function_name)
             Variables: 'VariableGet', 'VariableSet' (requires variable_name)
             Utility: 'PrintString', 'SetTimer', 'IsValid',

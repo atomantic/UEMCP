@@ -316,3 +316,260 @@ class TestComponentClassMapping:
 
         # Verify no duplicates in the production constant
         assert len(SUPPORTED_COMPONENT_CLASSES) == len(set(SUPPORTED_COMPONENT_CLASSES))
+
+
+class TestActionDiscovery:
+    """Test blueprint action discovery helpers."""
+
+    def test_common_events_structure(self):
+        """Test that common events have required fields."""
+        from ops.blueprint_graph import _COMMON_EVENTS
+
+        assert len(_COMMON_EVENTS) > 0
+        for event in _COMMON_EVENTS:
+            assert "name" in event, f"Event missing 'name': {event}"
+            assert "nodeType" in event, f"Event missing 'nodeType': {event}"
+            assert event["nodeType"] == "Event"
+            assert "category" in event
+            assert event["category"] == "events"
+            assert "description" in event
+
+    def test_flow_nodes_structure(self):
+        """Test that flow nodes have required fields."""
+        from ops.blueprint_graph import _FLOW_NODES
+
+        assert len(_FLOW_NODES) > 0
+        for node in _FLOW_NODES:
+            assert "name" in node, f"Flow node missing 'name': {node}"
+            assert "nodeType" in node, f"Flow node missing 'nodeType': {node}"
+            assert "category" in node
+            assert node["category"] == "flow"
+            assert "description" in node
+
+    def test_flow_nodes_include_key_types(self):
+        """Test that essential flow nodes are present."""
+        from ops.blueprint_graph import _FLOW_NODES
+
+        names = {n["name"] for n in _FLOW_NODES}
+        assert "Branch" in names
+        assert "Sequence" in names
+        assert "ForEachLoop" in names
+        assert "Delay" in names
+
+    def test_common_events_include_key_events(self):
+        """Test that essential events are present."""
+        from ops.blueprint_graph import _COMMON_EVENTS
+
+        names = {e["name"] for e in _COMMON_EVENTS}
+        assert "BeginPlay" in names
+        assert "Tick" in names
+        assert "EndPlay" in names
+
+    def test_function_library_names_not_empty(self):
+        """Test that function library list is populated."""
+        from ops.blueprint_graph import _FUNCTION_LIBRARY_NAMES
+
+        assert len(_FUNCTION_LIBRARY_NAMES) > 5
+
+    def test_library_category_map_covers_all_libraries(self):
+        """Test that every library name has a category mapping."""
+        from ops.blueprint_graph import _FUNCTION_LIBRARY_NAMES, _LIBRARY_CATEGORY_MAP
+
+        for lib in _FUNCTION_LIBRARY_NAMES:
+            assert lib in _LIBRARY_CATEGORY_MAP, f"Library '{lib}' missing from category map"
+
+    def test_extract_method_info_non_callable(self):
+        """Test _extract_method_info returns None for non-callable."""
+        from ops.blueprint_graph import _extract_method_info
+
+        class FakeClass:
+            some_attr = 42
+
+        result = _extract_method_info(FakeClass, "some_attr", "FakeClass")
+        assert result is None
+
+    def test_extract_method_info_callable(self):
+        """Test _extract_method_info extracts lightweight info from a method."""
+        from ops.blueprint_graph import _extract_method_info
+
+        class FakeClass:
+            @staticmethod
+            def do_something(target: str, amount: float = 1.0):
+                """Do something useful."""
+                pass
+
+        result = _extract_method_info(FakeClass, "do_something", "FakeClass", category="math")
+        assert result is not None
+        assert result["name"] == "do_something"
+        assert result["functionName"] == "FakeClass.do_something"
+        assert result["className"] == "FakeClass"
+        assert result["category"] == "math"
+        assert result["description"] == "Do something useful."
+        # Parameters are deferred — not included in lightweight extraction
+        assert "parameters" not in result
+
+    def test_extract_method_info_with_pre_fetched_attr(self):
+        """Test _extract_method_info accepts pre-fetched attribute."""
+        from ops.blueprint_graph import _extract_method_info
+
+        class FakeClass:
+            @staticmethod
+            def my_func():
+                """A function."""
+                pass
+
+        attr = FakeClass.my_func
+        result = _extract_method_info(FakeClass, "my_func", "Fake", attr=attr)
+        assert result is not None
+        assert result["name"] == "my_func"
+
+    def test_valid_library_categories_derived(self):
+        """Test _VALID_LIBRARY_CATEGORIES is derived from _LIBRARY_CATEGORY_MAP."""
+        from ops.blueprint_graph import _LIBRARY_CATEGORY_MAP, _VALID_LIBRARY_CATEGORIES
+
+        for cat in _LIBRARY_CATEGORY_MAP.values():
+            assert cat in _VALID_LIBRARY_CATEGORIES
+        assert None in _VALID_LIBRARY_CATEGORIES
+        assert "all" in _VALID_LIBRARY_CATEGORIES
+
+    def test_extract_method_info_missing_method(self):
+        """Test _extract_method_info returns None for missing method."""
+        from ops.blueprint_graph import _extract_method_info
+
+        class FakeClass:
+            pass
+
+        result = _extract_method_info(FakeClass, "nonexistent", "FakeClass")
+        assert result is None
+
+    def test_discover_class_actions_unknown_class(self, monkeypatch):
+        """Test _discover_class_actions returns empty for unknown class."""
+        from ops.blueprint_graph import _discover_class_actions
+
+        # MagicMock auto-creates attrs; explicitly set to None to simulate missing class
+        monkeypatch.setattr(mock_unreal, "NonExistentClass12345", None)
+        result = _discover_class_actions("NonExistentClass12345")
+        assert result == []
+
+    def test_discover_class_actions_with_mock(self, monkeypatch):
+        """Test _discover_class_actions discovers methods on a mocked UE class."""
+        from ops.blueprint_graph import _discover_class_actions
+
+        # Add a mock class to the unreal module
+        mock_cls = type(
+            "TestActor",
+            (),
+            {
+                "get_name": lambda self: "test",
+                "do_action": lambda self, target: None,
+                "_private": lambda self: None,
+            },
+        )
+        monkeypatch.setattr(mock_unreal, "TestActor", mock_cls)
+
+        result = _discover_class_actions("TestActor")
+        names = [a["name"] for a in result]
+        assert "get_name" in names
+        assert "do_action" in names
+        assert "_private" not in names
+        for action in result:
+            assert action["category"] == "class"
+            assert action["nodeType"] == "CallFunction"
+
+    def test_discover_library_actions_deduplicates(self, monkeypatch):
+        """Test that library discovery deduplicates alias classes."""
+        import ops.blueprint_graph as bg
+        from ops.blueprint_graph import _discover_library_actions
+
+        # Make two library names point to the same mock class
+        mock_lib = type(
+            "MockMathLib",
+            (),
+            {
+                "add": lambda a, b: a + b,
+            },
+        )()
+        monkeypatch.setattr(mock_unreal, "KismetMathLibrary", mock_lib)
+        monkeypatch.setattr(mock_unreal, "MathLibrary", mock_lib)
+        # Constrain to only these two libraries to avoid scanning MagicMock attrs
+        monkeypatch.setattr(bg, "_FUNCTION_LIBRARY_NAMES", ["KismetMathLibrary", "MathLibrary"])
+
+        result = _discover_library_actions()
+        # Should only include "add" once since both names point to same id()
+        add_entries = [a for a in result if a["name"] == "add"]
+        assert len(add_entries) == 1
+
+    def test_discover_actions_signature(self):
+        """Test discover_actions function signature has correct defaults."""
+        import inspect
+
+        from ops.blueprint_graph import discover_actions
+
+        sig = inspect.signature(discover_actions)
+
+        assert "blueprint_path" in sig.parameters
+        assert sig.parameters["blueprint_path"].default is None
+
+        assert "class_name" in sig.parameters
+        assert sig.parameters["class_name"].default is None
+
+        assert "search" in sig.parameters
+        assert sig.parameters["search"].default is None
+
+        assert "category" in sig.parameters
+        assert sig.parameters["category"].default is None
+
+        assert "limit" in sig.parameters
+        assert sig.parameters["limit"].default == 50
+
+    def test_discover_actions_invalid_category_returns_error(self):
+        """Test discover_actions returns error dict for invalid category."""
+        from ops.blueprint_graph import discover_actions
+
+        result = discover_actions(category="bogus")
+        assert result["success"] is False
+        assert "Invalid category 'bogus'" in result["error"]
+        assert "category" in result.get("details", {}).get("field", "")
+
+    def test_discover_actions_events_have_add_node_params(self):
+        """Test that event actions include correct addNodeParams."""
+        from ops.blueprint_graph import discover_actions
+
+        result = discover_actions(category="events")
+        assert result["success"] is True
+        for action in result["actions"]:
+            assert "addNodeParams" in action, f"Missing addNodeParams on {action['name']}"
+            params = action["addNodeParams"]
+            assert "node_type" in params
+            if action["name"] == "CustomEvent":
+                assert params.get("event_name") == "<your_event_name>"
+            else:
+                assert params["node_type"] == action["name"]
+
+    def test_discover_actions_flow_have_add_node_params(self):
+        """Test that flow actions include correct addNodeParams."""
+        from ops.blueprint_graph import discover_actions
+
+        result = discover_actions(category="flow")
+        assert result["success"] is True
+        for action in result["actions"]:
+            assert "addNodeParams" in action
+            assert action["addNodeParams"]["node_type"] == action["name"]
+
+    def test_discover_actions_limit_clamps(self):
+        """Test that limit is clamped between 1 and 200."""
+        from ops.blueprint_graph import discover_actions
+
+        result = discover_actions(category="events", limit=2)
+        assert result["returned"] <= 2
+
+    def test_discover_actions_search_filters(self):
+        """Test that search filters actions by name."""
+        from ops.blueprint_graph import discover_actions
+
+        result = discover_actions(category="events", search="BeginPlay")
+        assert result["success"] is True
+        names = [a["name"] for a in result["actions"]]
+        assert "BeginPlay" in names
+        # Other events should be filtered out
+        assert "Delay" not in names

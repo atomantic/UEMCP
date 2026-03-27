@@ -39,10 +39,11 @@ The #1 gap vs competitors: we can create/compile/document Blueprints but cannot 
 ### Phase 2: Enhanced Compilation
 
 - [x] `blueprint_compile_enhanced` — Return structured errors (node-level, graph-level, component-level) to enable AI self-correction
-- [ ] `blueprint_discover_actions` — Query UE's FBlueprintActionDatabase for available nodes
-  - Discover nodes compatible with a specific pin type
-  - List all functions available for a class (including inherited)
-  - Mirror UE's right-click context menu dynamically
+- [x] `blueprint_discover_actions` — Query UE's reflection system for available nodes
+  - Discover functions on any UE class (including inherited)
+  - Search across function libraries (Math, System, Gameplay, String, etc.)
+  - List available events and flow control nodes
+  - Filter by category, search term, and context class
 
 ### Phase 3: Blueprint Interfaces & Console
 
