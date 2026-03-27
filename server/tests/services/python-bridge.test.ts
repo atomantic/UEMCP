@@ -26,6 +26,7 @@ describe('PythonBridge', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     process.env = originalEnv;
     global.fetch = originalFetch;
   });
@@ -128,7 +129,6 @@ describe('PythonBridge', () => {
       jest.advanceTimersByTime(20000);
 
       await expect(executePromise).rejects.toThrow('The operation was aborted.');
-      jest.useRealTimers();
     });
 
     it('should clamp timeout exceeding MAX_BRIDGE_TIMEOUT_S to 120s', async () => {
@@ -152,7 +152,6 @@ describe('PythonBridge', () => {
       jest.advanceTimersByTime(120001);
 
       await expect(executePromise).rejects.toThrow('The operation was aborted.');
-      jest.useRealTimers();
     });
 
     it('should fall back to default timeout for invalid values', async () => {
@@ -176,7 +175,6 @@ describe('PythonBridge', () => {
       jest.advanceTimersByTime(10001);
 
       await expect(executePromise).rejects.toThrow('The operation was aborted.');
-      jest.useRealTimers();
     });
 
     it('should fall back to default timeout for zero', async () => {
@@ -200,7 +198,6 @@ describe('PythonBridge', () => {
       jest.advanceTimersByTime(10001);
 
       await expect(executePromise).rejects.toThrow('The operation was aborted.');
-      jest.useRealTimers();
     });
 
     it('should abort the request after 10 seconds', async () => {

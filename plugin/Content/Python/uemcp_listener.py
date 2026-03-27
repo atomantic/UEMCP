@@ -57,6 +57,13 @@ _COMMAND_TIMEOUTS = {
 }
 _DEFAULT_TIMEOUT = 10
 
+# Maps legacy dot-style command types to their registered command names for timeout lookup.
+# Only entries whose registered name differs from the normalized (dot->underscore) form are needed.
+_LEGACY_COMMAND_MAP = {
+    "python.execute": "python_proxy",
+    "python.proxy": "python_proxy",
+}
+
 
 class UEMCPHandler(BaseHTTPRequestHandler):
     """HTTP handler for UEMCP commands"""
@@ -101,9 +108,13 @@ class UEMCPHandler(BaseHTTPRequestHandler):
 
             # Determine timeout: explicit (from MCP server) > per-command fallback > 10s default
             # Normalize legacy dot-style types (e.g., "viewport.screenshot") to underscore form
+            # then also check the mapped command name (e.g., "python.execute" -> "python_proxy")
             command_type = command.get("type", "")
             normalized_type = command_type.replace(".", "_") if isinstance(command_type, str) else ""
-            fallback_timeout = _COMMAND_TIMEOUTS.get(normalized_type, _DEFAULT_TIMEOUT)
+            mapped_type = _LEGACY_COMMAND_MAP.get(command_type, normalized_type)
+            fallback_timeout = _COMMAND_TIMEOUTS.get(
+                mapped_type, _COMMAND_TIMEOUTS.get(normalized_type, _DEFAULT_TIMEOUT)
+            )
             raw_timeout = command.get("timeout", fallback_timeout)
             # Validate/coerce timeout to a bounded positive number
             try:

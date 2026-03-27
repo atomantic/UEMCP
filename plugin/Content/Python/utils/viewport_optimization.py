@@ -35,11 +35,8 @@ class ViewportManager:
         try:
             log_debug("Starting viewport optimization for bulk operation")
 
-            # Get all viewports
-            editor_subsystem = get_unreal_editor_subsystem()
-            if not editor_subsystem:
-                log_debug("Could not get editor subsystem")
-                return
+            # Verify editor subsystem is available (raises RuntimeError if not)
+            get_unreal_editor_subsystem()
 
             # Get safe validated values for console commands
             bulk_fps, bulk_screen, _, _ = self._get_safe_values()
