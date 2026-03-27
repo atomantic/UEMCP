@@ -831,3 +831,154 @@ class TestCreateInterface:
         assert callable(create_interface)
         # functools.wraps preserves __wrapped__ through the decorator chain
         assert hasattr(create_interface, "__wrapped__")
+
+
+class TestCoercePropertyValue:
+    """Test the _coerce_property_value helper."""
+
+    def test_passthrough_string(self):
+        """Test that plain strings pass through unchanged."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        assert _coerce_property_value("hello") == "hello"
+
+    def test_passthrough_number(self):
+        """Test that numbers pass through unchanged."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        assert _coerce_property_value(42) == 42
+        assert _coerce_property_value(3.14) == 3.14
+
+    def test_passthrough_bool(self):
+        """Test that booleans pass through unchanged."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        assert _coerce_property_value(True) is True
+        assert _coerce_property_value(False) is False
+
+    def test_list_3_becomes_vector(self):
+        """Test that 3-element list becomes a Vector."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        _coerce_property_value([1.0, 2.0, 3.0])
+        mock_unreal.Vector.assert_called_with(1.0, 2.0, 3.0)
+
+    def test_list_4_becomes_linear_color(self):
+        """Test that 4-element list becomes a LinearColor."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        _coerce_property_value([1.0, 0.5, 0.0, 1.0])
+        mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.5, b=0.0, a=1.0)
+
+    def test_asset_path_game(self):
+        """Test that /Game/ paths trigger asset loading."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        mock_asset = MagicMock()
+        mock_unreal.EditorAssetLibrary.load_asset.return_value = mock_asset
+
+        result = _coerce_property_value("/Game/Meshes/Cube")
+        mock_unreal.EditorAssetLibrary.load_asset.assert_called_with("/Game/Meshes/Cube")
+        assert result == mock_asset
+
+    def test_asset_path_engine(self):
+        """Test that /Engine/ paths trigger asset loading."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        mock_asset = MagicMock()
+        mock_unreal.EditorAssetLibrary.load_asset.return_value = mock_asset
+
+        result = _coerce_property_value("/Engine/BasicShapes/Cube")
+        mock_unreal.EditorAssetLibrary.load_asset.assert_called_with("/Engine/BasicShapes/Cube")
+        assert result == mock_asset
+
+    def test_asset_path_not_found_raises(self):
+        """Test that missing asset path raises ProcessingError."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_property_value
+        from utils.error_handling import ProcessingError
+
+        mock_unreal.EditorAssetLibrary.load_asset.return_value = None
+
+        with pytest.raises(ProcessingError, match="Asset not found"):
+            _coerce_property_value("/Game/Missing/Asset")
+
+
+class TestFindComponentNode:
+    """Test the _find_component_node helper."""
+
+    def test_finds_existing_node(self):
+        """Test finding an SCS node by component name."""
+        from ops.blueprint_graph import _find_component_node
+
+        mock_template = Mock()
+        mock_template.get_name.return_value = "MyMesh"
+
+        mock_node = Mock()
+        mock_node.component_template = mock_template
+
+        mock_scs = Mock()
+        mock_scs.get_all_nodes.return_value = [mock_node]
+
+        result = _find_component_node(mock_scs, "MyMesh")
+        assert result == mock_node
+
+    def test_returns_none_for_missing_component(self):
+        """Test that missing component returns None."""
+        from ops.blueprint_graph import _find_component_node
+
+        mock_template = Mock()
+        mock_template.get_name.return_value = "OtherComp"
+
+        mock_node = Mock()
+        mock_node.component_template = mock_template
+
+        mock_scs = Mock()
+        mock_scs.get_all_nodes.return_value = [mock_node]
+
+        result = _find_component_node(mock_scs, "NonExistent")
+        assert result is None
+
+    def test_skips_nodes_without_template(self):
+        """Test that nodes with no template are skipped."""
+        from ops.blueprint_graph import _find_component_node
+
+        mock_node = Mock()
+        mock_node.component_template = None
+
+        mock_scs = Mock()
+        mock_scs.get_all_nodes.return_value = [mock_node]
+
+        result = _find_component_node(mock_scs, "Anything")
+        assert result is None
+
+
+class TestFindComponentTemplate:
+    """Test the _find_component_template helper delegates to _find_component_node."""
+
+    def test_returns_template_from_node(self):
+        """Test that _find_component_template returns the template, not the node."""
+        from ops.blueprint_graph import _find_component_template
+
+        mock_template = Mock()
+        mock_template.get_name.return_value = "MyMesh"
+
+        mock_node = Mock()
+        mock_node.component_template = mock_template
+
+        mock_scs = Mock()
+        mock_scs.get_all_nodes.return_value = [mock_node]
+
+        result = _find_component_template(mock_scs, "MyMesh")
+        assert result == mock_template
+
+    def test_returns_none_when_not_found(self):
+        """Test that missing component returns None."""
+        from ops.blueprint_graph import _find_component_template
+
+        mock_scs = Mock()
+        mock_scs.get_all_nodes.return_value = []
+
+        result = _find_component_template(mock_scs, "NonExistent")
+        assert result is None

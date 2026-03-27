@@ -214,6 +214,7 @@ def register_all_operations():
         registry.register_command("blueprint_add_variable", blueprint_graph.add_variable)
         registry.register_command("blueprint_remove_variable", blueprint_graph.remove_variable)
         registry.register_command("blueprint_add_component", blueprint_graph.add_component)
+        registry.register_command("blueprint_modify_component", blueprint_graph.modify_component)
         registry.register_command("blueprint_add_function", blueprint_graph.add_function)
         registry.register_command("blueprint_remove_function", blueprint_graph.remove_function)
         registry.register_command("blueprint_add_event_dispatcher", blueprint_graph.add_event_dispatcher)
