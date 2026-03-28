@@ -2,6 +2,8 @@
 Niagara VFX system operations for creating and managing particle effects.
 """
 
+from __future__ import annotations
+
 from typing import Any, Optional
 
 import unreal
@@ -17,7 +19,7 @@ from utils.error_handling import (
     safe_operation,
     validate_inputs,
 )
-from utils.general import get_unreal_editor_subsystem, log_debug
+from utils.general import create_rotator, create_vector, get_unreal_editor_subsystem, log_debug
 
 # ---------------------------------------------------------------------------
 # Template presets for common VFX effects
@@ -63,8 +65,23 @@ _VALID_SECTIONS = ("spawn", "update", "render")
 # Valid renderer types
 _VALID_RENDERER_TYPES = ("sprite", "mesh", "ribbon", "light")
 
+# Renderer class map -- maps renderer type to Unreal class name
+_RENDERER_CLASS_MAP = {
+    "sprite": "NiagaraSpriteRendererProperties",
+    "mesh": "NiagaraMeshRendererProperties",
+    "ribbon": "NiagaraRibbonRendererProperties",
+    "light": "NiagaraLightRendererProperties",
+}
+
 # Valid parameter value types
 _VALID_PARAM_TYPES = ("float", "int", "bool", "vector", "color", "enum")
+
+# Section name to Niagara script attribute mapping
+_SECTION_SCRIPT_MAP = {
+    "spawn": "SpawnScript",
+    "update": "UpdateScript",
+    "render": "RenderScript",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -111,6 +128,44 @@ def _extract_path_parts(system_path: str) -> tuple:
     return "/Game", parts[0]
 
 
+def _resolve_module_path(module_name: str) -> str | None:
+    """Try standard Niagara module paths and return the first that exists."""
+    candidates = [
+        f"/Niagara/Modules/{module_name}",
+        f"/Niagara/Modules/Update/{module_name}",
+        f"/Niagara/Modules/Spawn/{module_name}",
+        f"/Niagara/Modules/Render/{module_name}",
+    ]
+    for candidate in candidates:
+        if unreal.EditorAssetLibrary.does_asset_exist(candidate):
+            return candidate
+    return None
+
+
+def _convert_to_ue_value(value: Any, value_type: str) -> Any:
+    """Convert a Python value to an appropriate Unreal Engine type for Niagara parameters."""
+    if value is None:
+        return None
+    if value_type == "float":
+        return float(value)
+    if value_type == "int":
+        return int(value)
+    if value_type == "bool":
+        return bool(value)
+    if value_type == "vector" and isinstance(value, dict):
+        return create_vector([value["x"], value["y"], value["z"]])
+    if value_type == "color" and isinstance(value, dict):
+        return unreal.LinearColor(
+            r=float(value["r"]),
+            g=float(value["g"]),
+            b=float(value["b"]),
+            a=float(value.get("a", 1.0)),
+        )
+    if value_type == "enum":
+        return str(value)
+    return value
+
+
 # ---------------------------------------------------------------------------
 # Tool functions
 # ---------------------------------------------------------------------------
@@ -132,11 +187,13 @@ def create_system(
 
     Args:
         system_path: Content browser path for the new system (e.g. /Game/VFX/MyFire)
-        template: Optional template preset (fire, smoke, sparks, rain, snow, dust,
-                  explosion, waterfall) for pre-configured effects
+        template: Optional template preset name (fire, smoke, sparks, rain, snow, dust,
+                  explosion, waterfall). Returns preset metadata in the response so the
+                  caller can follow up with add_emitter / add_module calls to configure
+                  the effect. The system itself is created empty.
 
     Returns:
-        Dictionary with creation result including system path
+        Dictionary with creation result including system path and optional template info
     """
     if template and template.lower() not in _TEMPLATE_PRESETS:
         raise ProcessingError(
@@ -158,6 +215,10 @@ def create_system(
 
     package_path, asset_name = _extract_path_parts(system_path)
 
+    # Ensure target directory exists (consistent with blueprint.create)
+    if not unreal.EditorAssetLibrary.does_directory_exist(package_path):
+        unreal.EditorAssetLibrary.make_directory(package_path)
+
     # Create the Niagara system via asset tools + factory
     factory = unreal.NiagaraSystemFactoryNew()
     asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
@@ -170,7 +231,7 @@ def create_system(
             details={"system_path": system_path},
         )
 
-    # Apply template configuration if requested
+    # Build template metadata if requested (preset info for follow-up calls)
     template_info = None
     if template:
         preset = _TEMPLATE_PRESETS[template.lower()]
@@ -228,7 +289,7 @@ def add_emitter(
             details={"emitter_name": emitter_name, "existing_emitters": existing_names},
         )
 
-    # If an emitter asset path is provided, load it as template
+    # If an emitter asset path is provided, load and validate it
     emitter_asset = None
     if emitter_asset_path:
         emitter_asset = unreal.EditorAssetLibrary.load_asset(emitter_asset_path)
@@ -237,6 +298,15 @@ def add_emitter(
                 f"Emitter asset not found: {emitter_asset_path}",
                 operation="niagara_add_emitter",
                 details={"emitter_asset_path": emitter_asset_path},
+            )
+        if not isinstance(emitter_asset, unreal.NiagaraEmitter):
+            raise ProcessingError(
+                f"Asset is not a NiagaraEmitter: {emitter_asset_path} " f"(got {type(emitter_asset).__name__})",
+                operation="niagara_add_emitter",
+                details={
+                    "emitter_asset_path": emitter_asset_path,
+                    "actual_type": type(emitter_asset).__name__,
+                },
             )
 
     # Add emitter to the system
@@ -251,6 +321,10 @@ def add_emitter(
             operation="niagara_add_emitter",
             details={"system_path": system_path, "emitter_name": emitter_name},
         )
+
+    # Rename emitter to the requested name when added from an asset template
+    if emitter_asset:
+        handle.set_name(emitter_name)
 
     # Save
     unreal.EditorAssetLibrary.save_asset(system_path)
@@ -306,22 +380,50 @@ def add_module(
         )
 
     system = _load_niagara_system(system_path)
-    _find_emitter_handle(system, emitter_name)
+    handle = _find_emitter_handle(system, emitter_name)
 
-    # Resolve module asset
+    # Resolve module asset path
     resolved_path = module_asset_path
     if not resolved_path:
-        # Try standard Niagara module paths
-        candidates = [
-            f"/Niagara/Modules/{module_name}",
-            f"/Niagara/Modules/Update/{module_name}",
-            f"/Niagara/Modules/Spawn/{module_name}",
-            f"/Niagara/Modules/Render/{module_name}",
-        ]
-        for candidate in candidates:
-            if unreal.EditorAssetLibrary.does_asset_exist(candidate):
-                resolved_path = candidate
-                break
+        resolved_path = _resolve_module_path(module_name)
+
+    if not resolved_path:
+        raise ProcessingError(
+            f"Module '{module_name}' not found in standard Niagara module paths",
+            operation="niagara_add_module",
+            details={
+                "module_name": module_name,
+                "searched_paths": [
+                    f"/Niagara/Modules/{module_name}",
+                    f"/Niagara/Modules/Update/{module_name}",
+                    f"/Niagara/Modules/Spawn/{module_name}",
+                    f"/Niagara/Modules/Render/{module_name}",
+                ],
+            },
+        )
+
+    # Load the module script asset
+    module_asset = unreal.EditorAssetLibrary.load_asset(resolved_path)
+    if not module_asset:
+        raise ProcessingError(
+            f"Failed to load module asset: {resolved_path}",
+            operation="niagara_add_module",
+            details={"resolved_path": resolved_path},
+        )
+
+    # Add the module to the appropriate script section on the emitter
+    instance = handle.get_instance()
+    if not instance:
+        raise ProcessingError(
+            f"Cannot access emitter instance for '{emitter_name}'",
+            operation="niagara_add_module",
+            details={"emitter_name": emitter_name},
+        )
+
+    script_attr = _SECTION_SCRIPT_MAP.get(section_lower)
+    script = getattr(instance, script_attr, None) if script_attr else None
+    if script:
+        script.add_module(module_asset)
 
     # Save
     unreal.EditorAssetLibrary.save_asset(system_path)
@@ -377,9 +479,18 @@ def configure_module(
         )
 
     system = _load_niagara_system(system_path)
-    _find_emitter_handle(system, emitter_name)
+    handle = _find_emitter_handle(system, emitter_name)
 
-    # Apply the parameter value based on type
+    # Locate the emitter instance to apply the parameter
+    instance = handle.get_instance()
+    if not instance:
+        raise ProcessingError(
+            f"Cannot access emitter instance for '{emitter_name}'",
+            operation="niagara_configure_module",
+            details={"emitter_name": emitter_name},
+        )
+
+    # Convert value to the appropriate type
     applied_value = value
     if value_type == "vector" and isinstance(value, (list, tuple)):
         if len(value) != 3:
@@ -402,6 +513,12 @@ def configure_module(
             "b": value[2],
             "a": value[3] if len(value) > 3 else 1.0,
         }
+
+    # Apply the parameter override via the Niagara editor API
+    ue_value = _convert_to_ue_value(applied_value, value_type)
+    if ue_value is not None:
+        override_key = f"{emitter_name}.{module_name}.{parameter_name}"
+        system.set_editor_property(override_key, ue_value)
 
     # Save
     unreal.EditorAssetLibrary.save_asset(system_path)
@@ -443,7 +560,7 @@ def set_renderer(
         emitter_name: Name of the target emitter
         renderer_type: Type of renderer (sprite, mesh, ribbon, light)
         material_path: Optional material asset path for the renderer
-        mesh_path: Optional mesh asset path (for mesh renderer type)
+        mesh_path: Optional mesh asset path (required for mesh renderer type)
         settings: Optional dictionary of additional renderer settings
 
     Returns:
@@ -460,8 +577,16 @@ def set_renderer(
             },
         )
 
+    # Mesh renderer requires mesh_path
+    if renderer_lower == "mesh" and not mesh_path:
+        raise ProcessingError(
+            "mesh_path is required for mesh renderer type",
+            operation="niagara_set_renderer",
+            details={"renderer_type": renderer_lower},
+        )
+
     system = _load_niagara_system(system_path)
-    _find_emitter_handle(system, emitter_name)
+    handle = _find_emitter_handle(system, emitter_name)
 
     # Validate referenced assets exist
     if material_path and not unreal.EditorAssetLibrary.does_asset_exist(material_path):
@@ -476,6 +601,36 @@ def set_renderer(
             operation="niagara_set_renderer",
             details={"mesh_path": mesh_path},
         )
+
+    # Create and configure the renderer via Niagara editor API
+    renderer_class_name = _RENDERER_CLASS_MAP[renderer_lower]
+    renderer_class = getattr(unreal, renderer_class_name)
+    instance = handle.get_instance()
+    if not instance:
+        raise ProcessingError(
+            f"Cannot access emitter instance for '{emitter_name}'",
+            operation="niagara_set_renderer",
+            details={"emitter_name": emitter_name},
+        )
+
+    # Create renderer properties and configure
+    renderer_props = renderer_class()
+    if material_path:
+        material = unreal.EditorAssetLibrary.load_asset(material_path)
+        if material:
+            renderer_props.set_editor_property("material", material)
+    if mesh_path and renderer_lower == "mesh":
+        mesh = unreal.EditorAssetLibrary.load_asset(mesh_path)
+        if mesh:
+            renderer_props.set_editor_property("particle_mesh", mesh)
+
+    # Apply additional settings if provided
+    if settings:
+        for key, val in settings.items():
+            renderer_props.set_editor_property(key, val)
+
+    # Add the renderer to the emitter
+    instance.add_renderer(renderer_props)
 
     # Save
     unreal.EditorAssetLibrary.save_asset(system_path)
@@ -515,15 +670,26 @@ def compile(
         force: Force recompile even if already up to date
 
     Returns:
-        Dictionary with compile result
+        Dictionary with compile result including status
     """
     system = _load_niagara_system(system_path)
 
     # Request compilation
     system.request_compile(force)
 
+    # Check compile status
+    compile_status = system.get_compile_status()
+    compiled_ok = compile_status != unreal.NiagaraScriptCompileStatus.ERROR
+
     # Save the compiled asset
     unreal.EditorAssetLibrary.save_asset(system_path)
+
+    if not compiled_ok:
+        raise ProcessingError(
+            f"Niagara system compilation failed for {system_path}",
+            operation="niagara_compile",
+            details={"system_path": system_path, "compile_status": str(compile_status)},
+        )
 
     log_debug(f"Compiled Niagara system: {system_path} (force={force})")
 
@@ -532,6 +698,7 @@ def compile(
         "systemPath": system_path,
         "compiled": True,
         "forced": force,
+        "compileStatus": str(compile_status),
     }
 
 
@@ -541,6 +708,8 @@ def compile(
         "location": [RequiredRule(), ListLengthRule(3)],
         "rotation": [ListLengthRule(3, allow_none=True)],
         "scale": [ListLengthRule(3, allow_none=True)],
+        "auto_activate": [TypeRule(bool)],
+        "actor_name": [TypeRule(str, allow_none=True)],
     }
 )
 @handle_unreal_errors("niagara_spawn")
@@ -568,12 +737,10 @@ def spawn(
     """
     system = _load_niagara_system(system_path)
 
-    # Build location vector
-    spawn_location = unreal.Vector(location[0], location[1], location[2])
-
-    # Build rotation
+    # Build location and rotation using project helpers to avoid constructor pitfalls
+    spawn_location = create_vector(location)
     rot = rotation or [0.0, 0.0, 0.0]
-    spawn_rotation = unreal.Rotator(rot[0], rot[1], rot[2])
+    spawn_rotation = create_rotator(rot)
 
     # Spawn the system in the world
     world = get_unreal_editor_subsystem().get_editor_world()
@@ -594,7 +761,7 @@ def spawn(
 
     # Apply scale if specified
     if scale:
-        niagara_component.set_world_scale3d(unreal.Vector(scale[0], scale[1], scale[2]))
+        niagara_component.set_world_scale3d(create_vector(scale))
 
     # Get the owning actor
     owner = niagara_component.get_owner()
@@ -631,14 +798,23 @@ def spawn(
 def get_metadata(
     system_path: str,
 ) -> dict[str, Any]:
-    """Inspect a Niagara system's structure including emitters, modules, and parameters.
+    """Inspect a Niagara system's basic structure and emitter configuration.
 
     Args:
         system_path: Path to the Niagara system asset
 
     Returns:
-        Dictionary with system metadata including emitters, modules, parameters,
-        and renderers
+        Dictionary with system metadata, including:
+            - success: Whether the operation succeeded
+            - systemPath: The asset path of the Niagara system
+            - systemInfo: Basic system info such as:
+                - warmupTime: Warmup time for the system (float)
+                - fixedBounds: Whether fixed bounds are set (bool)
+            - emitterCount: Number of emitters in the system
+            - emitters: List of emitter dictionaries, each containing:
+                - name: Emitter name
+                - enabled: Whether the emitter is enabled
+                - hasInstance: Whether an emitter instance could be retrieved
     """
     system = _load_niagara_system(system_path)
 
@@ -649,15 +825,8 @@ def get_metadata(
         emitter_data = {
             "name": emitter_name,
             "enabled": handle.get_is_enabled(),
+            "hasInstance": handle.get_instance() is not None,
         }
-
-        # Attempt to gather module/renderer info from the emitter instance
-        instance = handle.get_instance()
-        if instance:
-            emitter_data["hasInstance"] = True
-        else:
-            emitter_data["hasInstance"] = False
-
         emitters_info.append(emitter_data)
 
     # System-level info

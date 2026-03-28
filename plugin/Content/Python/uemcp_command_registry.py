@@ -232,17 +232,20 @@ def register_all_operations():
         registry.register_command("blueprint_remove_node", blueprint_nodes.remove_node)
         registry.register_command("console_command", blueprint_nodes.execute_console_command)
 
-        # Register Niagara VFX operations (standalone functions)
-        from ops import niagara
-
-        registry.register_command("niagara_create_system", niagara.create_system)
-        registry.register_command("niagara_add_emitter", niagara.add_emitter)
-        registry.register_command("niagara_add_module", niagara.add_module)
-        registry.register_command("niagara_configure_module", niagara.configure_module)
-        registry.register_command("niagara_set_renderer", niagara.set_renderer)
-        registry.register_command("niagara_compile", niagara.compile)
-        registry.register_command("niagara_spawn", niagara.spawn)
-        registry.register_command("niagara_get_metadata", niagara.get_metadata)
+        # Register Niagara VFX operations (optional -- Niagara plugin may not be enabled)
+        try:
+            from ops import niagara
+        except ImportError:
+            log_debug("Niagara operations not available; skipping Niagara command registration")
+        else:
+            registry.register_command("niagara_create_system", niagara.create_system)
+            registry.register_command("niagara_add_emitter", niagara.add_emitter)
+            registry.register_command("niagara_add_module", niagara.add_module)
+            registry.register_command("niagara_configure_module", niagara.configure_module)
+            registry.register_command("niagara_set_renderer", niagara.set_renderer)
+            registry.register_command("niagara_compile", niagara.compile)
+            registry.register_command("niagara_spawn", niagara.spawn)
+            registry.register_command("niagara_get_metadata", niagara.get_metadata)
 
         # Register batch operations
         from ops.batch_operations import execute_batch_operations
