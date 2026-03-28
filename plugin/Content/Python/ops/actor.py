@@ -845,7 +845,9 @@ class ActorOperations:
             if not a or not hasattr(a, "get_actor_label"):
                 continue
             try:
-                actor_lookup[a.get_actor_label()] = a
+                label = a.get_actor_label()
+                if label not in actor_lookup:
+                    actor_lookup[label] = a
             except Exception as e:
                 log_debug(f"Skipping actor due to label access error: {e}")
 

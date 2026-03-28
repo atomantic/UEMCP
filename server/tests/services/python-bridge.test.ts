@@ -224,6 +224,27 @@ describe('PythonBridge', () => {
 
       jest.useRealTimers();
     });
+
+    it('should clear the timer even when response.json() throws', async () => {
+      jest.useFakeTimers();
+      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+
+      // fetch resolves ok:true, but json() throws (e.g., invalid JSON body)
+      const mockResponse = {
+        ok: true,
+        json: jest.fn().mockRejectedValue(new SyntaxError('Unexpected token')),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+
+      const executePromise = pythonBridge.executeCommand(mockCommand);
+      await expect(executePromise).rejects.toThrow('Unexpected token');
+
+      // Timer must have been cleared even though json() threw
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+
+      clearTimeoutSpy.mockRestore();
+      jest.useRealTimers();
+    });
   });
 
   describe('isUnrealEngineAvailable', () => {

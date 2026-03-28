@@ -58,8 +58,14 @@ export class PythonBridge {
     }
 
     if (!response.ok) {
-      clearTimeout(timer);
-      const errorText = await response.text().catch(() => 'No error body');
+      let errorText: string;
+      try {
+        errorText = await response.text();
+      } catch {
+        errorText = 'No error body';
+      } finally {
+        clearTimeout(timer);
+      }
       logger.error('Python listener HTTP error', {
         status: response.status,
         statusText: response.statusText,
@@ -78,9 +84,17 @@ export class PythonBridge {
     let data: PythonResponse;
     try {
       data = await response.json() as PythonResponse;
-    } finally {
+    } catch (error) {
       clearTimeout(timer);
+      logger.error('Python bridge JSON parse error', {
+        command: command.type,
+        endpoint: this.httpEndpoint,
+        error: error instanceof Error ? error.message : String(error),
+        isTimeout: error instanceof Error && error.name === 'AbortError',
+      });
+      throw error;
     }
+    clearTimeout(timer);
     logger.debug('Python command response', { response: data });
     return data;
   }

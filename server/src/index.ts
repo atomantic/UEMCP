@@ -105,4 +105,7 @@ async function main(): Promise<void> {
 }
 
 // Start the server
-main().catch(() => process.exit(1));
+main().catch((error: unknown) => {
+  logger.error('Unhandled error in main', { error: ResponseFormatter.getErrorMessage(error) });
+  process.exit(1);
+});

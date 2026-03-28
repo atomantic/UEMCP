@@ -13,7 +13,14 @@ from utils import (
 )
 
 # Enhanced error handling framework
-from utils.error_handling import ProcessingError, TypeRule, handle_unreal_errors, safe_operation, validate_inputs
+from utils.error_handling import (
+    ProcessingError,
+    TypeRule,
+    ValidationError,
+    handle_unreal_errors,
+    safe_operation,
+    validate_inputs,
+)
 
 
 class LevelOperations:
@@ -62,9 +69,9 @@ class LevelOperations:
             dict: List of actors with properties
         """
         if offset < 0:
-            raise ProcessingError("offset must be greater than or equal to 0")
+            raise ValidationError("offset must be greater than or equal to 0", operation="get_level_actors")
         if limit <= 0:
-            raise ProcessingError("limit must be greater than 0")
+            raise ValidationError("limit must be greater than 0", operation="get_level_actors")
         actors = get_all_actors(filter_text=filter, limit=offset + limit)
         actors = actors[offset:]
 
