@@ -107,9 +107,11 @@ export class PythonBridge {
   }
 
   async isUnrealEngineAvailable(): Promise<boolean> {
+    const AVAILABILITY_CHECK_TIMEOUT_MS = 3000;
+    const checkStart = Date.now();
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 2000);
+      const timer = setTimeout(() => controller.abort(), AVAILABILITY_CHECK_TIMEOUT_MS);
       let response: Response;
       try {
         response = await fetch(`${this.httpEndpoint}/`, {
@@ -125,12 +127,13 @@ export class PythonBridge {
         clearTimeout(timer);
       }
 
-      // Fallback to command execution with a short timeout.
-      // Note: total check time may be up to ~5s (2s health fetch + 3s command).
+      // Fallback to command execution; use remaining budget from the 3s total
+      const elapsedS = (Date.now() - checkStart) / 1000;
+      const remainingS = Math.max(1, (AVAILABILITY_CHECK_TIMEOUT_MS / 1000) - elapsedS);
       const cmdResponse = await this.executeCommand({
         type: 'project.info',
         params: {},
-        timeout: 3,
+        timeout: remainingS,
       });
       return cmdResponse.success;
     } catch {
