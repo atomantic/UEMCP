@@ -56,10 +56,21 @@ export class PythonBridge {
       });
       throw error;
     }
-    clearTimeout(timer);
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'No error body');
+      let errorText: string;
+      try {
+        errorText = await response.text();
+      } catch (bodyError) {
+        // If the timer fired while reading the error body, rethrow as timeout
+        // rather than masking it as an HTTP error (finally will clear the timer)
+        if (bodyError instanceof Error && bodyError.name === 'AbortError') {
+          throw bodyError;
+        }
+        errorText = 'No error body';
+      } finally {
+        clearTimeout(timer);
+      }
       logger.error('Python listener HTTP error', {
         status: response.status,
         statusText: response.statusText,
@@ -68,41 +79,63 @@ export class PythonBridge {
         endpoint: this.httpEndpoint
       });
 
-      // HTTP 529 typically means "Too Many Requests" - rate limiting
-      if (response.status === 529) {
-        throw new Error(`Python listener rate limit (HTTP 529): Too many requests. Status: ${response.statusText}. Body: ${errorText}`);
+      // HTTP 429 typically means "Too Many Requests" - rate limiting
+      if (response.status === 429) {
+        throw new Error(`Python listener rate limit (HTTP 429): Too many requests. Status: ${response.statusText}. Body: ${errorText}`);
       }
       throw new Error(`Python listener HTTP ${response.status}: ${response.statusText}. Body: ${errorText}`);
     }
 
-    const data = await response.json() as PythonResponse;
+    let data: PythonResponse;
+    try {
+      data = await response.json() as PythonResponse;
+    } catch (error) {
+      clearTimeout(timer);
+      const isTimeout = error instanceof Error && error.name === 'AbortError';
+      logger.error(isTimeout ? 'Python bridge response timeout' : 'Python bridge response body error', {
+        command: command.type,
+        endpoint: this.httpEndpoint,
+        error: error instanceof Error ? error.message : String(error),
+        isTimeout,
+      });
+      throw error;
+    }
+    clearTimeout(timer);
     logger.debug('Python command response', { response: data });
     return data;
   }
 
   async isUnrealEngineAvailable(): Promise<boolean> {
+    const AVAILABILITY_CHECK_TIMEOUT_MS = 3000;
+    const checkStart = Date.now();
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 2000);
+      const timer = setTimeout(() => controller.abort(), AVAILABILITY_CHECK_TIMEOUT_MS);
       let response: Response;
       try {
         response = await fetch(`${this.httpEndpoint}/`, {
           method: 'GET',
           signal: controller.signal,
         });
+
+        if (response.ok) {
+          const status = await response.json() as { ready?: boolean };
+          return status.ready === true;
+        }
       } finally {
         clearTimeout(timer);
       }
 
-      if (response.ok) {
-        const status = await response.json() as { ready?: boolean };
-        return status.ready === true;
+      // Fallback to command execution within the remaining 3s budget
+      const elapsedS = (Date.now() - checkStart) / 1000;
+      const remainingS = (AVAILABILITY_CHECK_TIMEOUT_MS / 1000) - elapsedS;
+      if (remainingS <= 0) {
+        return false;
       }
-
-      // Fallback to command execution
       const cmdResponse = await this.executeCommand({
         type: 'project.info',
-        params: {}
+        params: {},
+        timeout: remainingS,
       });
       return cmdResponse.success;
     } catch {

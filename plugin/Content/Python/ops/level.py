@@ -13,7 +13,14 @@ from utils import (
 )
 
 # Enhanced error handling framework
-from utils.error_handling import ProcessingError, TypeRule, handle_unreal_errors, safe_operation, validate_inputs
+from utils.error_handling import (
+    ProcessingError,
+    TypeRule,
+    ValidationError,
+    handle_unreal_errors,
+    safe_operation,
+    validate_inputs,
+)
 
 
 class LevelOperations:
@@ -47,20 +54,28 @@ class LevelOperations:
         info = get_project_info()
         return info
 
-    @validate_inputs({"filter": [TypeRule(str, allow_none=True)], "limit": [TypeRule(int)]})
+    @validate_inputs({"filter": [TypeRule(str, allow_none=True)], "limit": [TypeRule(int)], "offset": [TypeRule(int)]})
     @handle_unreal_errors("get_level_actors")
     @safe_operation("level")
-    def get_level_actors(self, filter: Optional[str] = None, limit: int = 30):
+    def get_level_actors(self, filter: Optional[str] = None, limit: int = 30, offset: int = 0):
         """Get all actors in the current level.
 
         Args:
             filter: Optional text to filter actors
             limit: Maximum number of actors to return
+            offset: Number of actors to skip (for pagination)
 
         Returns:
             dict: List of actors with properties
         """
-        actors = get_all_actors(filter_text=filter, limit=limit)
+        if isinstance(offset, bool) or isinstance(limit, bool):
+            raise ValidationError("offset and limit must be integers, not booleans", operation="get_level_actors")
+        if offset < 0:
+            raise ValidationError("offset must be greater than or equal to 0", operation="get_level_actors")
+        if limit <= 0:
+            raise ValidationError("limit must be greater than 0", operation="get_level_actors")
+        actors = get_all_actors(filter_text=filter, limit=offset + limit)
+        actors = actors[offset:]
 
         # Count total actors
         editor_actor_subsystem = get_actor_subsystem()

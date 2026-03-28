@@ -13,7 +13,6 @@ from utils import (
     create_rotator,
     create_transform,
     create_vector,
-    find_actor_by_name,
     get_actor_subsystem,
     load_asset,
     log_debug,
@@ -39,6 +38,15 @@ from utils.error_handling import (
 
 class ActorOperations:
     """Handles all actor-related operations."""
+
+    @staticmethod
+    def _merge_validation(result: dict, validation_result) -> None:
+        """Merge a validation result into an operation result dict."""
+        result["validated"] = validation_result.success
+        if validation_result.errors:
+            result["validation_errors"] = validation_result.errors
+        if validation_result.warnings:
+            result["validation_warnings"] = validation_result.warnings
 
     @validate_inputs(
         {
@@ -176,11 +184,7 @@ class ActorOperations:
                 expected_mesh_path=assetPath if isinstance(asset, unreal.StaticMesh) else None,
                 expected_folder=folder,
             )
-            result["validated"] = validation_result.success
-            if validation_result.errors:
-                result["validation_errors"] = validation_result.errors
-            if validation_result.warnings:
-                result["validation_warnings"] = validation_result.warnings
+            self._merge_validation(result, validation_result)
 
         return result
 
@@ -212,11 +216,7 @@ class ActorOperations:
             from utils import validate_actor_deleted
 
             validation_result = validate_actor_deleted(actorName)
-            result["validated"] = validation_result.success
-            if validation_result.errors:
-                result["validation_errors"] = validation_result.errors
-            if validation_result.warnings:
-                result["validation_warnings"] = validation_result.warnings
+            self._merge_validation(result, validation_result)
 
         return result
 
@@ -333,7 +333,6 @@ class ActorOperations:
         current_scale = actor.get_actor_scale3d()
 
         return {
-            "success": True,
             "actorName": actor_name,
             "location": [current_location.x, current_location.y, current_location.z],
             "rotation": [current_rotation.roll, current_rotation.pitch, current_rotation.yaw],
@@ -368,11 +367,7 @@ class ActorOperations:
                 modifications[key] = value
 
         validation_result = validate_actor_modifications(actor, modifications)
-        result["validated"] = validation_result.success
-        if validation_result.errors:
-            result["validation_errors"] = validation_result.errors
-        if validation_result.warnings:
-            result["validation_warnings"] = validation_result.warnings
+        self._merge_validation(result, validation_result)
 
     @validate_inputs(
         {
@@ -446,7 +441,6 @@ class ActorOperations:
         log_debug(f"Duplicated actor {sourceName} to {new_actor.get_actor_label()}")
 
         result = {
-            "success": True,
             "actorName": new_actor.get_actor_label(),
             "location": {"x": float(new_location.x), "y": float(new_location.y), "z": float(new_location.z)},
         }
@@ -466,11 +460,7 @@ class ActorOperations:
                 expected_scale=[source_scale.x, source_scale.y, source_scale.z],
                 expected_folder=str(source_folder) if source_folder else None,
             )
-            result["validated"] = validation_result.success
-            if validation_result.errors:
-                result["validation_errors"] = validation_result.errors
-            if validation_result.warnings:
-                result["validation_warnings"] = validation_result.warnings
+            self._merge_validation(result, validation_result)
 
         return result
 
@@ -848,12 +838,24 @@ class ActorOperations:
         Returns:
             tuple: (actor_data list, error message or None)
         """
+        # Pre-build label→actor dict to avoid O(N*M) find_actor_by_name calls
+        all_level_actors = get_actor_subsystem().get_all_level_actors()
+        actor_lookup: dict = {}
+        for a in all_level_actors:
+            if not a or not hasattr(a, "get_actor_label"):
+                continue
+            try:
+                label = a.get_actor_label()
+                if label not in actor_lookup:
+                    actor_lookup[label] = a
+            except Exception as e:
+                log_debug(f"Skipping actor due to label access error: {e}")
+
         actor_objects = []
         missing_actors = []
 
-        # Find all actors
         for actor_name in actor_names:
-            actor = find_actor_by_name(actor_name)
+            actor = actor_lookup.get(actor_name)
             if actor:
                 actor_objects.append(actor)
             else:
@@ -1070,83 +1072,62 @@ class ActorOperations:
             },
         }
 
-    def _calculate_gap_overlap(self, actor1, actor2, tolerance):
+    @staticmethod
+    def _calculate_axis_gaps(actor1, actor2):
+        """Return [x_gap, y_gap, z_gap] — minimum separation on each axis (0 if touching/overlapping)."""
+        return [
+            max(
+                0,
+                max(
+                    actor1["bounds_min"][i] - actor2["bounds_max"][i], actor2["bounds_min"][i] - actor1["bounds_max"][i]
+                ),
+            )
+            for i in range(3)
+        ]
+
+    @staticmethod
+    def _calculate_axis_overlaps(actor1, actor2):
+        """Return [x_overlap, y_overlap, z_overlap] — intersection depth on each axis (0 if separated)."""
+        return [
+            max(
+                0,
+                min(actor1["bounds_max"][i], actor2["bounds_max"][i])
+                - max(actor1["bounds_min"][i], actor2["bounds_min"][i]),
+            )
+            for i in range(3)
+        ]
+
+    def _calculate_gap_overlap(self, actor1, actor2, _tolerance):
         """Calculate gap or overlap between two actors."""
-
-        # Calculate minimum distance between bounding boxes on each axis
-        x_gap = max(
-            0, max(actor1["bounds_min"][0] - actor2["bounds_max"][0], actor2["bounds_min"][0] - actor1["bounds_max"][0])
-        )
-        y_gap = max(
-            0, max(actor1["bounds_min"][1] - actor2["bounds_max"][1], actor2["bounds_min"][1] - actor1["bounds_max"][1])
-        )
-        z_gap = max(
-            0, max(actor1["bounds_min"][2] - actor2["bounds_max"][2], actor2["bounds_min"][2] - actor1["bounds_max"][2])
-        )
-
-        # Calculate overlap on each axis
-        x_overlap = max(
-            0,
-            min(actor1["bounds_max"][0], actor2["bounds_max"][0])
-            - max(actor1["bounds_min"][0], actor2["bounds_min"][0]),
-        )
-        y_overlap = max(
-            0,
-            min(actor1["bounds_max"][1], actor2["bounds_max"][1])
-            - max(actor1["bounds_min"][1], actor2["bounds_min"][1]),
-        )
-        z_overlap = max(
-            0,
-            min(actor1["bounds_max"][2], actor2["bounds_max"][2])
-            - max(actor1["bounds_min"][2], actor2["bounds_min"][2]),
-        )
-
-        # Find the primary axis (smallest gap or largest overlap)
-        gaps = [x_gap, y_gap, z_gap]
-        overlaps = [x_overlap, y_overlap, z_overlap]
+        gaps = self._calculate_axis_gaps(actor1, actor2)
+        overlaps = self._calculate_axis_overlaps(actor1, actor2)
         axis_names = ["X", "Y", "Z"]
 
         # If there's any gap, find the smallest gap
         if any(gap > 0 for gap in gaps):
             min_gap_index = gaps.index(min(gap for gap in gaps if gap > 0))
-            min_gap = gaps[min_gap_index]
-
-            # Calculate midpoint location for gap
-            midpoint = [
-                (actor1["location"][0] + actor2["location"][0]) / 2,
-                (actor1["location"][1] + actor2["location"][1]) / 2,
-                (actor1["location"][2] + actor2["location"][2]) / 2,
-            ]
-
-            return {"type": "gap", "distance": min_gap, "location": midpoint, "direction": axis_names[min_gap_index]}
+            midpoint = [(actor1["location"][i] + actor2["location"][i]) / 2 for i in range(3)]
+            return {
+                "type": "gap",
+                "distance": gaps[min_gap_index],
+                "location": midpoint,
+                "direction": axis_names[min_gap_index],
+            }
 
         # If there's overlap, find the largest overlap
-        elif any(overlap > 0 for overlap in overlaps):
+        if any(overlap > 0 for overlap in overlaps):
             max_overlap_index = overlaps.index(max(overlaps))
-            max_overlap = overlaps[max_overlap_index]
-
-            # Calculate overlap center location
             overlap_center = [
                 (
-                    max(actor1["bounds_min"][0], actor2["bounds_min"][0])
-                    + min(actor1["bounds_max"][0], actor2["bounds_max"][0])
+                    max(actor1["bounds_min"][i], actor2["bounds_min"][i])
+                    + min(actor1["bounds_max"][i], actor2["bounds_max"][i])
                 )
-                / 2,
-                (
-                    max(actor1["bounds_min"][1], actor2["bounds_min"][1])
-                    + min(actor1["bounds_max"][1], actor2["bounds_max"][1])
-                )
-                / 2,
-                (
-                    max(actor1["bounds_min"][2], actor2["bounds_min"][2])
-                    + min(actor1["bounds_max"][2], actor2["bounds_max"][2])
-                )
-                / 2,
+                / 2
+                for i in range(3)
             ]
-
             return {
                 "type": "overlap",
-                "distance": max_overlap,
+                "distance": overlaps[max_overlap_index],
                 "location": overlap_center,
                 "direction": axis_names[max_overlap_index],
             }
@@ -1155,11 +1136,7 @@ class ActorOperations:
         return {
             "type": "touching",
             "distance": 0,
-            "location": [
-                (actor1["location"][0] + actor2["location"][0]) / 2,
-                (actor1["location"][1] + actor2["location"][1]) / 2,
-                (actor1["location"][2] + actor2["location"][2]) / 2,
-            ],
+            "location": [(actor1["location"][i] + actor2["location"][i]) / 2 for i in range(3)],
             "direction": "None",
         }
 
@@ -1240,10 +1217,8 @@ class ActorOperations:
         source = require_actor(sourceActor)
         target = require_actor(targetActor)
 
-        # Get the target socket transform
-        socket_transform, error = self._get_target_socket_transform(target, targetActor, targetSocket)
-        if error:
-            return error
+        # Get the target socket transform (raises ProcessingError on failure)
+        socket_transform = self._get_target_socket_transform(target, targetActor, targetSocket)
 
         # Calculate new transform for source actor
         new_location, new_rotation = self._calculate_snap_transform(socket_transform, offset, source, sourceSocket)
@@ -1268,53 +1243,60 @@ class ActorOperations:
         """Get the target socket transform.
 
         Returns:
-            tuple: (socket_transform, error_dict or None)
+            The socket transform.
+
+        Raises:
+            ProcessingError: If the socket is not found on any component.
         """
         socket_transform = None
+        static_mesh_socket_names: list = []
 
         # Try to get socket from static mesh component
         if hasattr(target, "static_mesh_component"):
-            socket_transform = self._get_static_mesh_socket_transform(
+            socket_transform, static_mesh_socket_names = self._get_static_mesh_socket_transform(
                 target.static_mesh_component, targetActor, targetSocket
             )
-            if isinstance(socket_transform, dict):  # Error response
-                return None, socket_transform
 
         # If socket not found on static mesh, try blueprint components
         if not socket_transform:
             socket_transform = self._get_scene_component_socket_transform(target, targetSocket)
 
         if not socket_transform:
-            return None, {
-                "success": False,
-                "error": f'Socket "{targetSocket}" not found on any component of {targetActor}',
-            }
+            raise ProcessingError(
+                f'Socket "{targetSocket}" not found on any component of {targetActor}',
+                operation="snap_to_socket",
+                details={
+                    "targetActor": targetActor,
+                    "targetSocket": targetSocket,
+                    "availableStaticMeshSockets": static_mesh_socket_names,
+                },
+            )
 
-        return socket_transform, None
+        return socket_transform
 
     def _get_static_mesh_socket_transform(self, mesh_comp, targetActor, targetSocket):
-        """Get socket transform from static mesh component."""
+        """Get socket transform from static mesh component.
+
+        Returns:
+            tuple: (socket_transform or None, available_socket_names list)
+        """
         if not mesh_comp:
-            return None
+            return None, []
 
         static_mesh = mesh_comp.static_mesh
         if not static_mesh:
-            return None
+            return None, []
 
         # Get socket transform relative to component
         socket_found = static_mesh.find_socket(targetSocket)
         if socket_found:
-            # Get world transform of the socket
-            return mesh_comp.get_socket_transform(targetSocket)
-        else:
-            # Try to list available sockets for debugging
-            sockets = getattr(static_mesh, "sockets", None) if static_mesh else None
-            socket_names = [s.socket_name for s in sockets] if sockets else []
-            return {
-                "success": False,
-                "error": f'Socket "{targetSocket}" not found on {targetActor}',
-                "availableSockets": socket_names,
-            }
+            return mesh_comp.get_socket_transform(targetSocket), []
+
+        # Socket not found — collect available socket names for diagnostics
+        sockets = getattr(static_mesh, "sockets", None) if static_mesh else None
+        socket_names = [s.socket_name for s in sockets] if sockets else []
+        log_debug(f'Socket "{targetSocket}" not found on static mesh of {targetActor}; ' f"available: {socket_names}")
+        return None, socket_names
 
     def _get_scene_component_socket_transform(self, target, targetSocket):
         """Get socket transform from scene components."""

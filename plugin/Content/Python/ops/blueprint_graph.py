@@ -503,26 +503,10 @@ def add_component(
     """
     blueprint = resolve_blueprint(blueprint_path)
 
-    # Component class mapping
-    component_class_map = {
-        "StaticMeshComponent": unreal.StaticMeshComponent,
-        "SkeletalMeshComponent": unreal.SkeletalMeshComponent,
-        "SceneComponent": unreal.SceneComponent,
-        "PointLightComponent": unreal.PointLightComponent,
-        "SpotLightComponent": unreal.SpotLightComponent,
-        "DirectionalLightComponent": unreal.DirectionalLightComponent,
-        "CameraComponent": unreal.CameraComponent,
-        "AudioComponent": unreal.AudioComponent,
-        "ArrowComponent": unreal.ArrowComponent,
-        "BoxCollisionComponent": unreal.BoxComponent,
-        "SphereComponent": unreal.SphereComponent,
-        "CapsuleComponent": unreal.CapsuleComponent,
-        "WidgetComponent": unreal.WidgetComponent,
-        "SplineComponent": unreal.SplineComponent,
-        "DecalComponent": unreal.DecalComponent,
-        "BillboardComponent": unreal.BillboardComponent,
-        "TextRenderComponent": unreal.TextRenderComponent,
-    }
+    # Component class mapping — built from SUPPORTED_COMPONENT_CLASSES.
+    # BoxCollisionComponent is a friendly alias for UE's BoxComponent (name mismatch).
+    component_class_map = {name: getattr(unreal, name, None) for name in SUPPORTED_COMPONENT_CLASSES}
+    component_class_map["BoxCollisionComponent"] = unreal.BoxComponent
 
     # Resolve component class
     comp_cls = component_class_map.get(component_class)

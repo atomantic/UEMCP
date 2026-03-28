@@ -201,38 +201,31 @@ class ManifestGenerator:
 
         from uemcp_command_registry import get_registry
 
-        try:
-            self.registry = get_registry()
-            tools = []
-            categories = {}
+        self.registry = get_registry()
+        tools = []
+        categories = {}
 
-            # Process each registered command
-            for command_name, (handler, params, _has_validate) in self.registry.handlers.items():
-                tool_def = self.extract_tool_definition(command_name, handler, params)
-                tools.append(tool_def)
+        # Process each registered command
+        for command_name, (handler, params, _has_validate) in self.registry.handlers.items():
+            tool_def = self.extract_tool_definition(command_name, handler, params)
+            tools.append(tool_def)
 
-                # Add to category
-                category = tool_def["category"]
-                if category not in categories:
-                    categories[category] = []
-                categories[category].append(command_name)
+            # Add to category
+            category = tool_def["category"]
+            if category not in categories:
+                categories[category] = []
+            categories[category].append(command_name)
 
-            # Sort tools by name for consistency
-            tools.sort(key=lambda t: t["name"])
+        # Sort tools by name for consistency
+        tools.sort(key=lambda t: t["name"])
 
-            return {
-                "success": True,
-                "version": VERSION,
-                "totalTools": len(tools),
-                "tools": tools,
-                "categories": categories,
-            }
-
-        except Exception as e:
-            log_error(f"Failed to generate manifest: {str(e)}")
-            import traceback
-
-            return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
+        return {
+            "success": True,
+            "version": VERSION,
+            "totalTools": len(tools),
+            "tools": tools,
+            "categories": categories,
+        }
 
 
 # Global manifest generator instance
@@ -252,14 +245,16 @@ def get_tool_manifest() -> Dict[str, Any]:
     Entry point for MCP server to get tool manifest.
     Called by Node.js on startup to discover available tools.
     """
+    import traceback
+
     generator = get_generator()
-    manifest = generator.generate_manifest()
+    try:
+        manifest = generator.generate_manifest()
+    except Exception as e:
+        log_error(f"Failed to generate manifest: {str(e)}")
+        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
-    if manifest.get("success"):
-        log_debug(f"Generated manifest with {manifest['totalTools']} tools")
-    else:
-        log_error(f"Manifest generation failed: {manifest.get('error')}")
-
+    log_debug(f"Generated manifest with {manifest['totalTools']} tools")
     return manifest
 
 

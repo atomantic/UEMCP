@@ -224,6 +224,27 @@ describe('PythonBridge', () => {
 
       jest.useRealTimers();
     });
+
+    it('should clear the timer even when response.json() throws', async () => {
+      jest.useFakeTimers();
+      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+
+      // fetch resolves ok:true, but json() throws (e.g., invalid JSON body)
+      const mockResponse = {
+        ok: true,
+        json: jest.fn().mockRejectedValue(new SyntaxError('Unexpected token')),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+
+      const executePromise = pythonBridge.executeCommand(mockCommand);
+      await expect(executePromise).rejects.toThrow('Unexpected token');
+
+      // Timer must have been cleared even though json() threw
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+
+      clearTimeoutSpy.mockRestore();
+      jest.useRealTimers();
+    });
   });
 
   describe('isUnrealEngineAvailable', () => {
@@ -248,6 +269,34 @@ describe('PythonBridge', () => {
       const result = await pythonBridge.isUnrealEngineAvailable();
 
       expect(result).toBe(false);
+    });
+
+    it('should use fallback command with remaining budget when health check returns non-OK', async () => {
+      // First fetch (health check) returns non-OK; second fetch (command) returns success
+      const healthResponse = {
+        ok: false,
+        status: 503,
+        statusText: 'Service Unavailable',
+        text: jest.fn().mockResolvedValue(''),
+      };
+      const cmdResponse = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({ success: true }),
+      };
+      mockFetch
+        .mockResolvedValueOnce(healthResponse)
+        .mockResolvedValueOnce(cmdResponse);
+
+      const result = await pythonBridge.isUnrealEngineAvailable();
+
+      expect(result).toBe(true);
+      // Second call must be the fallback command (POST to base endpoint, not /)
+      const secondCall = mockFetch.mock.calls[1];
+      expect(secondCall[0]).toBe('http://localhost:8765');
+      // Verify the command body includes project.info with a positive timeout (remaining budget)
+      const parsedBody = JSON.parse(secondCall[1].body as string);
+      expect(parsedBody).toMatchObject({ type: 'project.info', params: {} });
+      expect(parsedBody.timeout).toBeGreaterThan(0);
     });
   });
 });

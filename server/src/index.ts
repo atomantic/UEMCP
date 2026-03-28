@@ -19,93 +19,87 @@ import { ResponseFormatter } from './utils/response-formatter.js';
  * Main application startup with dynamic tool loading
  */
 async function main(): Promise<void> {
-  try {
-    // Initialize configuration management
-    const configManager = new ConfigManager(getVersion(), 'uemcp');
-    
-    // Validate configuration
-    const configValidation = configManager.validateConfiguration();
-    if (!configValidation.valid) {
-      logger.error('Configuration validation failed:', { errors: configValidation.errors });
-      process.exit(1);
-    }
+  // Initialize configuration management
+  const configManager = new ConfigManager(getVersion(), 'uemcp');
 
-    // Log startup banner and configuration
-    configManager.logStartupBanner();
-    configManager.logConfiguration();
-
-    // Initialize Python bridge first for dynamic loading
-    const listenerPort = configManager.getListenerPort();
-    logger.info(`Connecting to Python bridge on port ${listenerPort}...`);
-    
-    const pythonBridge = new PythonBridge();
-    let bridgeAvailable = false;
-    
-    try {
-      // Test connection by sending a simple command
-      await pythonBridge.executeCommand({ type: 'test_connection', params: {} });
-      logger.info('✓ Python bridge connection successful');
-      bridgeAvailable = true;
-    } catch (error) {
-      logger.warn('Python bridge not available - will use static tool definitions', {
-        error: ResponseFormatter.getErrorMessage(error)
-      });
-    }
-
-    // Initialize hybrid tool registry
-    const toolRegistry = new HybridToolRegistry(bridgeAvailable ? pythonBridge : undefined);
-    await toolRegistry.initialize();
-    
-    // Log tool loading mode
-    const stats = toolRegistry.getStats();
-    logger.info(`Loaded ${stats.total} tools in ${stats.mode} mode`);
-    
-    if (stats.mode === 'dynamic') {
-      logger.info('✨ Using dynamic tool definitions from Python manifest');
-    } else {
-      logger.info('📦 Using static tool definitions (Python manifest not available)');
-    }
-    
-    // Initialize server manager with the hybrid registry
-    const serverManager = new ServerManager(toolRegistry, configManager);
-    
-    // Initialize MCP server before validation to avoid false negatives
-    serverManager.initializeServer();
-    
-    // Validate server setup
-    const serverValidation = serverManager.validateSetup();
-    if (!serverValidation.valid) {
-      logger.error('Server setup validation failed:', { errors: serverValidation.errors });
-      process.exit(1);
-    }
-
-    // Initialize and start the MCP server
-    serverManager.setupShutdownHandlers();
-    
-    logger.info(`Starting MCP server with ${toolRegistry.getToolCount()} tools...`);
-    logger.info('Tools organized by category:');
-    
-    Object.entries(stats.categories).forEach(([category, count]) => {
-      logger.info(`  ${category}: ${count} tools`);
-    });
-    
-    await serverManager.startServer();
-    
-    logger.info('='.repeat(60));
-    logger.info('✓ UEMCP Server started successfully');
-    logger.info(`Mode: ${stats.mode === 'dynamic' ? '🚀 Dynamic (Python-driven)' : '📦 Static (hardcoded)'}`);
-    logger.info(`Ready to receive MCP requests...`);
-    logger.info(`Summary: ${serverManager.getToolsSummary()}`);
-    logger.info('='.repeat(60));
-    
-  } catch (error) {
-    logger.error('Failed during initialization', { error: ResponseFormatter.getErrorMessage(error) });
-    throw error;
+  // Validate configuration
+  const configValidation = configManager.validateConfiguration();
+  if (!configValidation.valid) {
+    logger.error('Configuration validation failed:', { errors: configValidation.errors });
+    process.exit(1);
   }
+
+  // Log startup banner and configuration
+  configManager.logStartupBanner();
+  configManager.logConfiguration();
+
+  // Initialize Python bridge first for dynamic loading
+  const listenerPort = configManager.getListenerPort();
+  logger.info(`Connecting to Python bridge on port ${listenerPort}...`);
+
+  const pythonBridge = new PythonBridge();
+  let bridgeAvailable = false;
+
+  try {
+    // Test connection by sending a simple command (3s timeout to avoid blocking startup)
+    await pythonBridge.executeCommand({ type: 'test_connection', params: {}, timeout: 3 });
+    logger.info('✓ Python bridge connection successful');
+    bridgeAvailable = true;
+  } catch (error) {
+    logger.warn('Python bridge not available - will use static tool definitions', {
+      error: ResponseFormatter.getErrorMessage(error)
+    });
+  }
+
+  // Initialize hybrid tool registry
+  const toolRegistry = new HybridToolRegistry(bridgeAvailable ? pythonBridge : undefined);
+  await toolRegistry.initialize();
+
+  // Log tool loading mode
+  const stats = toolRegistry.getStats();
+  logger.info(`Loaded ${stats.total} tools in ${stats.mode} mode`);
+
+  if (stats.mode === 'dynamic') {
+    logger.info('✨ Using dynamic tool definitions from Python manifest');
+  } else {
+    logger.info('📦 Using static tool definitions (Python manifest not available)');
+  }
+
+  // Initialize server manager with the hybrid registry
+  const serverManager = new ServerManager(toolRegistry, configManager);
+
+  // Initialize MCP server before validation to avoid false negatives
+  serverManager.initializeServer();
+
+  // Validate server setup
+  const serverValidation = serverManager.validateSetup();
+  if (!serverValidation.valid) {
+    logger.error('Server setup validation failed:', { errors: serverValidation.errors });
+    process.exit(1);
+  }
+
+  // Initialize and start the MCP server
+  serverManager.setupShutdownHandlers();
+
+  logger.info(`Starting MCP server with ${toolRegistry.getToolCount()} tools...`);
+  logger.info('Tools organized by category:');
+
+  Object.entries(stats.categories).forEach(([category, count]) => {
+    logger.info(`  ${category}: ${count} tools`);
+  });
+
+  await serverManager.startServer();
+
+  logger.info('='.repeat(60));
+  logger.info('✓ UEMCP Server started successfully');
+  logger.info(`Mode: ${stats.mode === 'dynamic' ? '🚀 Dynamic (Python-driven)' : '📦 Static (hardcoded)'}`);
+  logger.info(`Ready to receive MCP requests...`);
+  logger.info(`Summary: ${serverManager.getToolsSummary()}`);
+  logger.info('='.repeat(60));
 }
 
-// Start the server
+// Single exit/logging point for all startup failures
 main().catch((error: unknown) => {
-  logger.error('Server failed to start', { error: ResponseFormatter.getErrorMessage(error) });
+  logger.error('Server startup failed', { error: ResponseFormatter.getErrorMessage(error) });
   process.exit(1);
 });
