@@ -212,12 +212,19 @@ def _validate_panel_widget(widget, label: str, operation: str, extra_details: di
 
 
 def _deduplicate_bindings(bindings, object_name: str, property_name):
-    """Remove existing bindings for a component/property pair to prevent duplicates."""
-    target_prop = unreal.Name(property_name) if isinstance(property_name, str) else property_name
+    """Remove existing bindings for a component/property pair to prevent duplicates.
+
+    Uses str() coercion for comparisons since binding attributes may be unreal.Name
+    rather than plain str.
+    """
+    target_prop = str(property_name)
+    target_obj = str(object_name)
     return [
         b
         for b in bindings
-        if not (getattr(b, "object_name", None) == object_name and getattr(b, "property_name", None) == target_prop)
+        if not (
+            str(getattr(b, "object_name", "")) == target_obj and str(getattr(b, "property_name", "")) == target_prop
+        )
     ]
 
 
@@ -603,8 +610,9 @@ def set_property(
         component_name: Name of the component to modify
         properties: Dictionary of property name-value pairs to set.
                     Common properties: text, color_and_opacity (dict with r,g,b,a),
-                    font_size, opacity, visibility (visible/hidden/collapsed),
-                    is_enabled, tool_tip_text, cursor, render_opacity
+                    font_size, render_opacity (0.0-1.0),
+                    visibility (visible/hidden/collapsed),
+                    is_enabled, tool_tip_text, cursor
     """
     widget_bp = _resolve_widget_blueprint(widget_path)
     component = _find_widget_component(widget_bp, component_name)
@@ -967,8 +975,10 @@ def _extract_component_info(w) -> dict[str, Any]:
         anchor = slot.get_anchors()
         if anchor:
             comp_info["anchors"] = {
-                "min": [anchor.minimum.x, anchor.minimum.y],
-                "max": [anchor.maximum.x, anchor.maximum.y],
+                "min_x": anchor.minimum.x,
+                "min_y": anchor.minimum.y,
+                "max_x": anchor.maximum.x,
+                "max_y": anchor.maximum.y,
             }
 
     class_name = comp_info["type"]
