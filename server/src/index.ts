@@ -42,8 +42,8 @@ async function main(): Promise<void> {
     let bridgeAvailable = false;
     
     try {
-      // Test connection by sending a simple command
-      await pythonBridge.executeCommand({ type: 'test_connection', params: {} });
+      // Test connection by sending a simple command (3s timeout to avoid blocking startup)
+      await pythonBridge.executeCommand({ type: 'test_connection', params: {}, timeout: 3 });
       logger.info('✓ Python bridge connection successful');
       bridgeAvailable = true;
     } catch (error) {
@@ -100,12 +100,9 @@ async function main(): Promise<void> {
     
   } catch (error) {
     logger.error('Failed during initialization', { error: ResponseFormatter.getErrorMessage(error) });
-    throw error;
+    process.exit(1);
   }
 }
 
 // Start the server
-main().catch((error: unknown) => {
-  logger.error('Server failed to start', { error: ResponseFormatter.getErrorMessage(error) });
-  process.exit(1);
-});
+main().catch(() => process.exit(1));

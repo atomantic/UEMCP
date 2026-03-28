@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Union
 import unreal
 
 from utils import log_debug, log_error
-from utils.general import get_actor_subsystem, get_level_editor_subsystem
+from utils.general import get_level_editor_subsystem
 
 # ============================================================================
 # Custom Exception Types - More specific than generic Exception
@@ -241,6 +241,14 @@ def handle_unreal_errors(operation_name: str = None):
 
     Args:
         operation_name: Name of the operation for error context
+
+    Decorator stack order (outermost first):
+        @validate_inputs   — validates params, raises ValidationError before execution
+        @handle_unreal_errors — converts AttributeError/RuntimeError → ProcessingError
+        @safe_operation    — catches all UEMCPError/Exception, returns error dict
+
+    handle_unreal_errors re-raises UEMCPError unchanged so safe_operation can
+    catch it. It only intercepts raw UE exceptions and wraps them as ProcessingError.
     """
 
     def decorator(func):
@@ -402,44 +410,3 @@ class DisableViewportUpdates:
             log_debug("Re-enabled viewport updates")
         except Exception as e:
             log_error(f"Failed to re-enable viewport updates: {str(e)}")
-
-
-# ============================================================================
-# Example Usage and Tests
-# ============================================================================
-
-if __name__ == "__main__":
-    # Example of how to use the new error handling framework
-
-    @validate_inputs(
-        {
-            "assetPath": [RequiredRule(), AssetPathRule()],
-            "location": [RequiredRule(), ListLengthRule(3)],
-            "name": [TypeRule(str)],
-        }
-    )
-    @handle_unreal_errors("spawn_actor")
-    @safe_operation("actor")
-    def example_spawn_actor(assetPath: str, location: List[float], name: str = None):
-        """Example function showing the new error handling pattern."""
-        # No try/catch needed! Validation and error handling are automatic
-
-        # These will throw specific errors if they fail
-        asset = require_asset(assetPath)
-
-        # Business logic without error handling boilerplate
-        from utils import create_transform
-
-        ue_location, ue_rotation, ue_scale = create_transform(location, [0, 0, 0], [1, 1, 1])
-
-        # This might raise ProcessingError which will be caught and converted
-        editor_actor_subsystem = get_actor_subsystem()
-        actor = editor_actor_subsystem.spawn_actor_from_object(asset, ue_location, ue_rotation)
-
-        if not actor:
-            raise ProcessingError("Failed to spawn actor from asset")
-
-        if name:
-            actor.set_actor_label(name)
-
-        return {"actor_name": actor.get_actor_label(), "location": location, "asset_path": assetPath}

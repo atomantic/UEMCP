@@ -47,20 +47,22 @@ class LevelOperations:
         info = get_project_info()
         return info
 
-    @validate_inputs({"filter": [TypeRule(str, allow_none=True)], "limit": [TypeRule(int)]})
+    @validate_inputs({"filter": [TypeRule(str, allow_none=True)], "limit": [TypeRule(int)], "offset": [TypeRule(int)]})
     @handle_unreal_errors("get_level_actors")
     @safe_operation("level")
-    def get_level_actors(self, filter: Optional[str] = None, limit: int = 30):
+    def get_level_actors(self, filter: Optional[str] = None, limit: int = 30, offset: int = 0):
         """Get all actors in the current level.
 
         Args:
             filter: Optional text to filter actors
             limit: Maximum number of actors to return
+            offset: Number of actors to skip (for pagination)
 
         Returns:
             dict: List of actors with properties
         """
-        actors = get_all_actors(filter_text=filter, limit=limit)
+        actors = get_all_actors(filter_text=filter, limit=offset + limit)
+        actors = actors[offset:]
 
         # Count total actors
         editor_actor_subsystem = get_actor_subsystem()

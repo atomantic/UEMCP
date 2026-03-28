@@ -56,9 +56,9 @@ export class PythonBridge {
       });
       throw error;
     }
-    clearTimeout(timer);
 
     if (!response.ok) {
+      clearTimeout(timer);
       const errorText = await response.text().catch(() => 'No error body');
       logger.error('Python listener HTTP error', {
         status: response.status,
@@ -68,14 +68,15 @@ export class PythonBridge {
         endpoint: this.httpEndpoint
       });
 
-      // HTTP 529 typically means "Too Many Requests" - rate limiting
-      if (response.status === 529) {
-        throw new Error(`Python listener rate limit (HTTP 529): Too many requests. Status: ${response.statusText}. Body: ${errorText}`);
+      // HTTP 429 typically means "Too Many Requests" - rate limiting
+      if (response.status === 429) {
+        throw new Error(`Python listener rate limit (HTTP 429): Too many requests. Status: ${response.statusText}. Body: ${errorText}`);
       }
       throw new Error(`Python listener HTTP ${response.status}: ${response.statusText}. Body: ${errorText}`);
     }
 
     const data = await response.json() as PythonResponse;
+    clearTimeout(timer);
     logger.debug('Python command response', { response: data });
     return data;
   }
@@ -99,10 +100,11 @@ export class PythonBridge {
         return status.ready === true;
       }
 
-      // Fallback to command execution
+      // Fallback to command execution — use short timeout to cap total check time
       const cmdResponse = await this.executeCommand({
         type: 'project.info',
-        params: {}
+        params: {},
+        timeout: 3,
       });
       return cmdResponse.success;
     } catch {
