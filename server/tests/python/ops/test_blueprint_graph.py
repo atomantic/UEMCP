@@ -787,12 +787,15 @@ class TestCreateInterface:
         assert callable(_make_pin_type)
 
     def test_create_interface_rejects_empty_path(self):
-        """Test create_interface rejects path without asset name."""
-        from ops.blueprint_graph import create_interface
+        """Test create_interface rejects path with trailing slash (no asset name)."""
+        import pytest
 
-        result = create_interface(interface_path="/Game/Interfaces/")
-        # The decorators catch ProcessingError and return an error dict
-        assert result.get("success") is False
+        from ops.blueprint_graph import create_interface
+        from utils.error_handling import ValidationError
+
+        # AssetPathRule now rejects trailing slashes at validate_inputs time
+        with pytest.raises(ValidationError):
+            create_interface(interface_path="/Game/Interfaces/")
 
     def test_create_interface_rejects_path_without_slash(self):
         """Test create_interface rejects path without any slash."""

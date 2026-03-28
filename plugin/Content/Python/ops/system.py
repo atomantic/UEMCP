@@ -406,10 +406,18 @@ class SystemOperations:
         if os.environ.get("UEMCP_ALLOW_PYTHON_PROXY", "1").strip().lower() not in ("1", "true", "yes", "on"):
             return {"success": False, "error": "python_proxy is disabled (UEMCP_ALLOW_PYTHON_PROXY=0)"}
 
-        # Audit log every invocation
+        # Audit log every invocation — walk the stack to skip decorator wrappers
+        _DECORATOR_MODULES = {"utils.error_handling", "utils/error_handling", "error_handling", "functools"}
         caller = sys._getframe(1)
+        depth = 1
+        while depth < 10:
+            fname = caller.f_code.co_filename
+            if not any(mod in fname for mod in _DECORATOR_MODULES):
+                break
+            depth += 1
+            caller = sys._getframe(depth)
         unreal.log(
-            f"UEMCP: python_proxy | caller={caller.f_code.co_filename}:{caller.f_lineno}" f" | code_length={len(code)}"
+            f"UEMCP: python_proxy | caller={caller.f_code.co_filename}:{caller.f_lineno} | code_length={len(code)}"
         )
 
         # Set up execution context

@@ -148,6 +148,8 @@ class AssetPathRule(ValidationRule):
     def validate(self, value: Any, field_name: str) -> Optional[str]:
         if not isinstance(value, str):
             return f"{field_name} must be a string"
+        if value.endswith("/"):
+            return f"{field_name} must not have a trailing slash"
         if not any(value.startswith(root) for root in self._allowed_roots):
             return f"{field_name} must start with a valid UE content root " f"({', '.join(self._allowed_roots)})"
         if "\\" in value:
@@ -155,6 +157,8 @@ class AssetPathRule(ValidationRule):
         parts = value.split("/")
         if ".." in parts:
             return f"{field_name} must not contain traversal segments (..)"
+        if "" in parts[1:]:
+            return f"{field_name} must not contain empty path segments (double slashes)"
         if len(parts) < self._min_parts:
             return f"{field_name} must be a valid asset path like '/Game/Folder/MyAsset'"
         return None
