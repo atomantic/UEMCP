@@ -116,13 +116,13 @@ export class PythonBridge {
           method: 'GET',
           signal: controller.signal,
         });
+
+        if (response.ok) {
+          const status = await response.json() as { ready?: boolean };
+          return status.ready === true;
+        }
       } finally {
         clearTimeout(timer);
-      }
-
-      if (response.ok) {
-        const status = await response.json() as { ready?: boolean };
-        return status.ready === true;
       }
 
       // Fallback to command execution with a short timeout.
