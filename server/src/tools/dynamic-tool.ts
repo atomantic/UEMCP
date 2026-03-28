@@ -38,16 +38,9 @@ export interface DynamicToolDefinition {
   };
 }
 
-// Per-tool timeout overrides (seconds) — must match Python _COMMAND_TIMEOUTS
-const TOOL_TIMEOUTS: Record<string, number> = {
-  asset_import_assets: 60,
-  material_create_simple_material: 20,
-  material_create_material_instance: 20,
-  python_proxy: 30,
-};
-
-// Per-category default timeouts (seconds) for the TypeScript bridge side
-// Keys must match the category strings produced by the Python tool manifest
+// Per-category fallback timeouts (seconds).
+// Python's _COMMAND_TIMEOUTS is the authoritative per-tool source;
+// these only apply when a tool definition carries no timeout field.
 const CATEGORY_TIMEOUTS: Record<string, number> = {
   viewport: 30,
   actors: 30,
@@ -81,15 +74,9 @@ export class DynamicTool extends BaseTool<Record<string, unknown>> {
     };
   }
 
-  // Implement the required execute method
-  async execute(args?: Record<string, unknown>): Promise<ToolResponse> {
-    return this.executeInternal(args);
-  }
-
-  protected async executeInternal(args: Record<string, unknown> | undefined): Promise<ToolResponse> {
-    // Resolve timeout: manifest > per-tool > category > default
+  async execute(args: Record<string, unknown>): Promise<ToolResponse> {
+    // Timeout: manifest field (Python source of truth) > category fallback > default
     const timeout = this.toolDef.timeout
-      ?? TOOL_TIMEOUTS[this.toolDef.name]
       ?? CATEGORY_TIMEOUTS[this.category]
       ?? DEFAULT_TIMEOUT;
 

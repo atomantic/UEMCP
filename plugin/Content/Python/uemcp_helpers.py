@@ -3,36 +3,14 @@ UEMCP Helper Functions
 Convenient functions for managing the UEMCP listener
 """
 
-# import importlib
-import time
-
 import unreal
 
 
 def restart_listener():
-    """Restart the listener using safe scheduled restart"""
-    try:
-        import uemcp_listener
+    """Restart the listener."""
+    import uemcp_listener
 
-        # Check if running
-        if hasattr(uemcp_listener, "server_running") and uemcp_listener.server_running:
-            # Use the safer scheduled restart from uemcp_listener
-            if hasattr(uemcp_listener, "restart_listener"):
-                return uemcp_listener.restart_listener()
-            else:
-                unreal.log_error("UEMCP: restart_listener function not found in module")
-                return False
-        else:
-            # Not running, just start it
-            unreal.log("UEMCP: Listener not running, starting fresh...")
-            return uemcp_listener.start_listener()
-
-    except Exception as e:
-        unreal.log_error(f"UEMCP: Error in restart: {e}")
-        import traceback
-
-        unreal.log_error(traceback.format_exc())
-        return False
+    return uemcp_listener.restart_listener()
 
 
 def reload_uemcp():
@@ -57,20 +35,10 @@ def status():
 
 
 def start_listener():
-    """Start the listener"""
-    try:
-        # First ensure port is free
-        from utils.port import force_free_port_silent
+    """Start the listener."""
+    import uemcp_listener
 
-        force_free_port_silent(8765)
-        time.sleep(0.5)
-
-        import uemcp_listener
-
-        return uemcp_listener.start_listener()
-    except Exception as e:
-        unreal.log_error(f"UEMCP: Error starting listener: {e}")
-        return False
+    return uemcp_listener.start_listener()
 
 
 def stop_listener():

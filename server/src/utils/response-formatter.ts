@@ -25,8 +25,7 @@ export class ResponseFormatter {
    * Create an error response
    */
   static error(error: Error | string): never {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new Error(errorMessage);
+    throw new Error(ResponseFormatter.getErrorMessage(error));
   }
 
   /**

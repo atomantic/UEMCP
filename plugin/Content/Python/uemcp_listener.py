@@ -6,6 +6,7 @@ import json
 import queue
 import threading
 import time
+import uuid
 
 # import os
 # import sys
@@ -27,6 +28,7 @@ server_running = False
 server_thread = None
 httpd = None
 tick_handle = None
+_deferred_restart_tick = None  # one-shot tick handle used by restart_listener
 
 # Import thread tracker
 try:
@@ -156,7 +158,11 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             self.send_error(413, "Request body too large")
             return None
         post_data = self.rfile.read(content_length)
-        return json.loads(post_data.decode("utf-8"))
+        try:
+            return json.loads(post_data.decode("utf-8"))
+        except json.JSONDecodeError:
+            self.send_error(400, "Invalid JSON")
+            return None
 
     def _generate_request_id(self):
         """Generate unique request ID.
@@ -164,7 +170,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         Returns:
             str: Unique request ID
         """
-        return f"req_{time.time()}_{threading.get_ident()}"
+        return str(uuid.uuid4())
 
     def _log_command(self, command):
         """Log incoming command details.
@@ -201,7 +207,7 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             param_info.append(f"{k}={v}")
         return ", ".join(param_info)
 
-    def _wait_for_response(self, request_id, timeout=10.0, event=None):
+    def _wait_for_response(self, request_id, timeout=10.0, *, event: threading.Event):
         """Wait for command response.
 
         Args:
@@ -212,11 +218,6 @@ class UEMCPHandler(BaseHTTPRequestHandler):
         Returns:
             dict or None: Response if received, None on timeout
         """
-        if event is None:
-            event = threading.Event()
-            with _response_lock:
-                _response_events[request_id] = event
-
         # Wait outside the lock — the event is set by _post_response
         event.wait(timeout=timeout)
 
@@ -269,54 +270,7 @@ def execute_on_main_thread(command):
     params = command.get("params", {})
 
     try:
-        # Convert old command format to new format
-        # Map old command types to new command names
-        command_map = {
-            "project.info": "level_get_project_info",
-            "asset.list": "asset_list_assets",
-            "asset.info": "asset_get_asset_info",
-            "asset_get_info": "asset_get_asset_info",  # Direct MCP mapping
-            "level.actors": "level_get_level_actors",
-            "level.save": "level_save_level",
-            "level.outliner": "level_get_outliner_structure",
-            "level_get_outliner": "level_get_outliner_structure",  # Direct MCP mapping
-            "actor.spawn": "actor_spawn",
-            "actor.create": "actor_spawn",  # Alias
-            "actor.delete": "actor_delete",
-            "actor.modify": "actor_modify",
-            "actor.duplicate": "actor_duplicate",
-            "actor.organize": "actor_organize",
-            "actor.batch_spawn": "actor_batch_spawn",  # Direct MCP mapping
-            "batch_spawn": "actor_batch_spawn",  # MCP tool name
-            "material_create": "material_create_material",  # Direct MCP mapping
-            "material_info": "material_get_material_info",  # Direct MCP mapping
-            "material_get_info": "material_get_material_info",  # Direct MCP mapping
-            "material_apply": "material_apply_material_to_actor",  # Direct MCP mapping
-            "material_apply_to_actor": "material_apply_material_to_actor",  # Direct MCP mapping
-            "material_list": "material_list_materials",  # Direct MCP mapping
-            "blueprint_list": "blueprint_list_blueprints",  # Direct MCP mapping
-            "viewport.screenshot": "viewport_screenshot",
-            "viewport.camera": "viewport_set_camera",
-            "viewport.mode": "viewport_set_mode",
-            "viewport.focus": "viewport_focus_on_actor",
-            "viewport.render_mode": "viewport_set_render_mode",
-            "viewport.bounds": "viewport_get_bounds",
-            "viewport.fit": "viewport_fit_actors",
-            "viewport.look_at": "viewport_look_at_target",
-            "python.execute": "python_proxy",
-            "python.proxy": "python_proxy",  # Alternative mapping
-            "system.restart": "restart_listener",
-            "system.help": "help",
-            "system.test": "test_connection",
-            "system.test_connection": "test_connection",  # Alternative mapping
-            "system.logs": "ue_logs",
-            "system.ue_logs": "ue_logs",  # Alternative mapping
-        }
-
-        # Get the new command name, fall back to direct dispatch
-        new_command = command_map.get(cmd_type, cmd_type)
-        return dispatch_command(new_command, params)
-
+        return dispatch_command(cmd_type, params)
     except Exception as e:
         import traceback
 
@@ -345,7 +299,7 @@ def _post_response(request_id, result):
 def process_commands():
     """Process queued commands on main thread"""
     try:
-        while not command_queue.empty():
+        while True:
             request_id = None
             try:
                 request_id, command = command_queue.get_nowait()
@@ -370,8 +324,8 @@ def process_commands():
 
 
 def _cleanup_abandoned_requests():
-    """Remove abandoned_requests entries older than 30 seconds to prevent unbounded growth."""
-    cutoff = time.time() - 30
+    """Remove abandoned_requests entries older than 10 seconds to prevent unbounded growth."""
+    cutoff = time.time() - 10
     with _response_lock:
         stale = [rid for rid, ts in abandoned_requests.items() if ts < cutoff]
         for rid in stale:
@@ -400,13 +354,14 @@ def start_server():
         _register_operations()
         tick_handle = _register_tick_handler()
 
-        # Start server thread
-        server_thread = _create_server_thread()
+        # Start server thread with a startup event for race-free verification
+        started_event = threading.Event()
+        server_thread = _create_server_thread(started_event)
         server_thread.start()
 
         # Track and verify
         _track_server_thread(server_thread)
-        return _verify_server_started()
+        return _verify_server_started(started_event)
 
     except Exception as e:
         log_error(f"Failed to start server: {str(e)}")
@@ -440,8 +395,11 @@ def _register_tick_handler():
     return handle
 
 
-def _create_server_thread():
+def _create_server_thread(started_event: threading.Event):
     """Create the server thread.
+
+    Args:
+        started_event: Event to set once the server socket is bound and ready.
 
     Returns:
         threading.Thread: The server thread
@@ -455,6 +413,7 @@ def _create_server_thread():
             local_httpd.timeout = 0.5
             httpd = local_httpd
             server_running = True
+            started_event.set()  # Signal that server is bound and ready
             log_debug("HTTP server started on port 8765")
 
             while server_running:
@@ -486,7 +445,7 @@ def _cleanup_server(httpd_instance):
     if httpd_instance:
         try:
             httpd_instance.server_close()
-        except Exception:
+        except OSError:
             pass
 
 
@@ -498,8 +457,8 @@ def _track_server_thread(thread):
     """
     try:
         uemcp_thread_tracker.track_thread(thread)
-    except Exception:
-        pass
+    except Exception as e:
+        log_error(f"Failed to track server thread: {e}")
 
 
 def _untrack_server_thread(thread):
@@ -512,20 +471,20 @@ def _untrack_server_thread(thread):
         return
     try:
         uemcp_thread_tracker.untrack_thread(thread)
-    except Exception:
-        pass
+    except Exception as e:
+        log_error(f"Failed to untrack server thread: {e}")
 
 
-def _verify_server_started():
+def _verify_server_started(started_event: threading.Event):
     """Verify the server started successfully.
+
+    Args:
+        started_event: Event set by the server thread once the socket is bound.
 
     Returns:
         bool: True if server is running, False otherwise
     """
-    # Wait a moment for server to start
-    time.sleep(0.5)
-
-    if server_running:
+    if started_event.wait(timeout=2):
         unreal.log("UEMCP: Modular listener started successfully on port 8765")
         return True
     else:
@@ -554,7 +513,7 @@ def stop_server():
                 try:
                     # Close the socket to interrupt any pending handle_request()
                     httpd.socket.close()
-                except Exception:
+                except OSError:
                     pass
 
             # Wait a bit for the thread to exit
@@ -570,8 +529,8 @@ def stop_server():
                     from utils import force_free_port_silent
 
                     force_free_port_silent(8765)
-                except Exception:
-                    pass
+                except Exception as e:
+                    log_error(f"Failed to force free port 8765: {e}")
 
         # Clean up thread tracking before nullifying the reference
         _untrack_server_thread(server_thread)
@@ -586,12 +545,6 @@ def stop_server():
     except Exception as e:
         log_error(f"Error stopping server: {str(e)}")
         return False
-
-
-def schedule_restart():
-    """Schedule a server restart (deprecated - use restart_listener instead)"""
-    # Just call restart_listener directly now
-    return {"success": restart_listener(), "message": "Restart completed"}
 
 
 def get_status():
@@ -612,23 +565,26 @@ def stop_listener():
 
 def restart_listener():
     """Restart the UEMCP listener (module-level function for compatibility)."""
+    global _deferred_restart_tick
     unreal.log("UEMCP: Restarting listener...")
 
-    # Stop the server first
-    if stop_server():
-        # Wait a longer moment for complete cleanup
-        time.sleep(1.0)  # Increased from 0.5 to ensure port is fully released
-
-        # Start it again
-        if start_server():
-            unreal.log("UEMCP: Listener restarted successfully")
-            return True
-        else:
-            unreal.log_error("UEMCP: Failed to start listener after stopping")
-            return False
-    else:
+    if not stop_server():
         unreal.log_error("UEMCP: Failed to stop listener for restart")
         return False
+
+    # Schedule start_server on the next Slate tick instead of sleeping on the game thread.
+    def _deferred_start(delta_time):
+        global _deferred_restart_tick
+        if _deferred_restart_tick is not None:
+            unreal.unregister_slate_post_tick_callback(_deferred_restart_tick)
+            _deferred_restart_tick = None
+        if start_server():
+            unreal.log("UEMCP: Listener restarted successfully")
+        else:
+            unreal.log_error("UEMCP: Failed to start listener after stopping")
+
+    _deferred_restart_tick = unreal.register_slate_post_tick_callback(_deferred_start)
+    return True
 
 
 # Auto-start only if running as main script
