@@ -2,7 +2,7 @@
 Niagara VFX system operations for creating and managing particle effects.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import unreal
 
@@ -13,10 +13,11 @@ from utils.error_handling import (
     RequiredRule,
     TypeRule,
     handle_unreal_errors,
+    require_asset,
     safe_operation,
     validate_inputs,
 )
-from utils.general import log_debug
+from utils.general import get_unreal_editor_subsystem, log_debug
 
 # ---------------------------------------------------------------------------
 # Template presets for common VFX effects
@@ -72,24 +73,8 @@ _VALID_PARAM_TYPES = ("float", "int", "bool", "vector", "color", "enum")
 
 
 def _load_niagara_system(system_path: str) -> unreal.NiagaraSystem:
-    """Load a Niagara system asset from path.
-
-    Args:
-        system_path: Content browser path to the system
-
-    Returns:
-        The loaded NiagaraSystem
-
-    Raises:
-        ProcessingError: If asset cannot be loaded or is wrong type
-    """
-    asset = unreal.EditorAssetLibrary.load_asset(system_path)
-    if not asset:
-        raise ProcessingError(
-            f"Niagara system not found: {system_path}",
-            operation="niagara",
-            details={"system_path": system_path},
-        )
+    """Load and validate a Niagara system asset."""
+    asset = require_asset(system_path)
     if not isinstance(asset, unreal.NiagaraSystem):
         raise ProcessingError(
             f"Asset is not a NiagaraSystem: {system_path} (got {type(asset).__name__})",
@@ -100,31 +85,13 @@ def _load_niagara_system(system_path: str) -> unreal.NiagaraSystem:
 
 
 def _get_emitter_handles(system: unreal.NiagaraSystem) -> list:
-    """Get emitter handles from a Niagara system.
-
-    Args:
-        system: The NiagaraSystem asset
-
-    Returns:
-        List of emitter handle objects
-    """
+    """Get emitter handles from a Niagara system."""
     handles = system.get_emitter_handles()
     return list(handles) if handles else []
 
 
 def _find_emitter_handle(system: unreal.NiagaraSystem, emitter_name: str):
-    """Find an emitter handle by name within a system.
-
-    Args:
-        system: The NiagaraSystem asset
-        emitter_name: Name of the emitter to find
-
-    Returns:
-        The matching emitter handle
-
-    Raises:
-        ProcessingError: If emitter is not found
-    """
+    """Find an emitter handle by name within a system."""
     for handle in _get_emitter_handles(system):
         if handle.get_name() == emitter_name:
             return handle
@@ -137,14 +104,7 @@ def _find_emitter_handle(system: unreal.NiagaraSystem, emitter_name: str):
 
 
 def _extract_path_parts(system_path: str) -> tuple:
-    """Split a system path into package path and asset name.
-
-    Args:
-        system_path: Full asset path like /Game/VFX/MySystem
-
-    Returns:
-        Tuple of (package_path, asset_name)
-    """
+    """Split a system path into package path and asset name."""
     parts = system_path.rsplit("/", 1)
     if len(parts) == 2:
         return parts[0], parts[1]
@@ -167,7 +127,7 @@ def _extract_path_parts(system_path: str) -> tuple:
 def create_system(
     system_path: str,
     template: Optional[str] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create a new Niagara particle system asset.
 
     Args:
@@ -246,7 +206,7 @@ def add_emitter(
     system_path: str,
     emitter_name: str,
     emitter_asset_path: Optional[str] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Add an emitter to an existing Niagara system.
 
     Args:
@@ -323,7 +283,7 @@ def add_module(
     module_name: str,
     section: str,
     module_asset_path: Optional[str] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Add a module to an emitter's spawn, update, or render script section.
 
     Args:
@@ -395,7 +355,7 @@ def configure_module(
     parameter_name: str,
     value: Any = None,
     value_type: str = "float",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Set a parameter value on a module within an emitter.
 
     Args:
@@ -446,7 +406,7 @@ def configure_module(
     # Save
     unreal.EditorAssetLibrary.save_asset(system_path)
 
-    log_debug(f"Configured {emitter_name}/{module_name}.{parameter_name}={applied_value} " f"in {system_path}")
+    log_debug(f"Configured {emitter_name}/{module_name}.{parameter_name}={applied_value} in {system_path}")
 
     return {
         "success": True,
@@ -474,8 +434,8 @@ def set_renderer(
     renderer_type: str,
     material_path: Optional[str] = None,
     mesh_path: Optional[str] = None,
-    settings: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    settings: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
     """Configure a renderer (sprite, mesh, ribbon, light) on an emitter.
 
     Args:
@@ -547,7 +507,7 @@ def set_renderer(
 def compile(
     system_path: str,
     force: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Compile and save a Niagara system.
 
     Args:
@@ -587,12 +547,12 @@ def compile(
 @safe_operation("niagara")
 def spawn(
     system_path: str,
-    location: List[float],
-    rotation: Optional[List[float]] = None,
-    scale: Optional[List[float]] = None,
+    location: list[float],
+    rotation: Optional[list[float]] = None,
+    scale: Optional[list[float]] = None,
     auto_activate: bool = True,
     actor_name: Optional[str] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Spawn a Niagara system actor in the world at a given location.
 
     Args:
@@ -616,7 +576,7 @@ def spawn(
     spawn_rotation = unreal.Rotator(rot[0], rot[1], rot[2])
 
     # Spawn the system in the world
-    world = unreal.EditorLevelLibrary.get_editor_world()
+    world = get_unreal_editor_subsystem().get_editor_world()
     niagara_component = unreal.NiagaraFunctionLibrary.spawn_system_at_location(
         world,
         system,
@@ -670,7 +630,7 @@ def spawn(
 @safe_operation("niagara")
 def get_metadata(
     system_path: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Inspect a Niagara system's structure including emitters, modules, and parameters.
 
     Args:
