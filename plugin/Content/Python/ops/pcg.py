@@ -9,6 +9,7 @@ import unreal
 
 from utils.error_handling import (
     AssetPathRule,
+    ListLengthRule,
     ProcessingError,
     RequiredRule,
     TypeRule,
@@ -17,7 +18,7 @@ from utils.error_handling import (
     safe_operation,
     validate_inputs,
 )
-from utils.general import get_actor_subsystem, log_debug
+from utils.general import create_rotator, create_vector, get_actor_subsystem, log_debug
 
 _BUILT_IN_TEMPLATES = {
     "scatter": "Basic scatter on surface",
@@ -488,9 +489,9 @@ def search_palette(
     {
         "graph_path": [RequiredRule(), AssetPathRule()],
         "actor_name": [RequiredRule(), TypeRule(str)],
-        "location": [TypeRule(list, allow_none=True)],
-        "rotation": [TypeRule(list, allow_none=True)],
-        "scale": [TypeRule(list, allow_none=True)],
+        "location": [ListLengthRule(3, allow_none=True)],
+        "rotation": [ListLengthRule(3, allow_none=True)],
+        "scale": [ListLengthRule(3, allow_none=True)],
     }
 )
 @handle_unreal_errors("pcg_spawn_actor")
@@ -520,9 +521,9 @@ def spawn_actor(
     rot = rotation or [0, 0, 0]
     scl = scale or [1, 1, 1]
 
-    ue_location = unreal.Vector(float(loc[0]), float(loc[1]), float(loc[2]))
-    ue_rotation = unreal.Rotator(float(rot[0]), float(rot[1]), float(rot[2]))
-    ue_scale = unreal.Vector(float(scl[0]), float(scl[1]), float(scl[2]))
+    ue_location = create_vector(loc)
+    ue_rotation = create_rotator(rot)
+    ue_scale = create_vector(scl)
 
     actor_subsystem = get_actor_subsystem()
     actor = actor_subsystem.spawn_actor_from_class(
@@ -542,8 +543,13 @@ def spawn_actor(
     actor.set_actor_scale3d(ue_scale)
 
     pcg_component = actor.add_component_by_class(unreal.PCGComponent)
-    if pcg_component:
-        pcg_component.set_editor_property("graph", graph)
+    if not pcg_component:
+        raise ProcessingError(
+            "Failed to add PCGComponent to actor",
+            operation="pcg_spawn_actor",
+            details={"actor_name": actor_name},
+        )
+    pcg_component.set_editor_property("graph", graph)
 
     log_debug(f"Spawned PCG actor '{actor_name}' with graph {graph_path}")
 

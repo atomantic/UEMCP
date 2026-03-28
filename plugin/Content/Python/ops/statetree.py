@@ -59,11 +59,12 @@ def _resolve_statetree(asset_path: str):
 
 
 def _get_statetree_editor():
-    """Get the StateTree editor subsystem if available."""
-    editor = getattr(unreal, "StateTreeEditorSubsystem", None)
-    if editor is None:
-        editor = getattr(unreal, "StateTreeEditorLibrary", None)
-    return editor
+    """Get the StateTree editor subsystem instance if available."""
+    subsystem_class = getattr(unreal, "StateTreeEditorSubsystem", None)
+    if subsystem_class is not None:
+        return unreal.get_editor_subsystem(subsystem_class)
+    # Fallback to library class (static methods)
+    return getattr(unreal, "StateTreeEditorLibrary", None)
 
 
 def _resolve_task_class(task_type: str):
