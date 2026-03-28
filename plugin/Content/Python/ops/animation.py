@@ -184,6 +184,7 @@ def create_state_machine(
     sm_node = unreal.AnimGraphNode_StateMachine()
     sm_node.set_editor_property("node_comment", machine_name)
     anim_graph.add_node(sm_node, False, False)
+    # Pin wiring to the final animation pose output is handled by UE compilation
 
     unreal.KismetEditorUtilities.compile_blueprint(anim_bp)
     unreal.EditorAssetLibrary.save_asset(blueprint_path)
@@ -432,12 +433,16 @@ def add_variable(
     if not added:
         log_debug(f"add_blueprint_variable returned falsy for '{variable_name}', attempting save anyway")
 
+    # Compile first so the CDO has the new variable property available
+    unreal.KismetEditorUtilities.compile_blueprint(anim_bp)
+
     if default_value is not None:
         cdo = anim_bp.generated_class().get_default_object()
         if cdo and hasattr(cdo, variable_name):
             cdo.set_editor_property(variable_name, default_value)
+            # Re-compile after setting default to persist the CDO change
+            unreal.KismetEditorUtilities.compile_blueprint(anim_bp)
 
-    unreal.KismetEditorUtilities.compile_blueprint(anim_bp)
     unreal.EditorAssetLibrary.save_asset(blueprint_path, only_if_is_dirty=False)
 
     log_debug(f"Added variable '{variable_name}' ({variable_type}) to {blueprint_path}")
@@ -674,6 +679,10 @@ def link_layer(
     layer_node = unreal.AnimGraphNode_LinkedAnimLayer()
     layer_comment = layer_name or layer_bp.get_name()
     layer_node.set_editor_property("node_comment", layer_comment)
+    # Set the interface class so the layer node knows which layer BP to resolve
+    inner_node = layer_node.get_editor_property("node")
+    if inner_node and hasattr(inner_node, "set_editor_property"):
+        inner_node.set_editor_property("interface", layer_class)
     anim_graph.add_node(layer_node, False, False)
 
     unreal.KismetEditorUtilities.compile_blueprint(base_bp)
