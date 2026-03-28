@@ -47,7 +47,7 @@ def validate_actor_location(actor, expected_location, tolerance=0.1):
                 result.add_error(
                     f"Location {axis} mismatch: expected {expected:.2f}, got {actual:.2f} (diff: {diff:.2f})"
                 )
-    except (AttributeError, RuntimeError, TypeError) as e:
+    except (AttributeError, IndexError, RuntimeError, TypeError) as e:
         result.add_error(f"Failed to validate location: {str(e)}")
 
     return result
@@ -80,7 +80,7 @@ def validate_actor_rotation(actor, expected_rotation, tolerance=0.1):
                 result.add_error(
                     f"Rotation {component} mismatch: expected {expected:.2f}°, got {actual:.2f}° (diff: {diff:.2f}°)"
                 )
-    except (AttributeError, RuntimeError, TypeError) as e:
+    except (AttributeError, IndexError, RuntimeError, TypeError) as e:
         result.add_error(f"Failed to validate rotation: {str(e)}")
 
     return result
@@ -102,7 +102,7 @@ def validate_actor_scale(actor, expected_scale, tolerance=0.001):
             diff = abs(expected - actual)
             if diff > tolerance:
                 result.add_error(f"Scale {axis} mismatch: expected {expected:.3f}, got {actual:.3f} (diff: {diff:.3f})")
-    except (AttributeError, RuntimeError, TypeError) as e:
+    except (AttributeError, IndexError, RuntimeError, TypeError) as e:
         result.add_error(f"Failed to validate scale: {str(e)}")
 
     return result
