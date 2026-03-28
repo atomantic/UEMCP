@@ -25,6 +25,13 @@ from utils.error_handling import (
 )
 
 
+def _get_asset_type_name(asset) -> str:
+    """Extract type name from an asset's class path."""
+    if hasattr(asset.asset_class_path, "asset_name"):
+        return str(asset.asset_class_path.asset_name)
+    return str(asset.asset_class_path)
+
+
 class MaterialOperations:
     """Handles all material-related operations."""
 
@@ -74,24 +81,10 @@ class MaterialOperations:
         assets = []
 
         for asset in all_assets:
-            asset_type = self._get_asset_type(asset)
-            if asset_type in material_types:
+            if _get_asset_type_name(asset) in material_types:
                 assets.append(asset)
 
         return assets
-
-    def _get_asset_type(self, asset):
-        """Get the type of an asset.
-
-        Args:
-            asset: Asset to get type for
-
-        Returns:
-            str: Asset type
-        """
-        if hasattr(asset.asset_class_path, "asset_name"):
-            return str(asset.asset_class_path.asset_name)
-        return str(asset.asset_class_path)
 
     def _apply_pattern_filter(self, assets, pattern):
         """Apply pattern filter to assets.
@@ -150,7 +143,7 @@ class MaterialOperations:
         return {
             "name": str(asset.asset_name),
             "path": str(asset.package_name),
-            "type": self._get_asset_type(asset),
+            "type": _get_asset_type_name(asset),
         }
 
     def _add_extended_material_info(self, material_info):

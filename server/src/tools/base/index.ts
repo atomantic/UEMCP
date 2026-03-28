@@ -3,4 +3,4 @@
  */
 
 // Only export what's actually needed by DynamicTool
-export { BaseTool, ToolDefinition, PythonResult } from './base-tool.js';
+export { BaseTool, ToolDefinition } from './base-tool.js';

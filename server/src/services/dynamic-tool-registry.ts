@@ -8,6 +8,7 @@
 
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '../utils/logger.js';
+import { ResponseFormatter } from '../utils/response-formatter.js';
 import { PythonBridge } from './python-bridge.js';
 import { DynamicToolRegistry } from '../tools/dynamic-registry.js';
 import { DynamicTool } from '../tools/dynamic-tool.js';
@@ -26,9 +27,13 @@ export interface MCPTool {
  */
 export class HybridToolRegistry {
   private dynamicRegistry: DynamicToolRegistry | null = null;
-  private isDynamic = false;
 
   constructor(private pythonBridge?: PythonBridge) {}
+
+  private get registry(): DynamicToolRegistry {
+    if (!this.dynamicRegistry) throw new Error('Registry not initialized — call initialize() first');
+    return this.dynamicRegistry;
+  }
 
   /**
    * Initialize the registry, preferring dynamic if available
@@ -37,14 +42,16 @@ export class HybridToolRegistry {
     if (this.pythonBridge) {
       try {
         logger.info('Attempting to load tools dynamically from Python manifest...');
-        
-        this.dynamicRegistry = new DynamicToolRegistry(this.pythonBridge);
-        const success = await this.dynamicRegistry.initialize();
-        
+
+        const candidate = new DynamicToolRegistry(this.pythonBridge);
+        const success = await candidate.initialize();
+
         if (success) {
-          this.isDynamic = true;
+          // Only assign after successful initialization so isDynamicMode() is never true
+          // for a partially-initialized registry.
+          this.dynamicRegistry = candidate;
           logger.info('✓ Successfully loaded tools from Python manifest');
-          
+
           const manifest = this.dynamicRegistry.getManifest();
           if (manifest) {
             logger.info(`Loaded ${manifest.totalTools} tools across ${Object.keys(manifest.categories).length} categories`);
@@ -52,9 +59,9 @@ export class HybridToolRegistry {
           return;
         }
       } catch (error) {
-        logger.warn('Failed to load dynamic tools, falling back to static:', {
-        error: error instanceof Error ? error.message : String(error)
-      });
+        logger.warn('Failed to load dynamic tools from Python manifest:', {
+          error: ResponseFormatter.getErrorMessage(error)
+        });
       }
     }
 
@@ -76,8 +83,11 @@ export class HybridToolRegistry {
     return {
       definition: tool.definition,
       handler: async (args: unknown): Promise<CallToolResult> => {
-        const typedArgs = args as Record<string, unknown> | undefined;
-        const response = await tool.execute(typedArgs);
+        const typedArgs: Record<string, unknown> =
+          args !== null && typeof args === 'object' && !Array.isArray(args)
+            ? (args as Record<string, unknown>)
+            : {};
+        const response = await tool.handler(typedArgs);
         return {
           content: response.content.map(item => ({
             type: 'text' as const,
@@ -92,22 +102,15 @@ export class HybridToolRegistry {
    * Get all available tools
    */
   getAllTools(): MCPTool[] {
-    if (this.isDynamic && this.dynamicRegistry) {
-      return this.dynamicRegistry.getTools().map(tool => this.createToolHandler(tool));
-    }
-    return [];
+    return this.registry.getTools().map(tool => this.createToolHandler(tool));
   }
 
   /**
    * Get a specific tool by name
    */
   getTool(name: string): MCPTool | undefined {
-    if (this.isDynamic && this.dynamicRegistry) {
-      const tool = this.dynamicRegistry.getTool(name);
-      if (tool) {
-        return this.createToolHandler(tool);
-      }
-    }
+    const tool = this.registry.getTool(name);
+    if (tool) return this.createToolHandler(tool);
     return undefined;
   }
 
@@ -115,31 +118,21 @@ export class HybridToolRegistry {
    * Get tool count
    */
   getToolCount(): number {
-    if (this.isDynamic && this.dynamicRegistry) {
-      return this.dynamicRegistry.getTools().length;
-    }
-    return 0;
+    return this.registry.getTools().length;
   }
 
   /**
    * Get statistics about loaded tools
    */
   getStats(): { total: number; categories: Record<string, number>; mode: string } {
-    if (this.isDynamic && this.dynamicRegistry) {
-      const manifest = this.dynamicRegistry.getManifest();
-      if (manifest) {
-        const categoryCounts: Record<string, number> = {};
-        for (const [category, tools] of Object.entries(manifest.categories)) {
-          categoryCounts[category] = tools.length;
-        }
-        return {
-          total: manifest.totalTools,
-          categories: categoryCounts,
-          mode: 'dynamic'
-        };
+    const manifest = this.registry.getManifest();
+    if (manifest) {
+      const categoryCounts: Record<string, number> = {};
+      for (const [category, tools] of Object.entries(manifest.categories)) {
+        categoryCounts[category] = tools.length;
       }
+      return { total: manifest.totalTools, categories: categoryCounts, mode: 'dynamic' };
     }
-    
     return { total: 0, categories: {}, mode: 'none' };
   }
 
@@ -147,16 +140,13 @@ export class HybridToolRegistry {
    * Check if running in dynamic mode
    */
   isDynamicMode(): boolean {
-    return this.isDynamic;
+    return this.dynamicRegistry !== null;
   }
 
   /**
    * Refresh dynamic tools (if in dynamic mode)
    */
   async refresh(): Promise<boolean> {
-    if (this.isDynamic && this.dynamicRegistry) {
-      return await this.dynamicRegistry.refresh();
-    }
-    return false;
+    return await this.registry.refresh();
   }
 }
