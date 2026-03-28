@@ -24,6 +24,18 @@ from utils.error_handling import (
     validate_inputs,
 )
 
+# Supported file extensions by asset type, defined once at module level.
+# "auto" covers all types except material (intentionally excluded for batch imports).
+SUPPORTED_EXTENSIONS: Dict[str, List[str]] = {
+    "staticMesh": [".fbx", ".obj", ".dae", ".3ds", ".ase", ".ply"],
+    "material": [".mat"],
+    "texture": [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".tiff", ".exr", ".hdr"],
+    "blueprint": [".uasset"],
+}
+SUPPORTED_EXTENSIONS["auto"] = (
+    SUPPORTED_EXTENSIONS["staticMesh"] + SUPPORTED_EXTENSIONS["texture"] + SUPPORTED_EXTENSIONS["blueprint"]
+)
+
 
 class AssetOperations:
     """Handles all asset-related operations."""
@@ -525,7 +537,7 @@ class AssetOperations:
     @validate_inputs(
         {
             "sourcePath": [RequiredRule(), TypeRule(str), FileExistsRule()],
-            "targetFolder": [RequiredRule(), TypeRule(str)],
+            "targetFolder": [RequiredRule(), TypeRule(str), AssetPathRule()],
             "assetType": [TypeRule(str)],
             "batchImport": [TypeRule(bool)],
             "importSettings": [TypeRule(dict, allow_none=True)],
@@ -537,7 +549,7 @@ class AssetOperations:
         self,
         sourcePath: str,
         targetFolder: str = "/Game/ImportedAssets",
-        importSettings: dict = None,
+        importSettings: dict | None = None,
         assetType: str = "auto",
         batchImport: bool = False,
     ) -> dict:
@@ -694,33 +706,6 @@ class AssetOperations:
         Returns:
             list: List of file paths to import
         """
-        import os
-
-        # Supported file extensions by type
-        SUPPORTED_EXTENSIONS = {
-            "staticMesh": [".fbx", ".obj", ".dae", ".3ds", ".ase", ".ply"],
-            "material": [".mat"],  # UE material files
-            "texture": [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".tiff", ".exr", ".hdr"],
-            "blueprint": [".uasset"],  # Blueprint files
-            "auto": [
-                ".fbx",
-                ".obj",
-                ".dae",
-                ".3ds",
-                ".ase",
-                ".ply",
-                ".png",
-                ".jpg",
-                ".jpeg",
-                ".tga",
-                ".bmp",
-                ".tiff",
-                ".exr",
-                ".hdr",
-                ".uasset",
-            ],
-        }
-
         extensions = SUPPORTED_EXTENSIONS.get(asset_type, SUPPORTED_EXTENSIONS["auto"])
         files_to_import = []
 

@@ -29,7 +29,9 @@ def find_all_processes_using_port(port):
             result = subprocess.run(["lsof", "-i", f":{port}", "-t"], capture_output=True, text=True)
             if result.stdout:
                 # Get all PIDs
-                pids = [pid.strip() for pid in result.stdout.strip().split("\n") if pid.strip()]
+                pids = [
+                    pid.strip() for pid in result.stdout.strip().split("\n") if pid.strip() and pid.strip().isdigit()
+                ]
                 for pid in pids:
                     try:
                         # Get process name

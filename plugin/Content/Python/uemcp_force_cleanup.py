@@ -36,8 +36,8 @@ def force_cleanup():
             if result.stdout:
                 pids = result.stdout.strip().split("\n")
                 for pid in pids:
-                    if pid:
-                        subprocess.run(["kill", "-9", pid])
+                    if pid and pid.strip().isdigit():
+                        subprocess.run(["kill", "-9", pid.strip()])
                         unreal.log(f"UEMCP: ✓ Killed process {pid}")
                 time.sleep(1)
             else:
