@@ -56,15 +56,17 @@ jobs:
         cp -r server UEMCP-Full-${{ github.ref_name }}/
         cp -r plugin UEMCP-Full-${{ github.ref_name }}/
         cp -r docs UEMCP-Full-${{ github.ref_name }}/
-        cp README.md CLAUDE.md PLAN.md RELEASE_PROCESS.md UEMCP-Full-${{ github.ref_name }}/
-        
-        # Copy LICENSE if it exists
-        if [ -f LICENSE ]; then
-          cp LICENSE UEMCP-Full-${{ github.ref_name }}/
+        # setup.sh is required for the Quick Start instructions; fail if missing
+        if [ ! -f setup.sh ]; then
+          echo "Error: setup.sh not found in repository root. It is required for the Quick Start installation."
+          exit 1
         fi
-        
-        # Copy setup scripts
         cp setup.sh UEMCP-Full-${{ github.ref_name }}/
+
+        # Optional top-level files
+        for f in README.md LICENSE; do
+          [ -f "$f" ] && cp "$f" UEMCP-Full-${{ github.ref_name }}/
+        done
         
         # Create zip
         zip -r UEMCP-Full-${{ github.ref_name }}.zip UEMCP-Full-${{ github.ref_name }}/
