@@ -57,12 +57,26 @@ export class DynamicToolRegistry {
         return false;
       }
 
+      // Validate each tool has required fields before storing
+      const rawTools = result.tools as unknown[];
+      const validTools = rawTools.filter((tool): tool is DynamicToolDefinition => {
+        if (typeof tool !== 'object' || tool === null) return false;
+        const t = tool as Record<string, unknown>;
+        return typeof t['name'] === 'string' &&
+          typeof t['description'] === 'string' &&
+          typeof t['category'] === 'string' &&
+          typeof t['inputSchema'] === 'object' && t['inputSchema'] !== null;
+      });
+      if (validTools.length !== rawTools.length) {
+        logger.warn(`Manifest contained ${rawTools.length - validTools.length} invalid tool definitions (missing required fields)`);
+      }
+
       this.manifest = {
         success: result.success,
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
         version: String(result.version || getVersion()),
         totalTools: Number(result.totalTools || result.tools.length),
-        tools: result.tools as DynamicToolDefinition[],
+        tools: validTools,
         categories: (result.categories || {}) as Record<string, string[]>,
         error: result.error ? String(result.error) : undefined
       };
