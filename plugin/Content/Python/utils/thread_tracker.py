@@ -42,12 +42,6 @@ def cleanup_all():
     # Clear the list
     _all_httpd_servers.clear()
 
-    # Don't wait for threads - they'll die when sockets close
-    dead_threads = []
-    for thread in _all_server_threads:
-        if not thread.is_alive():
-            dead_threads.append(thread)
-
     # Only keep alive threads (should be none after socket close)
     _all_server_threads = [t for t in _all_server_threads if t.is_alive()]
 

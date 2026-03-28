@@ -138,10 +138,8 @@ class ViewportOperations:
             # Find and focus on specific actor using error handling framework
             target_actor = require_actor(focusActor)
 
-            # Get actor location and bounds
+            # Get actor location
             actor_location = target_actor.get_actor_location()
-            actor_bounds = target_actor.get_actor_bounds(False)
-            _ = actor_bounds[1]  # Box extent
 
             # Calculate camera position
             camera_offset = unreal.Vector(-distance * 0.7, 0, distance * 0.7)  # Back, Side, Up
@@ -590,9 +588,6 @@ class ViewportOperations:
 
         # Calculate view direction
         forward = camera_rotation.get_forward_vector()
-        _ = camera_rotation.get_right_vector()
-        _ = camera_rotation.get_up_vector()
-
         # Calculate corner points
         center = camera_location + forward * view_distance
 

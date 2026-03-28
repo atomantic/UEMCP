@@ -7,6 +7,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
+  CallToolResult,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '../utils/logger.js';
@@ -89,8 +90,7 @@ export class ServerManager {
         arguments: unknown 
       };
       
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-      return this.handleToolCall(name, args) as any;
+      return this.handleToolCall(name, args) as unknown as CallToolResult;
     });
   }
 
@@ -153,11 +153,6 @@ export class ServerManager {
         categories: Object.keys(stats.categories).length,
         transport: 'stdio'
       });
-
-      // Log tool statistics
-      for (const [category, count] of Object.entries(stats.categories)) {
-        logger.info(`  ${category}: ${count} tools`);
-      }
 
     } catch (error) {
       logger.error('Failed to start server', { error: ResponseFormatter.getErrorMessage(error) });
@@ -236,6 +231,7 @@ export class ServerManager {
     
     process.on('SIGINT', () => void shutdown('SIGINT'));
     process.on('SIGTERM', () => void shutdown('SIGTERM'));
+    process.on('SIGHUP', () => void shutdown('SIGHUP'));
   }
 
   /**

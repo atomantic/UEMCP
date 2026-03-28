@@ -344,8 +344,11 @@ describe('ServerManager', () => {
 
       await serverManager.startServer();
 
-      expect(mockLogger.info).toHaveBeenCalledWith('  actors: 2 tools');
-      expect(mockLogger.info).toHaveBeenCalledWith('  viewport: 3 tools');
+      expect(mockLogger.info).toHaveBeenCalledWith('UEMCP Server started successfully', {
+        tools: 5,
+        categories: 2,
+        transport: 'stdio',
+      });
     });
 
     it('should throw if server not initialized before starting', async () => {

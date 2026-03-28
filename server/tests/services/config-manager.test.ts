@@ -9,6 +9,12 @@ jest.mock('../../src/utils/logger.js', () => ({
   },
 }));
 
+// Mock version module so tests don't depend on package.json
+jest.mock('../../src/utils/version.js', () => ({
+  getVersion: () => '2.1.0',
+  getVersionInfo: () => ({ version: '2.1.0', name: 'uemcp', description: 'test' }),
+}));
+
 // Mock os module for consistent testing
 jest.mock('os', () => ({
   platform: jest.fn(() => 'darwin'),
@@ -48,7 +54,7 @@ describe('ConfigManager', () => {
     it('should initialize with default values', () => {
       const config = configManager.getConfig();
       
-      expect(config.version).toBe('0.2.0');
+      expect(config.version).toBe('2.1.0');
       expect(config.name).toBe('uemcp');
       expect(config.listenerPort).toBe('8765'); // default
       expect(config.processId).toBe(process.pid);
@@ -84,7 +90,7 @@ describe('ConfigManager', () => {
     });
 
     it('should get server version', () => {
-      expect(configManager.getServerVersion()).toBe('0.2.0');
+      expect(configManager.getServerVersion()).toBe('2.1.0');
     });
 
     it('should get UE project path', () => {
@@ -118,7 +124,7 @@ describe('ConfigManager', () => {
       
       expect(mockLogger.info).toHaveBeenCalledWith('='.repeat(60));
       expect(mockLogger.info).toHaveBeenCalledWith('UEMCP Server Starting...');
-      expect(mockLogger.info).toHaveBeenCalledWith(`Version: 0.2.0`);
+      expect(mockLogger.info).toHaveBeenCalledWith(`Version: 2.1.0`);
       expect(mockLogger.info).toHaveBeenCalledWith(`Node.js: ${process.version}`);
       expect(mockLogger.info).toHaveBeenCalledWith(`Process ID: ${process.pid}`);
     });
