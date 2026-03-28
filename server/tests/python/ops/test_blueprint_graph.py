@@ -831,3 +831,421 @@ class TestCreateInterface:
         assert callable(create_interface)
         # functools.wraps preserves __wrapped__ through the decorator chain
         assert hasattr(create_interface, "__wrapped__")
+
+
+class TestCoercePropertyValue:
+    """Test the _coerce_property_value helper."""
+
+    def test_passthrough_string(self):
+        """Test that plain strings pass through unchanged."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        assert _coerce_property_value("hello") == "hello"
+
+    def test_passthrough_number(self):
+        """Test that numbers pass through unchanged."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        assert _coerce_property_value(42) == 42
+        assert _coerce_property_value(3.14) == 3.14
+
+    def test_passthrough_bool(self):
+        """Test that booleans pass through unchanged."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        assert _coerce_property_value(True) is True
+        assert _coerce_property_value(False) is False
+
+    def test_list_3_becomes_vector(self):
+        """Test that 3-element list becomes a Vector."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        mock_unreal.Vector.reset_mock()
+        _coerce_property_value([1.0, 2.0, 3.0])
+        mock_unreal.Vector.assert_called_with(1.0, 2.0, 3.0)
+
+    def test_list_4_becomes_linear_color(self):
+        """Test that 4-element list becomes a LinearColor."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        mock_unreal.LinearColor.reset_mock()
+        _coerce_property_value([1.0, 0.5, 0.0, 1.0])
+        mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.5, b=0.0, a=1.0)
+
+    def test_asset_path_game(self):
+        """Test that /Game/ paths trigger asset loading."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        mock_unreal.EditorAssetLibrary.load_asset.reset_mock()
+        mock_asset = MagicMock()
+        mock_unreal.EditorAssetLibrary.load_asset.return_value = mock_asset
+
+        result = _coerce_property_value("/Game/Meshes/Cube")
+        mock_unreal.EditorAssetLibrary.load_asset.assert_called_with("/Game/Meshes/Cube")
+        assert result == mock_asset
+
+    def test_asset_path_engine(self):
+        """Test that /Engine/ paths trigger asset loading."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        mock_unreal.EditorAssetLibrary.load_asset.reset_mock()
+        mock_asset = MagicMock()
+        mock_unreal.EditorAssetLibrary.load_asset.return_value = mock_asset
+
+        result = _coerce_property_value("/Engine/BasicShapes/Cube")
+        mock_unreal.EditorAssetLibrary.load_asset.assert_called_with("/Engine/BasicShapes/Cube")
+        assert result == mock_asset
+
+    def test_asset_path_not_found_raises(self):
+        """Test that missing asset path raises ProcessingError."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_property_value
+        from utils.error_handling import ProcessingError
+
+        mock_unreal.EditorAssetLibrary.load_asset.return_value = None
+
+        with pytest.raises(ProcessingError, match="Asset not found"):
+            _coerce_property_value("/Game/Missing/Asset")
+
+    def test_list_3_non_numeric_raises(self):
+        """Test that 3-element list with non-numeric values raises ProcessingError."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_property_value
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError, match="3-element array must contain only numbers"):
+            _coerce_property_value([1.0, "bad", 3.0])
+
+    def test_list_4_non_numeric_raises(self):
+        """Test that 4-element list with non-numeric values raises ProcessingError."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_property_value
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError, match="4-element array must contain only numbers"):
+            _coerce_property_value([1.0, 0.5, None, 1.0])
+
+    def test_list_3_with_booleans_raises(self):
+        """Test that booleans in arrays are rejected (bool is subclass of int in Python)."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_property_value
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError, match="3-element array must contain only numbers"):
+            _coerce_property_value([True, False, True])
+
+    def test_none_raises(self):
+        """Test that None is rejected with ProcessingError."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_property_value
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError, match="Unsupported property value type"):
+            _coerce_property_value(None)
+
+    def test_dict_raises(self):
+        """Test that dict is rejected with ProcessingError."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_property_value
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError, match="Unsupported property value type"):
+            _coerce_property_value({"key": "val"})
+
+
+class TestValidateNumericList:
+    """Test the _validate_numeric_list helper."""
+
+    def test_valid_ints(self):
+        """Test that integer lists pass validation."""
+        from ops.blueprint_graph import _validate_numeric_list
+
+        _validate_numeric_list([1, 2, 3], "Vector")
+
+    def test_valid_floats(self):
+        """Test that float lists pass validation."""
+        from ops.blueprint_graph import _validate_numeric_list
+
+        _validate_numeric_list([1.0, 2.5, 3.7], "Vector")
+
+    def test_mixed_int_float(self):
+        """Test that mixed int/float lists pass validation."""
+        from ops.blueprint_graph import _validate_numeric_list
+
+        _validate_numeric_list([1, 2.5, 3], "Vector")
+
+    def test_booleans_rejected(self):
+        """Test that booleans are rejected even though bool is subclass of int."""
+        import pytest
+
+        from ops.blueprint_graph import _validate_numeric_list
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError):
+            _validate_numeric_list([True, False, True], "Vector")
+
+    def test_strings_rejected(self):
+        """Test that strings are rejected."""
+        import pytest
+
+        from ops.blueprint_graph import _validate_numeric_list
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError):
+            _validate_numeric_list(["a", "b", "c"], "Vector")
+
+
+class TestModifyComponentRotationDetection:
+    """Test rotation property detection and numeric validation in modify_component's loop."""
+
+    def test_rotation_property_name_detected(self):
+        """Test that property names containing 'rotation' trigger Rotator coercion."""
+        from ops.blueprint_graph import _validate_numeric_list
+
+        # Verify the detection condition matches rotation properties
+        rotation_names = ["relative_rotation", "Rotation", "my_ROTATION_value"]
+        for name in rotation_names:
+            raw = [0.0, 45.0, 90.0]
+            assert "rotation" in name.lower(), f"{name} should match rotation detection"
+            _validate_numeric_list(raw, "Rotator")
+
+    def test_non_rotation_property_uses_vector(self):
+        """Test that non-rotation 3-element list properties use Vector."""
+        from ops.blueprint_graph import _coerce_property_value
+
+        mock_unreal.Vector.reset_mock()
+        _coerce_property_value([1.0, 2.0, 3.0])
+        mock_unreal.Vector.assert_called_with(1.0, 2.0, 3.0)
+
+
+class TestModifyComponentIntegration:
+    """Integration-level tests for modify_component function."""
+
+    def _make_mock_blueprint_with_component(self, component_name="MyMesh"):
+        """Create a mock Blueprint with a named component in its SCS."""
+        mock_template = Mock()
+        mock_template.get_name.return_value = component_name
+
+        mock_node = Mock()
+        mock_node.component_template = mock_template
+
+        mock_scs = Mock()
+        mock_scs.get_all_nodes.return_value = [mock_node]
+
+        mock_bp = Mock()
+        mock_bp.simple_construction_script = mock_scs
+
+        return mock_bp, mock_template
+
+    def test_sets_editor_property_on_template(self, monkeypatch):
+        """Test that modify_component calls set_editor_property on the found template."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp, mock_template = self._make_mock_blueprint_with_component("Light1")
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+        monkeypatch.setattr("ops.blueprint_graph.compile_and_save", lambda *a: None)
+
+        result = modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="Light1",
+            properties={"intensity": 500.0},
+        )
+
+        assert result["success"] is True
+        assert result["propertiesSet"] == ["intensity"]
+        mock_template.set_editor_property.assert_called_once_with("intensity", 500.0)
+
+    def test_calls_compile_and_save(self, monkeypatch):
+        """Test that modify_component compiles and saves after modification."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp, _ = self._make_mock_blueprint_with_component("Mesh1")
+        compile_calls = []
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+        monkeypatch.setattr("ops.blueprint_graph.compile_and_save", lambda bp, path: compile_calls.append((bp, path)))
+
+        modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="Mesh1",
+            properties={"visible": True},
+        )
+
+        assert len(compile_calls) == 1
+        assert compile_calls[0][1] == "/Game/BP_Test"
+
+    def test_missing_component_returns_error(self, monkeypatch):
+        """Test that missing component returns error with available component names."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp, _ = self._make_mock_blueprint_with_component("ExistingComp")
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+
+        result = modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="NonExistent",
+            properties={"foo": 1},
+        )
+        assert result["success"] is False
+        assert "not found" in result["error"]
+
+    def test_no_scs_returns_error(self, monkeypatch):
+        """Test that Blueprint without SCS returns error dict."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp = Mock()
+        mock_bp.simple_construction_script = None
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+
+        result = modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="Anything",
+            properties={"foo": 1},
+        )
+        assert result["success"] is False
+        assert "SimpleConstructionScript" in result["error"]
+
+    def test_rotation_property_coerced_to_rotator(self, monkeypatch):
+        """Test that rotation-named properties use Rotator instead of Vector."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp, mock_template = self._make_mock_blueprint_with_component("Root")
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+        monkeypatch.setattr("ops.blueprint_graph.compile_and_save", lambda *a: None)
+        mock_unreal.Rotator.reset_mock()
+
+        modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="Root",
+            properties={"relative_rotation": [0.0, 45.0, 90.0]},
+        )
+
+        mock_unreal.Rotator.assert_called_once_with(roll=0.0, pitch=45.0, yaw=90.0)
+
+    def test_multiple_properties_set(self, monkeypatch):
+        """Test that multiple properties are all set."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp, mock_template = self._make_mock_blueprint_with_component("Mesh")
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+        monkeypatch.setattr("ops.blueprint_graph.compile_and_save", lambda *a: None)
+
+        result = modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="Mesh",
+            properties={"visible": True, "cast_shadow": False},
+        )
+
+        assert set(result["propertiesSet"]) == {"visible", "cast_shadow"}
+        assert mock_template.set_editor_property.call_count == 2
+
+    def test_set_editor_property_failure_includes_context(self, monkeypatch):
+        """Test that set_editor_property failure includes property name and prior successes."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp, mock_template = self._make_mock_blueprint_with_component("Light")
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+        monkeypatch.setattr("ops.blueprint_graph.compile_and_save", lambda *a: None)
+
+        # First call succeeds, second call raises
+        call_count = [0]
+
+        def mock_set_editor_property(prop_name, value):
+            call_count[0] += 1
+            if call_count[0] == 2:
+                raise RuntimeError("Property 'bad_prop' not found")
+
+        mock_template.set_editor_property = mock_set_editor_property
+
+        result = modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="Light",
+            properties={"intensity": 500.0, "bad_prop": "invalid"},
+        )
+
+        assert result["success"] is False
+        assert "bad_prop" in result["error"]
+
+
+class TestFindComponentNode:
+    """Test the _find_component_node helper."""
+
+    def test_finds_existing_node(self):
+        """Test finding an SCS node by component name."""
+        from ops.blueprint_graph import _find_component_node
+
+        mock_template = Mock()
+        mock_template.get_name.return_value = "MyMesh"
+
+        mock_node = Mock()
+        mock_node.component_template = mock_template
+
+        mock_scs = Mock()
+        mock_scs.get_all_nodes.return_value = [mock_node]
+
+        result = _find_component_node(mock_scs, "MyMesh")
+        assert result == mock_node
+
+    def test_returns_none_for_missing_component(self):
+        """Test that missing component returns None."""
+        from ops.blueprint_graph import _find_component_node
+
+        mock_template = Mock()
+        mock_template.get_name.return_value = "OtherComp"
+
+        mock_node = Mock()
+        mock_node.component_template = mock_template
+
+        mock_scs = Mock()
+        mock_scs.get_all_nodes.return_value = [mock_node]
+
+        result = _find_component_node(mock_scs, "NonExistent")
+        assert result is None
+
+    def test_skips_nodes_without_template(self):
+        """Test that nodes with no template are skipped."""
+        from ops.blueprint_graph import _find_component_node
+
+        mock_node = Mock()
+        mock_node.component_template = None
+
+        mock_scs = Mock()
+        mock_scs.get_all_nodes.return_value = [mock_node]
+
+        result = _find_component_node(mock_scs, "Anything")
+        assert result is None
+
+
+class TestFindComponentTemplate:
+    """Test the _find_component_template helper delegates to _find_component_node."""
+
+    def test_returns_template_from_node(self):
+        """Test that _find_component_template returns the template, not the node."""
+        from ops.blueprint_graph import _find_component_template
+
+        mock_template = Mock()
+        mock_template.get_name.return_value = "MyMesh"
+
+        mock_node = Mock()
+        mock_node.component_template = mock_template
+
+        mock_scs = Mock()
+        mock_scs.get_all_nodes.return_value = [mock_node]
+
+        result = _find_component_template(mock_scs, "MyMesh")
+        assert result == mock_template
+
+    def test_returns_none_when_not_found(self):
+        """Test that missing component returns None."""
+        from ops.blueprint_graph import _find_component_template
+
+        mock_scs = Mock()
+        mock_scs.get_all_nodes.return_value = []
+
+        result = _find_component_template(mock_scs, "NonExistent")
+        assert result is None

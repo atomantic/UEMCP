@@ -560,15 +560,7 @@ def add_component(
 
     # Attach to parent or add as root
     if parent_component:
-        # Find parent node in SCS
-        all_nodes = scs.get_all_nodes()
-        parent_node = None
-        for node in all_nodes:
-            template = node.component_template
-            if template and template.get_name() == parent_component:
-                parent_node = node
-                break
-
+        parent_node = _find_component_node(scs, parent_component)
         if parent_node:
             parent_node.add_child_node(new_node, False)
         else:
@@ -609,6 +601,193 @@ def add_component(
         "componentName": component_name,
         "componentClass": component_class,
         "parentComponent": parent_component,
+    }
+
+
+def _validate_numeric_list(values, target_type):
+    """Validate that all elements in a list are numeric (int/float, not bool).
+
+    Args:
+        values: List of values to validate
+        target_type: Name of the target UE type (for error messages)
+
+    Raises:
+        ProcessingError: If any element is not a number
+    """
+    if not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in values):
+        raise ProcessingError(
+            f"{len(values)}-element array must contain only numbers for {target_type}",
+            operation="coerce_property_value",
+            details={"value": values},
+        )
+
+
+def _coerce_property_value(value):
+    """Coerce a JSON-friendly value to a UE-compatible type.
+
+    Handles vectors ([x,y,z] -> Vector), colors ([r,g,b,a] -> LinearColor),
+    asset paths (strings starting with /Game/ or /Engine/), and pass-through
+    for strings, numbers, and booleans. Raises ProcessingError for unsupported
+    types (None, dict, etc.).
+
+    Note: Rotator coercion is handled by the caller (modify_component) via
+    property name detection, not by this function.
+
+    Args:
+        value: The value to coerce (str, int, float, bool, list, or asset path)
+
+    Returns:
+        UE-compatible value
+
+    Raises:
+        ProcessingError: If value type is unsupported or asset not found
+    """
+    if isinstance(value, list):
+        if len(value) == 3:
+            _validate_numeric_list(value, "Vector")
+            return unreal.Vector(value[0], value[1], value[2])
+        if len(value) == 4:
+            _validate_numeric_list(value, "LinearColor")
+            return unreal.LinearColor(r=value[0], g=value[1], b=value[2], a=value[3])
+
+    if isinstance(value, str) and (value.startswith("/Game/") or value.startswith("/Engine/")):
+        asset = unreal.EditorAssetLibrary.load_asset(value)
+        if not asset:
+            raise ProcessingError(
+                f"Asset not found: {value}",
+                operation="coerce_property_value",
+                details={"asset_path": value},
+            )
+        return asset
+
+    # Pass-through for str, int, float, bool — reject unsupported types
+    if not isinstance(value, (str, int, float, bool)):
+        raise ProcessingError(
+            f"Unsupported property value type: {type(value).__name__}",
+            operation="coerce_property_value",
+            details={"value": repr(value), "type": type(value).__name__},
+        )
+    return value
+
+
+def _find_component_node(scs, component_name):
+    """Find an SCS node by component name.
+
+    Args:
+        scs: The Blueprint's SimpleConstructionScript
+        component_name: Name of the component to find
+
+    Returns:
+        The SCS node, or None if not found
+    """
+    for node in scs.get_all_nodes():
+        template = node.component_template
+        if template and template.get_name() == component_name:
+            return node
+    return None
+
+
+def _find_component_template(scs, component_name):
+    """Find a component template by name in a SimpleConstructionScript.
+
+    Args:
+        scs: The Blueprint's SimpleConstructionScript
+        component_name: Name of the component to find
+
+    Returns:
+        The component template, or None if not found
+    """
+    node = _find_component_node(scs, component_name)
+    return node.component_template if node else None
+
+
+@validate_inputs(
+    {
+        "blueprint_path": [RequiredRule(), AssetPathRule()],
+        "component_name": [RequiredRule(), TypeRule(str)],
+        "properties": [RequiredRule(), TypeRule(dict)],
+    }
+)
+@handle_unreal_errors("blueprint_modify_component")
+@safe_operation("blueprint")
+def modify_component(
+    blueprint_path: str,
+    component_name: str,
+    properties: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Set any component property via UE's reflection system.
+
+    Args:
+        blueprint_path: Path to the Blueprint asset
+        component_name: Name of the component to modify
+        properties: Dictionary of property_name -> value pairs.
+                    Values are auto-coerced: [X,Y,Z] arrays become Vectors,
+                    [Roll,Pitch,Yaw] arrays become Rotators (for rotation properties),
+                    [R,G,B,A] arrays become LinearColors, asset path strings
+                    (starting with /Game/ or /Engine/) are loaded automatically.
+
+    Returns:
+        Dictionary with modification result and list of properties set
+    """
+    blueprint = resolve_blueprint(blueprint_path)
+
+    scs = blueprint.simple_construction_script
+    if not scs:
+        raise ProcessingError(
+            "Blueprint does not support components (no SimpleConstructionScript)",
+            operation="blueprint_modify_component",
+            details={"blueprint_path": blueprint_path},
+        )
+
+    template = _find_component_template(scs, component_name)
+    if not template:
+        # Collect available names for a helpful error message
+        available = [node.component_template.get_name() for node in scs.get_all_nodes() if node.component_template]
+        raise ProcessingError(
+            f"Component '{component_name}' not found in Blueprint",
+            operation="blueprint_modify_component",
+            details={
+                "blueprint_path": blueprint_path,
+                "component_name": component_name,
+                "available_components": available,
+            },
+        )
+
+    properties_set = []
+    for prop_name, raw_value in properties.items():
+        # Rotation properties expect Rotator, not Vector
+        if isinstance(raw_value, list) and len(raw_value) == 3 and "rotation" in prop_name.lower():
+            _validate_numeric_list(raw_value, "Rotator")
+            value = unreal.Rotator(roll=raw_value[0], pitch=raw_value[1], yaw=raw_value[2])
+        else:
+            value = _coerce_property_value(raw_value)
+
+        try:
+            template.set_editor_property(prop_name, value)
+        except Exception as exc:
+            raise ProcessingError(
+                f"Failed to set component property '{prop_name}'",
+                operation="blueprint_modify_component",
+                details={
+                    "blueprint_path": blueprint_path,
+                    "component_name": component_name,
+                    "failed_property": prop_name,
+                    "properties_set_so_far": list(properties_set),
+                    "raw_value": raw_value,
+                    "error": str(exc),
+                },
+            ) from exc
+        properties_set.append(prop_name)
+
+    compile_and_save(blueprint, blueprint_path)
+    log_info(f"Modified component '{component_name}' on {blueprint_path}: {properties_set}")
+
+    return {
+        "success": True,
+        "blueprintPath": blueprint_path,
+        "componentName": component_name,
+        "propertiesSet": properties_set,
     }
 
 
