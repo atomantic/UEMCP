@@ -478,6 +478,20 @@ describe('ServerManager', () => {
 
       expect(mockProcess.on).toHaveBeenCalledWith('SIGINT', expect.any(Function));
       expect(mockProcess.on).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
+      expect(mockProcess.on).toHaveBeenCalledWith('SIGHUP', expect.any(Function));
+    });
+
+    it('should handle SIGHUP shutdown gracefully', async () => {
+      serverManager.setupShutdownHandlers();
+
+      const sighupHandler = mockProcess.on.mock.calls
+        .find(call => call[0] === 'SIGHUP')[1];
+
+      await sighupHandler();
+
+      expect(mockLogger.info).toHaveBeenCalledWith('Received SIGHUP, shutting down gracefully...');
+      expect(mockLogger.info).toHaveBeenCalledWith('Shutdown complete');
+      expect(mockProcess.exit).toHaveBeenCalledWith(0);
     });
 
     it('should handle SIGINT shutdown gracefully', async () => {

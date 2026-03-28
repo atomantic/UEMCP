@@ -90,7 +90,7 @@ export class ServerManager {
         arguments: unknown 
       };
       
-      return this.handleToolCall(name, args) as unknown as CallToolResult;
+      return (await this.handleToolCall(name, args)) as CallToolResult;
     });
   }
 
