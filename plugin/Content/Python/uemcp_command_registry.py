@@ -326,6 +326,28 @@ def register_all_operations():
 
         registry.register_command("batch_operations", execute_batch_operations)
 
+        # Register PCG operations (standalone functions)
+        from ops import pcg
+
+        registry.register_command("pcg_create_graph", pcg.create_graph)
+        registry.register_command("pcg_add_node", pcg.add_node)
+        registry.register_command("pcg_connect_nodes", pcg.connect_nodes)
+        registry.register_command("pcg_set_node_property", pcg.set_node_property)
+        registry.register_command("pcg_search_palette", pcg.search_palette)
+        registry.register_command("pcg_spawn_actor", pcg.spawn_actor)
+        registry.register_command("pcg_execute", pcg.execute)
+
+        # Register StateTree AI operations (standalone functions)
+        from ops import statetree
+
+        registry.register_command("statetree_create", statetree.create)
+        registry.register_command("statetree_add_state", statetree.add_state)
+        registry.register_command("statetree_add_transition", statetree.add_transition)
+        registry.register_command("statetree_add_task", statetree.add_task)
+        registry.register_command("statetree_add_evaluator", statetree.add_evaluator)
+        registry.register_command("statetree_add_binding", statetree.add_binding)
+        registry.register_command("statetree_get_metadata", statetree.get_metadata)
+
         log_debug(f"Registered {len(registry.handlers)} commands")
 
     except ImportError as e:
