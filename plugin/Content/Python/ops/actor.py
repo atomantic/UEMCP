@@ -1284,14 +1284,12 @@ class ActorOperations:
             # Get world transform of the socket
             return mesh_comp.get_socket_transform(targetSocket)
 
-        # Socket not found — list available sockets for debugging
+        # Socket not found on this component — log available sockets for debugging
+        # and return None so the caller can try other component types
         sockets = getattr(static_mesh, "sockets", None) if static_mesh else None
         socket_names = [s.socket_name for s in sockets] if sockets else []
-        raise ProcessingError(
-            f'Socket "{targetSocket}" not found on {targetActor}',
-            operation="_get_static_mesh_socket_transform",
-            details={"availableSockets": socket_names},
-        )
+        log_debug(f'Socket "{targetSocket}" not found on static mesh of {targetActor}; ' f"available: {socket_names}")
+        return None
 
     def _get_scene_component_socket_transform(self, target, targetSocket):
         """Get socket transform from scene components."""

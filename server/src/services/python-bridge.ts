@@ -86,11 +86,12 @@ export class PythonBridge {
       data = await response.json() as PythonResponse;
     } catch (error) {
       clearTimeout(timer);
-      logger.error('Python bridge JSON parse error', {
+      const isTimeout = error instanceof Error && error.name === 'AbortError';
+      logger.error(isTimeout ? 'Python bridge response timeout' : 'Python bridge response body error', {
         command: command.type,
         endpoint: this.httpEndpoint,
         error: error instanceof Error ? error.message : String(error),
-        isTimeout: error instanceof Error && error.name === 'AbortError',
+        isTimeout,
       });
       throw error;
     }
@@ -118,7 +119,8 @@ export class PythonBridge {
         return status.ready === true;
       }
 
-      // Fallback to command execution — use short timeout to cap total check time
+      // Fallback to command execution with a short timeout.
+      // Note: total check time may be up to ~5s (2s health fetch + 3s command).
       const cmdResponse = await this.executeCommand({
         type: 'project.info',
         params: {},
