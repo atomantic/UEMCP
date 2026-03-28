@@ -30,42 +30,64 @@ def _get_all_actors():
 
 
 def _safe_mesh_triangle_count(static_mesh) -> int:
-    """Get triangle count from a StaticMesh using available API methods.
-
-    Tries multiple approaches since UE Python API varies across versions.
-    """
-    # Approach 1: get_num_triangles if available
+    """Get triangle count from a StaticMesh, tolerating API signature variation."""
     if hasattr(static_mesh, "get_num_triangles"):
-        return static_mesh.get_num_triangles(0)
+        try:
+            return static_mesh.get_num_triangles(0)
+        except TypeError:
+            try:
+                return static_mesh.get_num_triangles()
+            except TypeError:
+                pass
 
-    # Approach 2: get render data section info
     if hasattr(static_mesh, "get_num_sections") and hasattr(static_mesh, "get_section_info"):
-        count = 0
-        num_sections = static_mesh.get_num_sections(0)
-        for i in range(num_sections):
-            info = static_mesh.get_section_info(0, i)
-            if info and hasattr(info, "num_triangles"):
-                count += info.num_triangles
-        return count
+        try:
+            count = 0
+            num_sections = static_mesh.get_num_sections(0)
+            for i in range(num_sections):
+                info = static_mesh.get_section_info(0, i)
+                if info and hasattr(info, "num_triangles"):
+                    count += info.num_triangles
+            return count
+        except TypeError:
+            pass
 
-    # Approach 3: fallback indicator (returns -1 to signal unknown)
     return -1
 
 
 def _safe_mesh_vertex_count(static_mesh) -> int:
-    """Get vertex count from a StaticMesh using available API methods."""
+    """Get vertex count from a StaticMesh, tolerating API signature variation."""
     if hasattr(static_mesh, "get_num_vertices"):
-        return static_mesh.get_num_vertices(0)
+        try:
+            return static_mesh.get_num_vertices(0)
+        except TypeError:
+            try:
+                return static_mesh.get_num_vertices()
+            except TypeError:
+                pass
 
     if hasattr(static_mesh, "get_num_sections") and hasattr(static_mesh, "get_section_info"):
-        count = 0
-        num_sections = static_mesh.get_num_sections(0)
-        for i in range(num_sections):
-            info = static_mesh.get_section_info(0, i)
-            if info and hasattr(info, "num_vertices"):
-                count += info.num_vertices
-        return count
+        try:
+            count = 0
+            num_sections = static_mesh.get_num_sections(0)
+            for i in range(num_sections):
+                info = static_mesh.get_section_info(0, i)
+                if info and hasattr(info, "num_vertices"):
+                    count += info.num_vertices
+            return count
+        except TypeError:
+            pass
 
+    return -1
+
+
+def _safe_get_num_lods(static_mesh) -> int:
+    """Get LOD count from a StaticMesh, returning -1 if unavailable."""
+    if hasattr(static_mesh, "get_num_lods"):
+        try:
+            return static_mesh.get_num_lods()
+        except TypeError:
+            pass
     return -1
 
 
@@ -152,7 +174,7 @@ def rendering_stats() -> dict[str, Any]:
 
             tri_count = _safe_mesh_triangle_count(sm)
             vert_count = _safe_mesh_vertex_count(sm)
-            instance_count = max(1, comp.get_instance_count()) if hasattr(comp, "get_instance_count") else 1
+            instance_count = comp.get_instance_count() if hasattr(comp, "get_instance_count") else 0
             if tri_count > 0:
                 total_triangles += tri_count * instance_count
             if vert_count > 0:
@@ -212,9 +234,14 @@ def gpu_stats(fire_stat_commands: bool = False) -> dict[str, Any]:
     skeletal_mesh_count = 0
     light_count = 0
 
+    instanced_mesh_count = 0
     for actor in actors:
         sm_comps = actor.get_components_by_class(unreal.StaticMeshComponent)
-        static_mesh_count += len(sm_comps)
+        for comp in sm_comps:
+            if _is_instanced_component(comp):
+                instanced_mesh_count += 1
+            else:
+                static_mesh_count += 1
 
         sk_comps = actor.get_components_by_class(unreal.SkeletalMeshComponent)
         skeletal_mesh_count += len(sk_comps)
@@ -222,9 +249,7 @@ def gpu_stats(fire_stat_commands: bool = False) -> dict[str, Any]:
         light_comps = actor.get_components_by_class(unreal.LightComponent)
         light_count += len(light_comps)
 
-    # Approximate draw call estimate: each mesh component is at least one draw
-    # call per material section; this is a lower bound.
-    estimated_draw_calls = static_mesh_count + skeletal_mesh_count
+    estimated_draw_calls = static_mesh_count + skeletal_mesh_count + instanced_mesh_count
 
     # Optionally execute stat console commands.
     # NOTE: These commands toggle stat displays in the viewport. In particular,
@@ -257,6 +282,7 @@ def gpu_stats(fire_stat_commands: bool = False) -> dict[str, Any]:
         "success": True,
         "actor_count": actor_count,
         "static_mesh_components": static_mesh_count,
+        "instanced_mesh_components": instanced_mesh_count,
         "skeletal_mesh_components": skeletal_mesh_count,
         "light_count": light_count,
         "estimated_draw_calls": estimated_draw_calls,
@@ -322,7 +348,7 @@ def scene_breakdown(
 
             mesh_path = _normalize_path(sm.get_path_name())
             mesh_name = sm.get_name()
-            num_lods = sm.get_num_lods()
+            num_lods = _safe_get_num_lods(sm)
             actor_lod_count = max(actor_lod_count, num_lods)
 
             tri_count = _safe_mesh_triangle_count(sm)
@@ -331,7 +357,7 @@ def scene_breakdown(
             # For instanced components, scale by instance count
             instance_count = 1
             if is_instanced and hasattr(comp, "get_instance_count"):
-                instance_count = max(1, comp.get_instance_count())
+                instance_count = comp.get_instance_count()
 
             mats = comp.get_materials()
             mat_names = [m.get_name() if m else "<empty>" for m in mats]
