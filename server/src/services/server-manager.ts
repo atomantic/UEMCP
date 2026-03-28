@@ -5,9 +5,9 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import {
   CallToolRequestSchema,
-  CallToolResult,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '../utils/logger.js';
@@ -114,10 +114,13 @@ export class ServerManager {
       
       logger.info(`Tool ${name} completed successfully`, { 
         duration: `${duration}ms`,
-        resultLength: result.content?.[0]?.text?.length || 0
+        resultLength: ((): number => {
+          const first = result.content?.[0];
+          return (first && 'text' in first && typeof first.text === 'string') ? first.text.length : 0;
+        })()
       });
       
-      return result as CallToolResult;
+      return result;
     } catch (error) {
       const duration = Date.now() - startTime;
       logger.error(`Tool ${name} failed`, {

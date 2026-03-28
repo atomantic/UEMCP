@@ -107,7 +107,10 @@ export class DynamicTool extends BaseTool<Record<string, unknown>> {
 
     // Check if Python already provided content array
     if (Array.isArray(pythonResult.content)) {
-      toolResponse.content = pythonResult.content as Array<{type: string; text?: string; [key: string]: unknown}>;
+      // Map Python content to TextContent items — the Python bridge only produces text responses
+      toolResponse.content = (pythonResult.content as Array<{type?: string; text?: string; [key: string]: unknown}>).map(
+        item => ({ type: 'text' as const, text: typeof item.text === 'string' ? item.text : JSON.stringify(item) })
+      );
     } else {
       // Create content from Python result
       const textContent = pythonResult.error 
