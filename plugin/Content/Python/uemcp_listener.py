@@ -98,6 +98,15 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             if command is None:
                 return  # _parse_command already sent the error response
             request_id = self._generate_request_id()
+
+            # Normalize legacy dot-style types (e.g., "viewport.screenshot" -> "viewport_screenshot",
+            # "python.execute" -> "python_proxy") so dispatch and timeout lookup use the same name.
+            command_type = command.get("type", "")
+            normalized_type = command_type.replace(".", "_") if isinstance(command_type, str) else ""
+            mapped_type = _LEGACY_COMMAND_MAP.get(command_type, normalized_type)
+            if mapped_type != command_type:
+                command = {**command, "type": mapped_type}
+
             self._log_command(command)
 
             # Register event BEFORE queuing so _post_response never misses it
@@ -109,14 +118,8 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             command_queue.put((request_id, command))
 
             # Determine timeout: explicit (from MCP server) > per-command fallback > 10s default
-            # Normalize legacy dot-style types (e.g., "viewport.screenshot") to underscore form
-            # then also check the mapped command name (e.g., "python.execute" -> "python_proxy")
-            command_type = command.get("type", "")
-            normalized_type = command_type.replace(".", "_") if isinstance(command_type, str) else ""
-            mapped_type = _LEGACY_COMMAND_MAP.get(command_type, normalized_type)
-            fallback_timeout = _COMMAND_TIMEOUTS.get(
-                mapped_type, _COMMAND_TIMEOUTS.get(normalized_type, _DEFAULT_TIMEOUT)
-            )
+            # mapped_type is already the canonical command name after normalization above
+            fallback_timeout = _COMMAND_TIMEOUTS.get(mapped_type, _DEFAULT_TIMEOUT)
             raw_timeout = command.get("timeout", fallback_timeout)
             # Validate/coerce timeout to a bounded positive number
             try:
@@ -370,13 +373,25 @@ def start_server():
 
         # Track and verify
         _track_server_thread(server_thread)
-        return _verify_server_started(started_event)
+        if _verify_server_started(started_event):
+            return True
+
+        # Startup failed — clean up the tick callback to avoid a leaked handler
+        unreal.unregister_slate_post_tick_callback(tick_handle)
+        tick_handle = None
+        return False
 
     except Exception as e:
         log_error(f"Failed to start server: {str(e)}")
         import traceback
 
         log_error(f"Traceback: {traceback.format_exc()}")
+        if tick_handle is not None:
+            try:
+                unreal.unregister_slate_post_tick_callback(tick_handle)
+            except Exception:
+                pass
+            tick_handle = None
         return False
 
 

@@ -42,11 +42,14 @@ export class HybridToolRegistry {
     if (this.pythonBridge) {
       try {
         logger.info('Attempting to load tools dynamically from Python manifest...');
-        
-        this.dynamicRegistry = new DynamicToolRegistry(this.pythonBridge);
-        const success = await this.dynamicRegistry.initialize();
-        
+
+        const candidate = new DynamicToolRegistry(this.pythonBridge);
+        const success = await candidate.initialize();
+
         if (success) {
+          // Only assign after successful initialization so isDynamicMode() is never true
+          // for a partially-initialized registry.
+          this.dynamicRegistry = candidate;
           logger.info('✓ Successfully loaded tools from Python manifest');
 
           const manifest = this.dynamicRegistry.getManifest();
