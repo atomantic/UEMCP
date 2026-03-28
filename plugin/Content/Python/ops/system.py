@@ -408,14 +408,17 @@ class SystemOperations:
 
         # Audit log every invocation — walk the stack to skip decorator wrappers
         _DECORATOR_MODULES = {"utils.error_handling", "utils/error_handling", "error_handling", "functools"}
-        caller = sys._getframe(1)
-        depth = 1
-        while depth < 10:
-            fname = caller.f_code.co_filename
-            if not any(mod in fname for mod in _DECORATOR_MODULES):
-                break
-            depth += 1
-            caller = sys._getframe(depth)
+        try:
+            caller = sys._getframe(1)
+            depth = 1
+            while depth < 10:
+                fname = caller.f_code.co_filename
+                if not any(mod in fname for mod in _DECORATOR_MODULES):
+                    break
+                depth += 1
+                caller = sys._getframe(depth)
+        except ValueError:
+            caller = sys._getframe(0)
         unreal.log(
             f"UEMCP: python_proxy | caller={caller.f_code.co_filename}:{caller.f_lineno} | code_length={len(code)}"
         )
