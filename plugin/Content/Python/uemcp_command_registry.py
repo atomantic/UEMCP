@@ -250,6 +250,18 @@ def register_all_operations():
             registry.register_command("niagara_spawn", niagara.spawn)
             registry.register_command("niagara_get_metadata", niagara.get_metadata)
 
+        # Register Widget Blueprint operations (standalone functions)
+        from ops import widget
+
+        registry.register_command("widget_create", widget.create)
+        registry.register_command("widget_add_component", widget.add_component)
+        registry.register_command("widget_set_layout", widget.set_layout)
+        registry.register_command("widget_set_property", widget.set_property)
+        registry.register_command("widget_bind_event", widget.bind_event)
+        registry.register_command("widget_set_binding", widget.set_binding)
+        registry.register_command("widget_get_metadata", widget.get_metadata)
+        registry.register_command("widget_screenshot", widget.screenshot)
+
         # Register batch operations
         from ops.batch_operations import execute_batch_operations
 

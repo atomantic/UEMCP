@@ -182,6 +182,7 @@ class ManifestGenerator:
             "restart": "system",
             "ue": "system",
             "python": "system",
+            "widget": "widgets",
         }
         category = category_map.get(prefix, "system")
 
