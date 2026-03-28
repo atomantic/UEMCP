@@ -573,3 +573,190 @@ class TestActionDiscovery:
         assert "BeginPlay" in names
         # Other events should be filtered out
         assert "Delay" not in names
+
+
+class TestCoerceValueForCdo:
+    """Test the _coerce_value_for_cdo helper function."""
+
+    def test_bool_passthrough(self):
+        """Test that bool values are passed through unchanged."""
+        from ops.blueprint_graph import _coerce_value_for_cdo
+
+        assert _coerce_value_for_cdo(True, "MyBool") is True
+        assert _coerce_value_for_cdo(False, "MyBool") is False
+
+    def test_int_passthrough(self):
+        """Test that int values are passed through unchanged."""
+        from ops.blueprint_graph import _coerce_value_for_cdo
+
+        assert _coerce_value_for_cdo(42, "MyInt") == 42
+        assert _coerce_value_for_cdo(0, "MyInt") == 0
+
+    def test_float_passthrough(self):
+        """Test that float values are passed through unchanged."""
+        from ops.blueprint_graph import _coerce_value_for_cdo
+
+        assert _coerce_value_for_cdo(3.14, "MyFloat") == 3.14
+
+    def test_plain_string_passthrough(self):
+        """Test that plain strings (not asset paths) are passed through."""
+        from ops.blueprint_graph import _coerce_value_for_cdo
+
+        assert _coerce_value_for_cdo("hello", "MyString") == "hello"
+
+    def test_asset_path_string_loads_asset(self):
+        """Test that /Game/ paths trigger asset loading."""
+        from ops.blueprint_graph import _coerce_value_for_cdo
+
+        mock_asset = Mock()
+        mock_unreal.EditorAssetLibrary.load_asset.return_value = mock_asset
+
+        result = _coerce_value_for_cdo("/Game/Meshes/SM_Cube", "MyMesh")
+        assert result is mock_asset
+        mock_unreal.EditorAssetLibrary.load_asset.assert_called_with("/Game/Meshes/SM_Cube")
+
+    def test_asset_path_not_found_raises(self):
+        """Test that missing asset paths raise ProcessingError."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_value_for_cdo
+        from utils.error_handling import ProcessingError
+
+        mock_unreal.EditorAssetLibrary.load_asset.return_value = None
+
+        with pytest.raises(ProcessingError, match="Asset not found"):
+            _coerce_value_for_cdo("/Game/Missing/Asset", "MyRef")
+
+    def test_3_element_list_creates_vector(self, monkeypatch):
+        """Test that a 3-element list delegates to create_vector."""
+        import ops.blueprint_graph as bg
+        from ops.blueprint_graph import _coerce_value_for_cdo
+
+        sentinel = object()
+        calls = []
+
+        def fake_create_vector(arr):
+            calls.append(arr)
+            return sentinel
+
+        monkeypatch.setattr(bg, "create_vector", fake_create_vector)
+
+        result = _coerce_value_for_cdo([1.0, 2.0, 3.0], "MyVec")
+        assert result is sentinel
+        assert calls == [[1.0, 2.0, 3.0]]
+
+    def test_4_element_list_creates_linear_color(self):
+        """Test that a 4-element list creates an unreal.LinearColor."""
+        from ops.blueprint_graph import _coerce_value_for_cdo
+
+        _coerce_value_for_cdo([1.0, 0.5, 0.0, 1.0], "MyColor")
+        mock_unreal.LinearColor.assert_called_with(1.0, 0.5, 0.0, 1.0)
+
+    def test_invalid_list_length_raises(self):
+        """Test that lists with invalid length raise ProcessingError."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_value_for_cdo
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError, match="must have 3 or 4 elements"):
+            _coerce_value_for_cdo([1.0, 2.0], "MyVar")
+
+    def test_dict_value_raises(self):
+        """Test that dict values are rejected with a clear error."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_value_for_cdo
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError, match="Unsupported value type"):
+            _coerce_value_for_cdo({"key": "val"}, "MyVar")
+
+    def test_script_path_loads_object(self):
+        """Test that /Script/ paths use unreal.load_object for native class refs."""
+        from ops.blueprint_graph import _coerce_value_for_cdo
+
+        mock_obj = Mock()
+        mock_unreal.load_object.return_value = mock_obj
+
+        result = _coerce_value_for_cdo("/Script/Engine.StaticMesh", "MyRef")
+        assert result is mock_obj
+        mock_unreal.load_object.assert_called_with(None, "/Script/Engine.StaticMesh")
+
+    def test_engine_path_loads_asset(self):
+        """Test that /Engine/ paths trigger asset loading."""
+        from ops.blueprint_graph import _coerce_value_for_cdo
+
+        mock_asset = Mock()
+        mock_unreal.EditorAssetLibrary.load_asset.return_value = mock_asset
+
+        result = _coerce_value_for_cdo("/Engine/BasicShapes/Cube", "MyRef")
+        assert result is mock_asset
+
+
+class TestSetVariableDefaultSignature:
+    """Test set_variable_default function signature and parameter defaults."""
+
+    def test_signature_has_required_params(self):
+        """Test that set_variable_default has the required parameters."""
+        import inspect
+
+        from ops.blueprint_graph import set_variable_default
+
+        sig = inspect.signature(set_variable_default)
+        assert "blueprint_path" in sig.parameters
+        assert "variable_name" in sig.parameters
+        assert "value" in sig.parameters
+
+    def test_value_type_defaults_to_none(self):
+        """Test that value_type parameter defaults to None."""
+        import inspect
+
+        from ops.blueprint_graph import set_variable_default
+
+        sig = inspect.signature(set_variable_default)
+        assert "value_type" in sig.parameters
+        assert sig.parameters["value_type"].default is None
+
+
+class TestSetVariableDefaultRotatorDisambiguation:
+    """Test that value_type='rotator' routes through create_rotator."""
+
+    def test_rotator_value_type_uses_create_rotator(self, monkeypatch):
+        """When value_type='rotator' and value is a 3-element list, create_rotator is used."""
+        import ops.blueprint_graph as bg
+
+        # Track which coercion function was called
+        rotator_calls = []
+        vector_calls = []
+
+        def fake_create_rotator(arr):
+            rotator_calls.append(arr)
+            return "mock_rotator"
+
+        def fake_create_vector(arr):
+            vector_calls.append(arr)
+            return "mock_vector"
+
+        # Mock the full chain: resolve_blueprint -> compile -> generated_class -> CDO
+        mock_cdo = Mock()
+        mock_gen_class = Mock()
+        mock_gen_class.get_default_object.return_value = mock_cdo
+        mock_blueprint = Mock()
+        mock_blueprint.generated_class.return_value = mock_gen_class
+
+        monkeypatch.setattr(bg, "resolve_blueprint", lambda path: mock_blueprint)
+        monkeypatch.setattr(bg, "create_rotator", fake_create_rotator)
+        monkeypatch.setattr(bg, "create_vector", fake_create_vector)
+
+        result = bg.set_variable_default(
+            "/Game/BP_Test",
+            "MyRotator",
+            [10.0, 20.0, 30.0],
+            value_type="rotator",
+        )
+
+        assert result["success"] is True
+        assert rotator_calls == [[10.0, 20.0, 30.0]]
+        assert vector_calls == []
+        mock_cdo.set_editor_property.assert_called_once_with("MyRotator", "mock_rotator")

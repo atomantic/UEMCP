@@ -221,6 +221,7 @@ def register_all_operations():
         registry.register_command("blueprint_compile_enhanced", blueprint_graph.compile_enhanced)
         registry.register_command("blueprint_implement_interface", blueprint_graph.implement_interface)
         registry.register_command("blueprint_discover_actions", blueprint_graph.discover_actions)
+        registry.register_command("blueprint_set_variable_default", blueprint_graph.set_variable_default)
 
         # Blueprint node manipulation operations
         registry.register_command("blueprint_add_node", blueprint_nodes.add_node)
