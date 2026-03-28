@@ -1069,21 +1069,22 @@ def screenshot(
             details={"widget_path": widget_path},
         )
 
-    try:
-        # Add widget to viewport so the screenshot captures its contents
-        widget_instance.add_to_viewport(0)
+    # Screenshot is asynchronous — widget must stay in viewport until capture completes.
+    # Schedule cleanup via a deferred tick callback so the widget persists for the capture frame.
+    widget_instance.add_to_viewport(0)
 
-        unreal.AutomationLibrary.take_high_res_screenshot(
-            width,
-            height,
-            filename,
-            None,
-            False,
-            False,
-            unreal.ComparisonTolerance.LOW,
-        )
-    finally:
-        widget_instance.remove_from_parent()
+    unreal.AutomationLibrary.take_high_res_screenshot(
+        width,
+        height,
+        filename,
+        None,
+        False,
+        False,
+        unreal.ComparisonTolerance.LOW,
+    )
+
+    # Defer widget removal by one tick so the screenshot frame captures the widget
+    _deferred_widget_cleanup(widget_instance)
 
     output_path = _get_screenshot_path(filename)
     log_debug(f"Widget screenshot requested: {output_path}")
@@ -1096,3 +1097,13 @@ def screenshot(
         "height": height,
         "message": f"Widget screenshot initiated. File will be saved to: {output_path}",
     }
+
+
+def _deferred_widget_cleanup(widget_instance):
+    """Remove a widget from viewport after a short delay to allow screenshot capture."""
+
+    def _cleanup_tick(delta_time):
+        widget_instance.remove_from_parent()
+        return False  # Returning False unregisters the tick callback
+
+    unreal.register_slate_post_tick_callback(_cleanup_tick)
