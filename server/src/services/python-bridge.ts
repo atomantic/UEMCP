@@ -61,7 +61,13 @@ export class PythonBridge {
       let errorText: string;
       try {
         errorText = await response.text();
-      } catch {
+      } catch (bodyError) {
+        // If the timer fired while reading the error body, rethrow as timeout
+        // rather than masking it as an HTTP error
+        if (bodyError instanceof Error && bodyError.name === 'AbortError') {
+          clearTimeout(timer);
+          throw bodyError;
+        }
         errorText = 'No error body';
       } finally {
         clearTimeout(timer);

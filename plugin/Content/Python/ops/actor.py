@@ -1097,7 +1097,7 @@ class ActorOperations:
             for i in range(3)
         ]
 
-    def _calculate_gap_overlap(self, actor1, actor2, tolerance):
+    def _calculate_gap_overlap(self, actor1, actor2, _tolerance):
         """Calculate gap or overlap between two actors."""
         gaps = self._calculate_axis_gaps(actor1, actor2)
         overlaps = self._calculate_axis_overlaps(actor1, actor2)
