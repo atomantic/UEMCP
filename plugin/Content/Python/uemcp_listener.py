@@ -99,10 +99,15 @@ class UEMCPHandler(BaseHTTPRequestHandler):
                 return  # _parse_command already sent the error response
             request_id = self._generate_request_id()
 
+            # Validate and normalize the command type.
+            command_type = command.get("type")
+            if not isinstance(command_type, str):
+                self.send_error(400, "Invalid command type; expected string")
+                return
+
             # Normalize legacy dot-style types (e.g., "viewport.screenshot" -> "viewport_screenshot",
             # "python.execute" -> "python_proxy") so dispatch and timeout lookup use the same name.
-            command_type = command.get("type", "")
-            normalized_type = command_type.replace(".", "_") if isinstance(command_type, str) else ""
+            normalized_type = command_type.replace(".", "_")
             mapped_type = _LEGACY_COMMAND_MAP.get(command_type, normalized_type)
             if mapped_type != command_type:
                 command = {**command, "type": mapped_type}
