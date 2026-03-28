@@ -25,9 +25,9 @@ def _ensure_directory(folder: str) -> None:
         unreal.EditorAssetLibrary.make_directory(folder)
 
 
-def _resolve_struct(struct_path: str) -> unreal.ScriptStruct:
+def _resolve_struct(struct_path: str):
     """Load and validate a struct asset."""
-    asset = unreal.load_object(name=struct_path, outer=None, type=unreal.ScriptStruct)
+    asset = unreal.EditorAssetLibrary.load_asset(struct_path)
     if not asset:
         raise ProcessingError(
             f"Struct not found: {struct_path}",
@@ -200,12 +200,13 @@ def get_rows(
 
     target_names = row_names if row_names is not None else all_names
     rows = []
+    missing = []
 
     for name in target_names:
         if name not in all_names:
+            missing.append(name)
             continue
         row_data = {"row_name": name}
-        # Retrieve serialized row JSON via helper
         json_str = unreal.DataTableFunctionLibrary.get_data_table_row_from_name(datatable, name)
         if json_str is not None:
             row_data["data"] = str(json_str)
@@ -213,12 +214,15 @@ def get_rows(
 
     log_debug(f"Retrieved {len(rows)} rows from {asset_path}")
 
-    return {
+    result: dict[str, Any] = {
         "success": True,
         "dataTablePath": asset_path,
         "rows": rows,
         "totalRows": len(all_names),
     }
+    if missing:
+        result["missingRows"] = missing
+    return result
 
 
 @validate_inputs(
