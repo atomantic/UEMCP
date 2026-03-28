@@ -10,12 +10,14 @@ import sys
 from unittest.mock import MagicMock, patch
 
 # Mock the unreal module before any ops imports trigger it
-mock_unreal = MagicMock()
+# Reuse existing mock if another test file already created one (pytest imports all files during collection)
+if "unreal" not in sys.modules:
+    sys.modules["unreal"] = MagicMock()
+mock_unreal = sys.modules["unreal"]
 mock_unreal.WidgetBlueprint = type("WidgetBlueprint", (), {})
 mock_unreal.CanvasPanelSlot = type("CanvasPanelSlot", (), {})
 mock_unreal.SlateVisibility = MagicMock()
 mock_unreal.TextJustify = MagicMock()
-sys.modules["unreal"] = mock_unreal
 
 # Add the plugin directory to Python path for imports
 plugin_path = os.path.join(os.path.dirname(__file__), "../../../..", "plugin", "Content", "Python")
