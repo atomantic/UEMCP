@@ -13,7 +13,7 @@ import {
 import { logger } from '../utils/logger.js';
 import { HybridToolRegistry } from './dynamic-tool-registry.js';
 import { ConfigManager } from './config-manager.js';
-import { ResponseFormatter, ToolResponse } from '../utils/response-formatter.js';
+import { ResponseFormatter } from '../utils/response-formatter.js';
 
 export interface ServerOptions {
   name?: string;
@@ -90,14 +90,14 @@ export class ServerManager {
         arguments: unknown 
       };
       
-      return (await this.handleToolCall(name, args)) as CallToolResult;
+      return this.handleToolCall(name, args);
     });
   }
 
   /**
    * Handle individual tool calls with logging and error handling
    */
-  private async handleToolCall(name: string, args: unknown): Promise<ToolResponse> {
+  private async handleToolCall(name: string, args: unknown): Promise<CallToolResult> {
     logger.info(`Tool called: ${name}`, { arguments: args });
     const startTime = Date.now();
 
@@ -117,7 +117,7 @@ export class ServerManager {
         resultLength: result.content?.[0]?.text?.length || 0
       });
       
-      return result;
+      return result as CallToolResult;
     } catch (error) {
       const duration = Date.now() - startTime;
       logger.error(`Tool ${name} failed`, {
