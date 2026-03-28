@@ -237,7 +237,9 @@ def register_all_operations():
             from ops import niagara
         except ImportError:
             log_debug("Niagara operations not available; skipping Niagara command registration")
-        else:
+            niagara = None  # type: ignore[assignment]
+
+        if niagara is not None and hasattr(niagara, "create_system"):
             registry.register_command("niagara_create_system", niagara.create_system)
             registry.register_command("niagara_add_emitter", niagara.add_emitter)
             registry.register_command("niagara_add_module", niagara.add_module)

@@ -421,9 +421,27 @@ def add_module(
         )
 
     script_attr = _SECTION_SCRIPT_MAP.get(section_lower)
-    script = getattr(instance, script_attr, None) if script_attr else None
-    if script:
-        script.add_module(module_asset)
+    if not script_attr:
+        raise ProcessingError(
+            f"No script mapping found for section '{section_lower}'",
+            operation="niagara_add_module",
+            details={"section": section_lower},
+        )
+
+    script = getattr(instance, script_attr, None)
+    if script is None:
+        raise ProcessingError(
+            f"Emitter script section '{section_lower}' (attribute '{script_attr}') is not "
+            f"available for emitter '{emitter_name}'",
+            operation="niagara_add_module",
+            details={
+                "section": section_lower,
+                "script_attr": script_attr,
+                "emitter_name": emitter_name,
+            },
+        )
+
+    script.add_module(module_asset)
 
     # Save
     unreal.EditorAssetLibrary.save_asset(system_path)
@@ -518,6 +536,18 @@ def configure_module(
     ue_value = _convert_to_ue_value(applied_value, value_type)
     if ue_value is not None:
         override_key = f"{emitter_name}.{module_name}.{parameter_name}"
+        if not system.has_editor_property(override_key):
+            raise ProcessingError(
+                "Cannot apply Niagara module parameter override: " "editor property not found on NiagaraSystem",
+                operation="niagara_configure_module",
+                details={
+                    "system_path": system_path,
+                    "override_key": override_key,
+                    "emitter_name": emitter_name,
+                    "module_name": module_name,
+                    "parameter_name": parameter_name,
+                },
+            )
         system.set_editor_property(override_key, ue_value)
 
     # Save
@@ -655,6 +685,7 @@ def set_renderer(
 @validate_inputs(
     {
         "system_path": [RequiredRule(), AssetPathRule()],
+        "force": [TypeRule(bool)],
     }
 )
 @handle_unreal_errors("niagara_compile")
@@ -745,11 +776,12 @@ def spawn(
     # Spawn the system in the world
     world = get_unreal_editor_subsystem().get_editor_world()
     niagara_component = unreal.NiagaraFunctionLibrary.spawn_system_at_location(
-        world,
-        system,
-        spawn_location,
-        spawn_rotation,
-        auto_activate,
+        world_context_object=world,
+        system_template=system,
+        location=spawn_location,
+        rotation=spawn_rotation,
+        scale=create_vector(scale) if scale else create_vector([1.0, 1.0, 1.0]),
+        auto_activate=auto_activate,
     )
 
     if not niagara_component:
@@ -758,10 +790,6 @@ def spawn(
             operation="niagara_spawn",
             details={"system_path": system_path, "location": location},
         )
-
-    # Apply scale if specified
-    if scale:
-        niagara_component.set_world_scale3d(create_vector(scale))
 
     # Get the owning actor
     owner = niagara_component.get_owner()
