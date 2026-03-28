@@ -51,7 +51,7 @@ jobs:
         npm run test:coverage
     
     - name: Upload coverage
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457  # v3
       with:
         files: ./server/coverage/lcov.info
         flags: typescript
@@ -119,8 +119,8 @@ jobs:
         # Create start script
         cat > ../dist/uemcp-server/start.sh << 'EOF'
         #!/bin/bash
-        npm install --production
-        node dist/index.js
+        npm ci --omit=dev
+        node index.js
         EOF
         chmod +x ../dist/uemcp-server/start.sh
     

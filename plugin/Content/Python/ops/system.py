@@ -27,6 +27,8 @@ from version import VERSION
 
 # Module-level flag to prevent duplicate slate_post_tick_callback registrations
 _restart_scheduled = False
+# Module-level handle for the pending restart callback (used by force=True to cancel it)
+_restart_pending_handle = None
 
 
 class SystemOperations:
@@ -260,66 +262,78 @@ class SystemOperations:
         """Restart the Python listener to reload code changes.
 
         Args:
-            force: Force restart even if listener appears offline
+            force: Force restart even if a restart is already scheduled
 
         Returns:
             dict: Restart result
         """
-        # Schedule the restart using Unreal's tick system instead of threads
-        try:
-            import unreal
-
-            global _restart_scheduled
-            if _restart_scheduled:
+        global _restart_scheduled, _restart_pending_handle
+        if _restart_scheduled:
+            if not force:
                 return {
                     "success": True,
                     "message": "Listener restart already scheduled.",
                 }
-
-            # We'll use a counter to ensure we only run once
-            restart_counter = [0]  # Use list so we can modify in nested function
-
-            def perform_restart(delta_time):
-                global _restart_scheduled
-                # Only run once
-                if restart_counter[0] > 0:
-                    return
-                restart_counter[0] += 1
-
+            # force=True: cancel the existing scheduled callback before re-scheduling
+            if _restart_pending_handle is not None:
                 try:
-                    unreal.log("UEMCP: Performing scheduled restart...")
-                    import uemcp_listener
+                    unreal.unregister_slate_post_tick_callback(_restart_pending_handle)
+                except Exception:
+                    pass
+                _restart_pending_handle = None
+            _restart_scheduled = False
 
-                    # Unregister this callback first
-                    if hasattr(perform_restart, "_handle"):
+        # We'll use a counter to ensure we only run once
+        restart_counter = [0]  # Use list so we can modify in nested function
+
+        def perform_restart(delta_time):
+            global _restart_scheduled, _restart_pending_handle
+            # Only run once
+            if restart_counter[0] > 0:
+                return
+            restart_counter[0] += 1
+
+            try:
+                unreal.log("UEMCP: Performing scheduled restart...")
+                import uemcp_listener
+
+                # Then restart and capture success/failure
+                restart_success = bool(uemcp_listener.restart_listener())
+                if restart_success:
+                    unreal.log("UEMCP: Listener restart completed successfully.")
+                else:
+                    unreal.log_error("UEMCP: Listener restart reported failure.")
+            except Exception as e:
+                unreal.log_error(f"UEMCP: Restart error: {str(e)}")
+            finally:
+                # Always unregister the callback so it doesn't persist on error
+                if hasattr(perform_restart, "_handle"):
+                    try:
                         unreal.unregister_slate_post_tick_callback(perform_restart._handle)
+                    except Exception:
+                        pass
+                _restart_pending_handle = None
+                _restart_scheduled = False
 
-                    # Then restart
-                    success = uemcp_listener.restart_listener()
-                    if success:
-                        unreal.log("UEMCP: Restart completed successfully")
-                    else:
-                        unreal.log_error("UEMCP: Restart failed")
-                except Exception as e:
-                    unreal.log_error(f"UEMCP: Restart error: {str(e)}")
-                finally:
-                    _restart_scheduled = False
-
-            # Register the callback to run on next tick
-            # This ensures the response is sent before restart
+        # Register the callback to run on next tick
+        # This ensures the response is sent before restart
+        try:
             handle = unreal.register_slate_post_tick_callback(perform_restart)
-            perform_restart._handle = handle
-            _restart_scheduled = True
-
-            return {
-                "success": True,
-                "message": "Listener restart scheduled for next tick.",
-            }
         except Exception as e:
+            _restart_scheduled = False
+            unreal.log_error(f"UEMCP: Failed to schedule listener restart: {str(e)}")
             return {
                 "success": False,
-                "error": f"Failed to schedule restart: {str(e)}",
+                "error": f"Failed to schedule listener restart: {str(e)}",
             }
+        perform_restart._handle = handle
+        _restart_pending_handle = handle
+        _restart_scheduled = True
+
+        return {
+            "success": True,
+            "message": "Listener restart scheduled for next tick.",
+        }
 
     @validate_inputs({"project": [TypeRule(str)], "lines": [TypeRule(int)]})
     @handle_unreal_errors("read_ue_logs")
@@ -388,12 +402,41 @@ class SystemOperations:
         Returns:
             dict: Execution result
         """
+        # Check kill-switch (default on for backward compat)
+        if os.environ.get("UEMCP_ALLOW_PYTHON_PROXY", "1").strip().lower() not in ("1", "true", "yes", "on"):
+            return {"success": False, "error": "python_proxy is disabled (UEMCP_ALLOW_PYTHON_PROXY=0)"}
+
+        # Audit log every invocation — walk the stack to skip decorator wrappers
+        _DECORATOR_MODULES = {"utils.error_handling", "utils/error_handling", "error_handling", "functools"}
+        try:
+            caller = sys._getframe(1)
+            depth = 1
+            while depth < 10:
+                fname = caller.f_code.co_filename
+                if not any(mod in fname for mod in _DECORATOR_MODULES):
+                    break
+                depth += 1
+                caller = sys._getframe(depth)
+        except ValueError:
+            caller = sys._getframe(0)
+        unreal.log(
+            f"UEMCP: python_proxy | caller={caller.f_code.co_filename}:{caller.f_lineno} | code_length={len(code)}"
+        )
+
         # Set up execution context
+        _RESERVED_NAMES = frozenset({"unreal", "math", "os", "sys", "result"})
         exec_globals = {"unreal": unreal, "math": __import__("math"), "os": os, "sys": sys, "result": None}
 
-        # Add context variables if provided
+        # Validate and add context variables
         if context:
-            exec_globals.update(context)
+            for k, v in context.items():
+                if not isinstance(k, str):
+                    return {"success": False, "error": f"Context keys must be strings, got {type(k).__name__!r}"}
+                if k.startswith("__"):
+                    return {"success": False, "error": f"Context key {k!r} is rejected: dunder keys are not allowed"}
+                if k in _RESERVED_NAMES:
+                    return {"success": False, "error": f"Context key {k!r} would overwrite a reserved name"}
+                exec_globals[k] = v
 
         # Execute the code
         exec(code, exec_globals)

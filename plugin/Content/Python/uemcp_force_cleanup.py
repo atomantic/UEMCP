@@ -36,9 +36,10 @@ def force_cleanup():
             if result.stdout:
                 pids = result.stdout.strip().split("\n")
                 for pid in pids:
-                    if pid:
-                        subprocess.run(["kill", "-9", pid])
-                        unreal.log(f"UEMCP: ✓ Killed process {pid}")
+                    stripped_pid = pid.strip()
+                    if stripped_pid.isdigit():
+                        subprocess.run(["kill", "-9", stripped_pid])
+                        unreal.log(f"UEMCP: ✓ Killed process {stripped_pid}")
                 time.sleep(1)
             else:
                 unreal.log("UEMCP: ✓ No processes found on port 8765")

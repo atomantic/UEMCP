@@ -3,6 +3,7 @@ Blueprint node operations for adding, connecting, and removing nodes
 in Blueprint event graphs and function graphs.
 """
 
+import os
 from typing import Any, Dict, Optional
 
 import unreal
@@ -637,6 +638,20 @@ def remove_node(
 # Console Command (bonus utility)
 # ============================================================================
 
+# Allowlisted prefixes for safe AI-initiated console commands.
+# Set UEMCP_ALLOW_ALL_CONSOLE_COMMANDS=1 to disable this restriction.
+SAFE_COMMAND_PREFIXES = (
+    "stat ",
+    "r.",
+    "ShowFlag.",
+    "viewmode ",
+    "Foliage.",
+    "t.",
+    "p.",
+    "gc.",
+    "obj ",
+)
+
 
 @validate_inputs(
     {
@@ -658,6 +673,26 @@ def execute_console_command(
     Returns:
         Dictionary with command execution result
     """
+    # Reject command separators regardless of allowlist to prevent chaining attacks
+    _COMMAND_SEPARATORS = (";", "\n", "\r", "|", "&")
+    if any(sep in command for sep in _COMMAND_SEPARATORS):
+        return {
+            "success": False,
+            "error": "Command contains illegal separator character. Multi-command strings are not allowed.",
+        }
+
+    if os.environ.get("UEMCP_ALLOW_ALL_CONSOLE_COMMANDS", "0").strip().lower() not in ("1", "true", "yes", "on"):
+        if not any(command.startswith(prefix) for prefix in SAFE_COMMAND_PREFIXES):
+            allowed = ", ".join(SAFE_COMMAND_PREFIXES)
+            return {
+                "success": False,
+                "error": (
+                    f"Command '{command}' is not allowed. "
+                    f"Must start with one of: {allowed}. "
+                    "Set UEMCP_ALLOW_ALL_CONSOLE_COMMANDS=1 to override."
+                ),
+            }
+
     # Delegate to shared utility (handles subsystem/world resolution)
     _run_console_command(command)
 
