@@ -169,6 +169,7 @@ class ManifestGenerator:
         prefix = command_name.split("_")[0]
         category_map = {
             "actor": "actors",
+            "anim": "animation",
             "asset": "assets",
             "blueprint": "blueprints",
             "material": "materials",
