@@ -141,10 +141,10 @@ export class ConfigManager {
       errors.push(`Invalid listener port: ${this.config.listenerPort}`);
     }
 
-    // Check Node.js version (require Node 18+)
+    // Check Node.js version (require Node 20+)
     const nodeVersion = parseInt(process.version.substring(1), 10);
-    if (nodeVersion < 18) {
-      errors.push(`Node.js 18+ required, current: ${process.version}`);
+    if (nodeVersion < 20) {
+      errors.push(`Node.js 20+ required, current: ${process.version}`);
     }
 
     return {

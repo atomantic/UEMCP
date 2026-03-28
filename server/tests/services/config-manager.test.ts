@@ -207,7 +207,7 @@ describe('ConfigManager', () => {
       const validation = configManager.validateConfiguration();
       
       expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain('Node.js 18+ required, current: v16.0.0');
+      expect(validation.errors).toContain('Node.js 20+ required, current: v16.0.0');
       
       // Restore original version
       Object.defineProperty(process, 'version', { value: originalVersion, configurable: true });
