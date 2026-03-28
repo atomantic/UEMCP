@@ -184,7 +184,17 @@ class ManifestGenerator:
         }
         category = category_map.get(prefix, "system")
 
-        return {
+        # Include per-tool timeout from the listener's authoritative map (if present)
+        # so the Node.js side never falls back to a shorter category/default timeout.
+        timeout_value = None
+        try:
+            from uemcp_listener import _COMMAND_TIMEOUTS
+
+            timeout_value = _COMMAND_TIMEOUTS.get(command_name)
+        except Exception:
+            pass
+
+        tool: Dict[str, Any] = {
             "name": command_name,
             "description": description,
             "category": category,
@@ -195,6 +205,9 @@ class ManifestGenerator:
                 "additionalProperties": False,
             },
         }
+        if timeout_value is not None:
+            tool["timeout"] = timeout_value
+        return tool
 
     def generate_manifest(self) -> Dict[str, Any]:
         """Generate complete tool manifest from registry."""

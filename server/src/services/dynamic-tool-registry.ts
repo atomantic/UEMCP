@@ -59,7 +59,7 @@ export class HybridToolRegistry {
           return;
         }
       } catch (error) {
-        logger.warn('Failed to load dynamic tools, falling back to static:', {
+        logger.warn('Failed to load dynamic tools from Python manifest:', {
           error: ResponseFormatter.getErrorMessage(error)
         });
       }
@@ -83,7 +83,10 @@ export class HybridToolRegistry {
     return {
       definition: tool.definition,
       handler: async (args: unknown): Promise<CallToolResult> => {
-        const typedArgs = (args as Record<string, unknown> | undefined) ?? {};
+        const typedArgs: Record<string, unknown> =
+          args !== null && typeof args === 'object' && !Array.isArray(args)
+            ? (args as Record<string, unknown>)
+            : {};
         const response = await tool.handler(typedArgs);
         return {
           content: response.content.map(item => ({

@@ -381,9 +381,11 @@ def start_server():
         if _verify_server_started(started_event):
             return True
 
-        # Startup failed — clean up the tick callback to avoid a leaked handler
+        # Startup failed — clean up all partially-initialized state
         unreal.unregister_slate_post_tick_callback(tick_handle)
         tick_handle = None
+        _untrack_server_thread(server_thread)
+        server_thread = None
         return False
 
     except Exception as e:
@@ -397,6 +399,8 @@ def start_server():
             except Exception:
                 pass
             tick_handle = None
+        _untrack_server_thread(server_thread)
+        server_thread = None
         return False
 
 
