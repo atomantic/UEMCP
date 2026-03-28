@@ -232,14 +232,15 @@ def register_all_operations():
         registry.register_command("blueprint_remove_node", blueprint_nodes.remove_node)
         registry.register_command("console_command", blueprint_nodes.execute_console_command)
 
-        # Register Niagara VFX operations (optional -- Niagara plugin may not be enabled)
+        # Register Niagara VFX operations (optional -- Niagara plugin may not be enabled).
+        # ops.niagara raises ImportError at import time if unreal.NiagaraSystem is absent.
         try:
             from ops import niagara
         except ImportError:
             log_debug("Niagara operations not available; skipping Niagara command registration")
             niagara = None  # type: ignore[assignment]
 
-        if niagara is not None and hasattr(niagara, "create_system"):
+        if niagara is not None:
             registry.register_command("niagara_create_system", niagara.create_system)
             registry.register_command("niagara_add_emitter", niagara.add_emitter)
             registry.register_command("niagara_add_module", niagara.add_module)

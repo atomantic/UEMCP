@@ -2,11 +2,14 @@
 Niagara VFX system operations for creating and managing particle effects.
 """
 
-from __future__ import annotations
-
 from typing import Any, Optional
 
 import unreal
+
+# Fail fast at import time if Niagara plugin is not available, so that
+# try/except ImportError guards in __init__.py and command_registry work.
+if not hasattr(unreal, "NiagaraSystem"):
+    raise ImportError("Niagara plugin is not available (unreal.NiagaraSystem not found)")
 
 from utils.error_handling import (
     AssetPathRule,
@@ -128,7 +131,7 @@ def _extract_path_parts(system_path: str) -> tuple:
     return "/Game", parts[0]
 
 
-def _resolve_module_path(module_name: str) -> str | None:
+def _resolve_module_path(module_name: str) -> Optional[str]:
     """Try standard Niagara module paths and return the first that exists."""
     candidates = [
         f"/Niagara/Modules/{module_name}",
@@ -532,23 +535,34 @@ def configure_module(
             "a": value[3] if len(value) > 3 else 1.0,
         }
 
-    # Apply the parameter override via the Niagara editor API
+    # Convert and apply the parameter value via Niagara module script stacks.
     ue_value = _convert_to_ue_value(applied_value, value_type)
     if ue_value is not None:
-        override_key = f"{emitter_name}.{module_name}.{parameter_name}"
-        if not system.has_editor_property(override_key):
+        # Find the module in the emitter's script stacks and apply the override
+        applied = False
+        for script_attr in _SECTION_SCRIPT_MAP.values():
+            script = getattr(instance, script_attr, None)
+            if script is None:
+                continue
+            for mod in getattr(script, "modules", []):
+                if getattr(mod, "get_name", lambda: None)() == module_name:
+                    mod.set_editor_property(parameter_name, ue_value)
+                    applied = True
+                    break
+            if applied:
+                break
+
+        if not applied:
             raise ProcessingError(
-                "Cannot apply Niagara module parameter override: " "editor property not found on NiagaraSystem",
+                f"Module '{module_name}' not found in emitter '{emitter_name}' script stacks",
                 operation="niagara_configure_module",
                 details={
                     "system_path": system_path,
-                    "override_key": override_key,
                     "emitter_name": emitter_name,
                     "module_name": module_name,
                     "parameter_name": parameter_name,
                 },
             )
-        system.set_editor_property(override_key, ue_value)
 
     # Save
     unreal.EditorAssetLibrary.save_asset(system_path)
