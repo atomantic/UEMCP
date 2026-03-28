@@ -14,22 +14,18 @@ from utils.error_handling import (
     safe_operation,
     validate_inputs,
 )
-from utils.general import log_debug
+from utils.general import get_actor_subsystem, get_unreal_editor_subsystem, log_debug
 
 
 def _get_world():
-    """Return the current editor world, or None."""
-    editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
-    if editor_subsystem:
-        return editor_subsystem.get_editor_world()
-    return None
+    """Return the current editor world."""
+    editor_subsystem = get_unreal_editor_subsystem()
+    return editor_subsystem.get_editor_world()
 
 
 def _get_all_actors():
     """Return all actors in the current level."""
-    actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
-    if not actor_subsystem:
-        return []
+    actor_subsystem = get_actor_subsystem()
     return actor_subsystem.get_all_level_actors()
 
 
@@ -134,11 +130,11 @@ def rendering_stats() -> dict[str, Any]:
 
         # Instanced static mesh components — count and include scaled tri/vert totals
         instanced_comps = actor.get_components_by_class(unreal.InstancedStaticMeshComponent)
-        instanced_mesh_component_count += len(instanced_comps)
         for comp in instanced_comps:
             sm = comp.static_mesh
             if not sm:
                 continue
+            instanced_mesh_component_count += 1
 
             mesh_path = sm.get_path_name()
             unique_meshes.add(mesh_path)
