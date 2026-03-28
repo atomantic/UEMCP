@@ -52,7 +52,7 @@ def _safe_mesh_triangle_count(static_mesh) -> int:
                 count += info.num_triangles
         return count
 
-    # Approach 3: get_bounding_box as fallback indicator (returns -1 to signal unknown)
+    # Approach 3: fallback indicator (returns -1 to signal unknown)
     return -1
 
 
@@ -71,6 +71,11 @@ def _safe_mesh_vertex_count(static_mesh) -> int:
         return count
 
     return -1
+
+
+def _is_instanced_component(comp) -> bool:
+    """Check if a component is an InstancedStaticMeshComponent (or subclass)."""
+    return isinstance(comp, unreal.InstancedStaticMeshComponent)
 
 
 @validate_inputs({})
@@ -97,9 +102,13 @@ def rendering_stats() -> dict[str, Any]:
     unique_materials: set = set()
 
     for actor in actors:
-        # Static mesh components
+        # Static mesh components (excluding instanced, which are a subclass)
         sm_comps = actor.get_components_by_class(unreal.StaticMeshComponent)
         for comp in sm_comps:
+            # Skip instanced components — they are counted separately below
+            if _is_instanced_component(comp):
+                continue
+
             sm = comp.static_mesh
             if not sm:
                 continue
@@ -190,7 +199,7 @@ def gpu_stats() -> dict[str, Any]:
     # These toggle stat displays in the viewport; the data is informational
     stat_commands_fired = []
 
-    # Fire stat GPU to enable GPU stat overlay (if not already active)
+    # Fire stat unit to enable frame timing overlay (if not already active)
     if world:
         unreal.SystemLibrary.execute_console_command(world, "stat unit")
         stat_commands_fired.append("stat unit")
@@ -231,8 +240,8 @@ def gpu_stats() -> dict[str, Any]:
 
 @validate_inputs(
     {
-        "limit": [TypeRule(int, allow_none=True), NumericRangeRule(min_val=1, max_val=10000)],
-        "sort_by": [TypeRule(str, allow_none=True)],
+        "limit": [TypeRule(int), NumericRangeRule(min_val=1, max_val=10000)],
+        "sort_by": [TypeRule(str)],
     }
 )
 @handle_unreal_errors("perf_scene_breakdown")
@@ -319,18 +328,20 @@ def scene_breakdown(
                 }
             )
 
-        actor_entries.append(
-            {
-                "actor_name": actor_name,
-                "actor_class": actor_class,
-                "total_triangles": actor_triangles,
-                "total_vertices": actor_vertices,
-                "total_materials": actor_materials,
-                "max_lod_count": actor_lod_count,
-                "mesh_count": len(mesh_details),
-                "meshes": mesh_details,
-            }
-        )
+        # Only add the actor if it has at least one valid mesh entry
+        if mesh_details:
+            actor_entries.append(
+                {
+                    "actor_name": actor_name,
+                    "actor_class": actor_class,
+                    "total_triangles": actor_triangles,
+                    "total_vertices": actor_vertices,
+                    "total_materials": actor_materials,
+                    "max_lod_count": actor_lod_count,
+                    "mesh_count": len(mesh_details),
+                    "meshes": mesh_details,
+                }
+            )
 
     # Sort
     sort_key_map = {
@@ -342,22 +353,26 @@ def scene_breakdown(
     reverse = sort_by != "name"
     actor_entries.sort(key=sort_key_map[sort_by], reverse=reverse)
 
-    # Apply limit
-    actor_entries = actor_entries[:limit]
-
-    # Totals
+    # Compute scene-wide totals before applying limit
     scene_total_tris = sum(e["total_triangles"] for e in actor_entries)
     scene_total_verts = sum(e["total_vertices"] for e in actor_entries)
+    actors_total_with_meshes = len(actor_entries)
 
-    log_debug(f"📊 scene_breakdown: {len(actor_entries)} actors returned, {scene_total_tris} tris in selection")
+    # Apply limit to determine which actors are returned
+    returned_actors = actor_entries[:limit]
+
+    log_debug(
+        f"📊 scene_breakdown: {len(returned_actors)} actors returned, "
+        f"{actors_total_with_meshes} total with meshes, {scene_total_tris} tris in scene"
+    )
 
     return {
         "success": True,
-        "actors_returned": len(actor_entries),
-        "actors_total_with_meshes": len(actor_entries),
+        "actors_returned": len(returned_actors),
+        "actors_total_with_meshes": actors_total_with_meshes,
         "scene_triangles": scene_total_tris,
         "scene_vertices": scene_total_verts,
         "sort_by": sort_by,
         "limit": limit,
-        "actors": actor_entries,
+        "actors": returned_actors,
     }
