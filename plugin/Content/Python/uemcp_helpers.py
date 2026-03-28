@@ -8,9 +8,13 @@ import unreal
 
 def restart_listener():
     """Restart the listener."""
-    import uemcp_listener
+    try:
+        import uemcp_listener
 
-    return uemcp_listener.restart_listener()
+        return uemcp_listener.restart_listener()
+    except Exception as e:
+        unreal.log_error(f"UEMCP: Error restarting listener: {e}")
+        return False
 
 
 def reload_uemcp():
@@ -36,9 +40,13 @@ def status():
 
 def start_listener():
     """Start the listener."""
-    import uemcp_listener
+    try:
+        import uemcp_listener
 
-    return uemcp_listener.start_listener()
+        return uemcp_listener.start_listener()
+    except Exception as e:
+        unreal.log_error(f"UEMCP: Error starting listener: {e}")
+        return False
 
 
 def stop_listener():

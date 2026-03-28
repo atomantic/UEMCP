@@ -30,11 +30,11 @@ httpd = None
 tick_handle = None
 _deferred_restart_tick = None  # one-shot tick handle used by restart_listener
 
-# Import thread tracker
+# Import thread tracker (optional; None when unavailable)
 try:
     import uemcp_thread_tracker
 except ImportError:
-    pass
+    uemcp_thread_tracker = None
 
 # Queue for main thread execution
 command_queue = queue.Queue()
@@ -455,6 +455,8 @@ def _track_server_thread(thread):
     Args:
         thread: The server thread to track
     """
+    if uemcp_thread_tracker is None:
+        return
     try:
         uemcp_thread_tracker.track_thread(thread)
     except Exception as e:
@@ -467,7 +469,7 @@ def _untrack_server_thread(thread):
     Args:
         thread: The server thread to untrack (no-op if None)
     """
-    if thread is None:
+    if thread is None or uemcp_thread_tracker is None:
         return
     try:
         uemcp_thread_tracker.untrack_thread(thread)
@@ -566,6 +568,14 @@ def stop_listener():
 def restart_listener():
     """Restart the UEMCP listener (module-level function for compatibility)."""
     global _deferred_restart_tick
+
+    # Guard against re-entrant calls: if a deferred restart is already scheduled,
+    # do not register another callback (the earlier one would unregister the newer
+    # handle, leaving itself registered indefinitely).
+    if _deferred_restart_tick is not None:
+        unreal.log("UEMCP: Restart already scheduled, ignoring duplicate call")
+        return True
+
     unreal.log("UEMCP: Restarting listener...")
 
     if not stop_server():
