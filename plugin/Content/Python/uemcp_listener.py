@@ -159,10 +159,19 @@ class UEMCPHandler(BaseHTTPRequestHandler):
             return None
         post_data = self.rfile.read(content_length)
         try:
-            return json.loads(post_data.decode("utf-8"))
+            decoded_body = post_data.decode("utf-8")
+        except UnicodeDecodeError:
+            self.send_error(400, "Request body must be valid UTF-8")
+            return None
+        try:
+            command = json.loads(decoded_body)
         except json.JSONDecodeError:
             self.send_error(400, "Invalid JSON")
             return None
+        if not isinstance(command, dict):
+            self.send_error(400, "JSON body must be an object")
+            return None
+        return command
 
     def _generate_request_id(self):
         """Generate unique request ID.

@@ -81,7 +81,7 @@ export class HybridToolRegistry {
       definition: tool.definition,
       handler: async (args: unknown): Promise<CallToolResult> => {
         const typedArgs = (args as Record<string, unknown> | undefined) ?? {};
-        const response = await tool.execute(typedArgs);
+        const response = await tool.handler(typedArgs);
         return {
           content: response.content.map(item => ({
             type: 'text' as const,
