@@ -132,8 +132,30 @@ def rendering_stats() -> dict[str, Any]:
             if vert_count > 0:
                 total_vertices += vert_count
 
-        # Instanced static mesh components
-        instanced_mesh_component_count += len(actor.get_components_by_class(unreal.InstancedStaticMeshComponent))
+        # Instanced static mesh components — count and include scaled tri/vert totals
+        instanced_comps = actor.get_components_by_class(unreal.InstancedStaticMeshComponent)
+        instanced_mesh_component_count += len(instanced_comps)
+        for comp in instanced_comps:
+            sm = comp.static_mesh
+            if not sm:
+                continue
+
+            mesh_path = sm.get_path_name()
+            unique_meshes.add(mesh_path)
+
+            mats = comp.get_materials()
+            material_slot_count += len(mats)
+            for mat in mats:
+                if mat:
+                    unique_materials.add(mat.get_path_name())
+
+            tri_count = _safe_mesh_triangle_count(sm)
+            vert_count = _safe_mesh_vertex_count(sm)
+            instance_count = max(1, comp.get_instance_count()) if hasattr(comp, "get_instance_count") else 1
+            if tri_count > 0:
+                total_triangles += tri_count * instance_count
+            if vert_count > 0:
+                total_vertices += vert_count * instance_count
 
         # Skeletal mesh components
         skeletal_mesh_component_count += len(actor.get_components_by_class(unreal.SkeletalMeshComponent))
@@ -195,11 +217,13 @@ def gpu_stats() -> dict[str, Any]:
     # call per material section; this is a lower bound.
     estimated_draw_calls = static_mesh_count + skeletal_mesh_count
 
-    # Execute stat console commands for additional info
-    # These toggle stat displays in the viewport; the data is informational
+    # Execute stat console commands for additional info.
+    # NOTE: These commands toggle stat displays in the viewport. In particular,
+    # "stat unit" will toggle the frame timing overlay and may either enable
+    # or disable it depending on its prior state.
     stat_commands_fired = []
 
-    # Fire stat unit to enable frame timing overlay (if not already active)
+    # Fire stat unit to toggle the frame timing overlay
     if world:
         unreal.SystemLibrary.execute_console_command(world, "stat unit")
         stat_commands_fired.append("stat unit")
@@ -231,7 +255,7 @@ def gpu_stats() -> dict[str, Any]:
         "memory_stats": memory_stats,
         "stat_commands_fired": stat_commands_fired,
         "note": (
-            "Console stat commands have been fired to enable in-viewport overlays. "
+            "Console stat commands toggle in-viewport overlays (calling again disables them). "
             "For precise GPU timings, check the viewport stat overlay or use "
             "'stat gpu' / 'stat unit' / 'profilegpu' console commands."
         ),
@@ -283,6 +307,7 @@ def scene_breakdown(
         mesh_details: list[dict[str, Any]] = []
 
         for comp in sm_comps:
+            is_instanced = _is_instanced_component(comp)
             sm = comp.static_mesh
             if not sm:
                 continue
@@ -295,14 +320,19 @@ def scene_breakdown(
             tri_count = _safe_mesh_triangle_count(sm)
             vert_count = _safe_mesh_vertex_count(sm)
 
+            # For instanced components, scale by instance count
+            instance_count = 1
+            if is_instanced and hasattr(comp, "get_instance_count"):
+                instance_count = max(1, comp.get_instance_count())
+
             mats = comp.get_materials()
             mat_names = [m.get_name() if m else "<empty>" for m in mats]
             actor_materials += len(mats)
 
-            if tri_count > 0:
-                actor_triangles += tri_count
-            if vert_count > 0:
-                actor_vertices += vert_count
+            scaled_tris = tri_count * instance_count if tri_count > 0 else 0
+            scaled_verts = vert_count * instance_count if vert_count > 0 else 0
+            actor_triangles += scaled_tris
+            actor_vertices += scaled_verts
 
             # Bounds
             bounds_origin = None
@@ -315,18 +345,22 @@ def scene_breakdown(
                         [b.box_extent.x, b.box_extent.y, b.box_extent.z] if hasattr(b, "box_extent") else None
                     )
 
-            mesh_details.append(
-                {
-                    "mesh_name": mesh_name,
-                    "mesh_path": mesh_path,
-                    "triangles": tri_count,
-                    "vertices": vert_count,
-                    "num_lods": num_lods,
-                    "materials": mat_names,
-                    "bounds_origin": bounds_origin,
-                    "bounds_extent": bounds_extent,
-                }
-            )
+            entry = {
+                "mesh_name": mesh_name,
+                "mesh_path": mesh_path,
+                "triangles": tri_count,
+                "vertices": vert_count,
+                "num_lods": num_lods,
+                "materials": mat_names,
+                "bounds_origin": bounds_origin,
+                "bounds_extent": bounds_extent,
+            }
+            if is_instanced:
+                entry["instance_count"] = instance_count
+                entry["total_triangles"] = scaled_tris
+                entry["total_vertices"] = scaled_verts
+
+            mesh_details.append(entry)
 
         # Only add the actor if it has at least one valid mesh entry
         if mesh_details:

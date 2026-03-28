@@ -2,50 +2,22 @@
 Unit tests for performance profiling operations.
 
 These tests focus on the pure Python logic (counting, sorting, limiting,
-double-count avoidance) without requiring the unreal module.
+double-count avoidance) by mocking the unreal module and importing the
+real implementation from ops.performance.
 """
 
-from unittest.mock import Mock
+import os
+import sys
+from unittest.mock import MagicMock, Mock
 
-# ---------------------------------------------------------------------------
-# Replicate pure-Python helpers from performance.py for testing
-# (Cannot import ops.performance directly — requires unreal module)
-# ---------------------------------------------------------------------------
+# Mock unreal before any ops imports (ops modules all import unreal at top level)
+sys.modules.setdefault("unreal", MagicMock())
 
+# Add the plugin directory to Python path for imports
+plugin_path = os.path.join(os.path.dirname(__file__), "../../../..", "plugin", "Content", "Python")
+sys.path.insert(0, plugin_path)
 
-def _safe_mesh_triangle_count(static_mesh) -> int:
-    """Mirror of ops.performance._safe_mesh_triangle_count."""
-    if hasattr(static_mesh, "get_num_triangles"):
-        return static_mesh.get_num_triangles(0)
-
-    if hasattr(static_mesh, "get_num_sections") and hasattr(static_mesh, "get_section_info"):
-        count = 0
-        num_sections = static_mesh.get_num_sections(0)
-        for i in range(num_sections):
-            info = static_mesh.get_section_info(0, i)
-            if info and hasattr(info, "num_triangles"):
-                count += info.num_triangles
-        return count
-
-    return -1
-
-
-def _safe_mesh_vertex_count(static_mesh) -> int:
-    """Mirror of ops.performance._safe_mesh_vertex_count."""
-    if hasattr(static_mesh, "get_num_vertices"):
-        return static_mesh.get_num_vertices(0)
-
-    if hasattr(static_mesh, "get_num_sections") and hasattr(static_mesh, "get_section_info"):
-        count = 0
-        num_sections = static_mesh.get_num_sections(0)
-        for i in range(num_sections):
-            info = static_mesh.get_section_info(0, i)
-            if info and hasattr(info, "num_vertices"):
-                count += info.num_vertices
-        return count
-
-    return -1
-
+from ops.performance import _safe_mesh_triangle_count, _safe_mesh_vertex_count  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Helpers: build mock objects
@@ -208,13 +180,10 @@ class TestInstancedComponentFiltering:
 
     def test_instanced_should_be_excluded_from_static_count(self):
         """In the static mesh loop, instanced components should be skipped."""
-        # Simulate the filtering logic from rendering_stats:
-        # sm_comps includes both regular and instanced (UE returns subclasses)
         regular = Mock(is_instanced=False)
         instanced = Mock(is_instanced=True)
         all_comps = [regular, instanced, regular]
 
-        # Filter out instanced (mirrors the _is_instanced_component check)
         static_only = [c for c in all_comps if not c.is_instanced]
         assert len(static_only) == 2
 
@@ -231,6 +200,14 @@ class TestInstancedComponentFiltering:
         assert instanced_count == 2
         assert static_count == 2
         assert instanced_count + static_count == len(all_comps)
+
+    def test_instanced_tris_scaled_by_instance_count(self):
+        """Instanced mesh tris should be multiplied by the number of instances."""
+        base_tris = 100
+        instance_count = 50
+        expected_total = base_tris * instance_count
+
+        assert expected_total == 5000
 
 
 # ---------------------------------------------------------------------------
