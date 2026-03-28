@@ -313,14 +313,10 @@ class TestLoadNiagaraSystem:
     def test_returns_system_when_valid(self):
         from ops.niagara import _load_niagara_system
 
-        mock_system = MagicMock(spec=mock_unreal.NiagaraSystem)
-        # Make isinstance check pass
-        mock_system.__class__ = mock_unreal.NiagaraSystem
+        # Create an actual instance of the mock NiagaraSystem class so
+        # the real isinstance() check in _load_niagara_system passes.
+        mock_system = mock_unreal.NiagaraSystem()
         with patch("ops.niagara.require_asset", return_value=mock_system):
-            with patch("ops.niagara.isinstance", return_value=True):
-                pass
-            # The function checks isinstance against unreal.NiagaraSystem
-            # Since our mock's class IS NiagaraSystem, this should work
             result = _load_niagara_system("/Game/VFX/Test")
             assert result is mock_system
 
@@ -471,32 +467,88 @@ class TestNiagaraCommandRegistration:
 # ---------------------------------------------------------------------------
 
 
-class TestConfigureModuleVectorCoercion:
-    """Test vector and color list-to-dict coercion in configure_module."""
+class TestConvertToUeValueDictInputs:
+    """Test _convert_to_ue_value with dict inputs for vector and color types."""
 
-    def test_vector_list_converted_to_dict(self):
-        """Verify configure_module internally converts [x,y,z] to dict for vector type."""
+    def test_vector_dict_converts_via_create_vector(self):
+        """Verify _convert_to_ue_value routes a vector dict through create_vector."""
         from ops.niagara import _convert_to_ue_value
 
-        # We test the conversion path indirectly through _convert_to_ue_value
         with patch("ops.niagara.create_vector") as mock_cv:
             mock_cv.return_value = "vec"
             _convert_to_ue_value({"x": 10, "y": 20, "z": 30}, "vector")
             mock_cv.assert_called_once_with([10, 20, 30])
 
-    def test_color_list_3_gets_default_alpha(self):
+    def test_color_dict_3_defaults_alpha(self):
         """Verify color dict with 3 components gets alpha=1.0 default."""
         from ops.niagara import _convert_to_ue_value
 
         _convert_to_ue_value({"r": 1.0, "g": 0.0, "b": 0.5}, "color")
         mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.0, b=0.5, a=1.0)
 
-    def test_color_list_4_preserves_alpha(self):
+    def test_color_dict_4_preserves_alpha(self):
         """Verify color dict with 4 components preserves custom alpha."""
         from ops.niagara import _convert_to_ue_value
 
         _convert_to_ue_value({"r": 1.0, "g": 0.0, "b": 0.5, "a": 0.3}, "color")
         mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.0, b=0.5, a=0.3)
+
+
+class TestConfigureModuleListCoercion:
+    """Test configure_module's list/tuple-to-dict coercion before _convert_to_ue_value."""
+
+    def _make_mock_system_with_module(self, module_name):
+        """Build a mock system with one emitter containing one module."""
+        mock_module = MagicMock()
+        mock_module.get_name.return_value = module_name
+
+        mock_script = MagicMock()
+        mock_script.modules = [mock_module]
+
+        mock_instance = MagicMock()
+        # Every script attr returns the same script so the module is always found
+        mock_instance.SpawnScript = mock_script
+        mock_instance.UpdateScript = mock_script
+        mock_instance.RenderScript = mock_script
+
+        mock_handle = MagicMock()
+        mock_handle.get_name.return_value = "TestEmitter"
+        mock_handle.get_instance.return_value = mock_instance
+
+        # Plain MagicMock with __class__ override so isinstance() passes
+        mock_system = MagicMock()
+        mock_system.__class__ = mock_unreal.NiagaraSystem
+        mock_system.get_emitter_handles.return_value = [mock_handle]
+        return mock_system, mock_module
+
+    def test_vector_list_coerced_to_dict(self):
+        """configure_module converts [x,y,z] list to dict before _convert_to_ue_value."""
+        from ops.niagara import configure_module
+
+        system, mod = self._make_mock_system_with_module("Velocity")
+        with patch("ops.niagara.require_asset", return_value=system):
+            with patch("ops.niagara.create_vector") as mock_cv:
+                mock_cv.return_value = "vec"
+                configure_module("/Game/VFX/T", "TestEmitter", "Velocity", "Speed", [1, 2, 3], "vector")
+                mock_cv.assert_called_once_with([1, 2, 3])
+
+    def test_color_tuple_3_coerced_with_default_alpha(self):
+        """configure_module converts (r,g,b) tuple to dict with alpha=1.0."""
+        from ops.niagara import configure_module
+
+        system, mod = self._make_mock_system_with_module("ColorMod")
+        with patch("ops.niagara.require_asset", return_value=system):
+            configure_module("/Game/VFX/T", "TestEmitter", "ColorMod", "Color", (1.0, 0.0, 0.5), "color")
+            mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.0, b=0.5, a=1.0)
+
+    def test_color_list_4_coerced_preserving_alpha(self):
+        """configure_module converts [r,g,b,a] list to dict preserving alpha."""
+        from ops.niagara import configure_module
+
+        system, mod = self._make_mock_system_with_module("ColorMod")
+        with patch("ops.niagara.require_asset", return_value=system):
+            configure_module("/Game/VFX/T", "TestEmitter", "ColorMod", "Color", [1.0, 0.0, 0.5, 0.3], "color")
+            mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.0, b=0.5, a=0.3)
 
 
 class TestSectionScriptMap:
