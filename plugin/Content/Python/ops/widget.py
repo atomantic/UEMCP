@@ -1122,8 +1122,10 @@ def _deferred_widget_cleanup(widget_instance):
     handle_container = {}
 
     def _cleanup_tick(delta_time):
-        widget_instance.remove_from_parent()
-        if "handle" in handle_container:
-            unreal.unregister_slate_post_tick_callback(handle_container["handle"])
+        try:
+            widget_instance.remove_from_parent()
+        finally:
+            if "handle" in handle_container:
+                unreal.unregister_slate_post_tick_callback(handle_container["handle"])
 
     handle_container["handle"] = unreal.register_slate_post_tick_callback(_cleanup_tick)
