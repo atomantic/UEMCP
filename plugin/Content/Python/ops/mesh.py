@@ -27,7 +27,7 @@ def _get_static_mesh(asset_path: str) -> unreal.StaticMesh:
     if not isinstance(asset, unreal.StaticMesh):
         raise ProcessingError(
             f"Asset is not a StaticMesh: {asset_path}",
-            operation="mesh",
+            operation="mesh_get_metadata",
             details={"asset_path": asset_path, "actual_type": asset.get_class().get_name()},
         )
     return asset
@@ -73,7 +73,12 @@ def get_metadata(asset_path: str) -> dict[str, Any]:
         if screen_size and lod_index < len(screen_size):
             model = screen_size[lod_index]
             reduction = model.get_editor_property("reduction_settings")
-            lod_info["screenSize"] = float(reduction.get_editor_property("percent_triangles"))
+            screen_size_prop = (
+                reduction.get_editor_property("screen_size")
+                if hasattr(reduction, "screen_size")
+                else reduction.get_editor_property("percent_triangles")
+            )
+            lod_info["screenSize"] = float(screen_size_prop)
 
         lods.append(lod_info)
 
@@ -106,7 +111,7 @@ def get_metadata(asset_path: str) -> dict[str, Any]:
         "success": True,
         "assetPath": asset_path,
         "meshName": mesh.get_name(),
-        "numLods": num_lods,
+        "numLODs": num_lods,
         "lods": lods,
         "materials": materials,
         "naniteEnabled": nanite_enabled,
@@ -174,7 +179,7 @@ def import_lod(
         "assetPath": asset_path,
         "lodIndex": lod_index,
         "sourceFile": source_file,
-        "numLods": mesh.get_num_lods(),
+        "numLODs": mesh.get_num_lods(),
     }
 
 
@@ -216,7 +221,10 @@ def set_lod_screen_size(
     if source_models and lod_index < len(source_models):
         model = source_models[lod_index]
         reduction = model.get_editor_property("reduction_settings")
-        reduction.set_editor_property("percent_triangles", float(screen_size))
+        if hasattr(reduction, "screen_size"):
+            reduction.set_editor_property("screen_size", float(screen_size))
+        else:
+            reduction.set_editor_property("percent_triangles", float(screen_size))
         model.set_editor_property("screen_size", float(screen_size))
 
     unreal.EditorAssetLibrary.save_asset(asset_path)
@@ -290,7 +298,7 @@ def auto_generate_lods(
     return {
         "success": True,
         "assetPath": asset_path,
-        "numLods": mesh.get_num_lods(),
+        "numLODs": mesh.get_num_lods(),
         "reductionPercent": reduction_percent,
         "lods": generated_lods,
     }
@@ -337,7 +345,10 @@ def get_instance_breakdown(asset_path: str) -> dict[str, Any]:
         for comp in components:
             comp_mesh = comp.get_editor_property("static_mesh")
             if comp_mesh and comp_mesh.get_path_name() == mesh_path:
-                instance_count += 1
+                if isinstance(comp, unreal.InstancedStaticMeshComponent) and hasattr(comp, "get_instance_count"):
+                    instance_count += comp.get_instance_count()
+                else:
+                    instance_count += 1
 
     materials = []
     static_materials = mesh.get_editor_property("static_materials")
@@ -360,7 +371,7 @@ def get_instance_breakdown(asset_path: str) -> dict[str, Any]:
         "success": True,
         "assetPath": asset_path,
         "meshName": mesh.get_name(),
-        "numLods": num_lods,
+        "numLODs": num_lods,
         "lods": lods,
         "totalTriangles": total_triangles,
         "instanceCount": instance_count,
