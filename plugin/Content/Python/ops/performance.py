@@ -3,7 +3,7 @@ Performance profiling operations for gathering rendering stats,
 GPU timing info, and per-actor scene cost breakdowns.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import unreal
 
@@ -14,7 +14,7 @@ from utils.error_handling import (
     safe_operation,
     validate_inputs,
 )
-from utils.general import log_debug as log_info
+from utils.general import log_debug
 
 
 def _get_world():
@@ -76,7 +76,7 @@ def _safe_mesh_vertex_count(static_mesh) -> int:
 @validate_inputs({})
 @handle_unreal_errors("perf_rendering_stats")
 @safe_operation("performance")
-def rendering_stats() -> Dict[str, Any]:
+def rendering_stats() -> dict[str, Any]:
     """Get rendering statistics including draw calls, triangle count, and mesh breakdown.
 
     Returns:
@@ -92,6 +92,7 @@ def rendering_stats() -> Dict[str, Any]:
     skeletal_mesh_component_count = 0
     instanced_mesh_component_count = 0
     material_slot_count = 0
+    light_count = 0
     unique_meshes: set = set()
     unique_materials: set = set()
 
@@ -128,14 +129,10 @@ def rendering_stats() -> Dict[str, Any]:
         # Skeletal mesh components
         skeletal_mesh_component_count += len(actor.get_components_by_class(unreal.SkeletalMeshComponent))
 
-    # Light counts
-    light_count = 0
-    for actor in actors:
-        light_comps = actor.get_components_by_class(unreal.LightComponent)
-        if light_comps:
-            light_count += len(light_comps)
+        # Light components
+        light_count += len(actor.get_components_by_class(unreal.LightComponent))
 
-    log_info(
+    log_debug(
         f"📊 rendering_stats: {actor_count} actors, "
         f"{total_triangles} tris, {static_mesh_component_count} mesh comps"
     )
@@ -158,7 +155,7 @@ def rendering_stats() -> Dict[str, Any]:
 @validate_inputs({})
 @handle_unreal_errors("perf_gpu_stats")
 @safe_operation("performance")
-def gpu_stats() -> Dict[str, Any]:
+def gpu_stats() -> dict[str, Any]:
     """Get GPU and frame timing statistics via engine stat commands.
 
     Returns:
@@ -213,7 +210,7 @@ def gpu_stats() -> Dict[str, Any]:
                     ),
                 }
 
-    log_info(f"📊 gpu_stats: {actor_count} actors, " f"~{estimated_draw_calls} estimated draw calls")
+    log_debug(f"📊 gpu_stats: {actor_count} actors, ~{estimated_draw_calls} estimated draw calls")
 
     return {
         "success": True,
@@ -243,7 +240,7 @@ def gpu_stats() -> Dict[str, Any]:
 def scene_breakdown(
     limit: int = 50,
     sort_by: str = "triangles",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get per-actor rendering cost breakdown with poly count, LOD, and material info.
 
     Args:
@@ -261,7 +258,7 @@ def scene_breakdown(
         }
 
     actors = _get_all_actors()
-    actor_entries: List[Dict[str, Any]] = []
+    actor_entries: list[dict[str, Any]] = []
 
     for actor in actors:
         sm_comps = actor.get_components_by_class(unreal.StaticMeshComponent)
@@ -274,7 +271,7 @@ def scene_breakdown(
         actor_vertices = 0
         actor_materials = 0
         actor_lod_count = 0
-        mesh_details: List[Dict[str, Any]] = []
+        mesh_details: list[dict[str, Any]] = []
 
         for comp in sm_comps:
             sm = comp.static_mesh
@@ -352,7 +349,7 @@ def scene_breakdown(
     scene_total_tris = sum(e["total_triangles"] for e in actor_entries)
     scene_total_verts = sum(e["total_vertices"] for e in actor_entries)
 
-    log_info(f"📊 scene_breakdown: {len(actor_entries)} actors returned, " f"{scene_total_tris} tris in selection")
+    log_debug(f"📊 scene_breakdown: {len(actor_entries)} actors returned, {scene_total_tris} tris in selection")
 
     return {
         "success": True,
