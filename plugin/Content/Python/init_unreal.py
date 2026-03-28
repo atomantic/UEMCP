@@ -22,14 +22,18 @@ try:
 
     def _deferred_startup(delta_time):
         """Deferred startup to avoid blocking the UE main thread."""
-        unreal.unregister_slate_post_tick_callback(_startup_handle[0])
+        if hasattr(_deferred_startup, "_handle"):
+            unreal.unregister_slate_post_tick_callback(_deferred_startup._handle)
 
-        # Check if a listener is already running (from previous session)
+        # Stop any listener already running in this process (e.g. from a previous
+        # hot-reload).  stop_listener() closes the socket, waits for the thread, and
+        # only falls back to force_free_port_silent if the thread refuses to exit —
+        # so we never kill an external port that belongs to this process.
         if uemcp_listener.server_running:
             unreal.log("UEMCP: Stopping previous listener...")
-            uemcp_listener.server_running = False
-
-        if is_port_in_use(8765):
+            uemcp_listener.stop_listener()
+        elif is_port_in_use(8765):
+            # Port is held by a *different* process from a crashed session.
             unreal.log("UEMCP: Port 8765 in use from previous session, cleaning up...")
             force_free_port_silent(8765)
 
@@ -47,7 +51,7 @@ try:
             unreal.log("UEMCP: Functions: restart_listener(), stop_listener(), status(), start_listener()")
 
     # Schedule startup on next Slate tick to avoid blocking UE main thread
-    _startup_handle = [unreal.register_slate_post_tick_callback(_deferred_startup)]
+    _deferred_startup._handle = unreal.register_slate_post_tick_callback(_deferred_startup)
 
     # Import helper functions for convenience (made available to Python console)
     from uemcp_helpers import reload_uemcp, restart_listener, start_listener, status, stop_listener  # noqa: F401

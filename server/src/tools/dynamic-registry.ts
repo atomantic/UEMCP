@@ -75,7 +75,7 @@ export class DynamicToolRegistry {
         success: result.success,
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
         version: String(result.version || getVersion()),
-        totalTools: Number(result.totalTools || result.tools.length),
+        totalTools: validTools.length,
         tools: validTools,
         categories: (result.categories || {}) as Record<string, string[]>,
         error: result.error ? String(result.error) : undefined
