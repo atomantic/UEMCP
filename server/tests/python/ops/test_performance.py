@@ -34,8 +34,10 @@ sys.path.insert(0, plugin_path)
 
 from ops.performance import (  # noqa: E402
     _is_instanced_component,
+    _normalize_path,
     _safe_mesh_triangle_count,
     _safe_mesh_vertex_count,
+    gpu_stats,
     rendering_stats,
     scene_breakdown,
 )
@@ -271,6 +273,73 @@ class TestRenderingStatsIntegration:
         assert result["static_mesh_components"] == 1
         # Instanced component: counted separately
         assert result["instanced_mesh_components"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Integration tests: call gpu_stats() with mocked actors
+# ---------------------------------------------------------------------------
+
+
+class TestGpuStatsIntegration:
+    """Test gpu_stats() end-to-end with mocked actors."""
+
+    @patch("ops.performance._get_world")
+    @patch("ops.performance._get_all_actors")
+    def test_gpu_stats_returns_draw_call_estimate(self, mock_actors, mock_world):
+        """gpu_stats returns estimated draw calls based on component counts."""
+        sm = _make_static_mesh(tris=100, verts=80)
+        comp = _make_sm_component(sm, [_make_material()])
+        actors = [_make_actor("Cube", sm_comps=[comp])]
+        mock_actors.return_value = actors
+        mock_world.return_value = Mock()
+
+        result = gpu_stats(fire_stat_commands=False)
+        assert result["success"] is True
+        assert result["estimated_draw_calls"] == 1
+        assert result["stat_commands_fired"] == []
+
+    @patch("ops.performance._get_world")
+    @patch("ops.performance._get_all_actors")
+    def test_gpu_stats_fires_stat_when_requested(self, mock_actors, mock_world):
+        """gpu_stats fires stat unit only when fire_stat_commands=True."""
+        mock_actors.return_value = []
+        mock_world.return_value = Mock()
+
+        result = gpu_stats(fire_stat_commands=True)
+        assert result["success"] is True
+        assert "stat unit" in result["stat_commands_fired"]
+
+    @patch("ops.performance._get_world")
+    @patch("ops.performance._get_all_actors")
+    def test_gpu_stats_no_fire_by_default(self, mock_actors, mock_world):
+        """gpu_stats does not fire stat commands by default."""
+        mock_actors.return_value = []
+        mock_world.return_value = Mock()
+
+        result = gpu_stats()
+        assert result["success"] is True
+        assert result["stat_commands_fired"] == []
+
+
+# ---------------------------------------------------------------------------
+# Tests for _normalize_path
+# ---------------------------------------------------------------------------
+
+
+class TestNormalizePath:
+    """Test UE path normalization."""
+
+    def test_path_without_suffix_unchanged(self):
+        assert _normalize_path("/Game/Meshes/SM_Cube") == "/Game/Meshes/SM_Cube"
+
+    def test_path_with_colon_suffix_stripped(self):
+        assert _normalize_path("/Game/Meshes/SM_Cube:StaticMesh") == "/Game/Meshes/SM_Cube"
+
+    def test_path_with_multiple_colons(self):
+        assert _normalize_path("/Game/SM:A:B") == "/Game/SM"
+
+    def test_empty_path(self):
+        assert _normalize_path("") == ""
 
 
 # ---------------------------------------------------------------------------

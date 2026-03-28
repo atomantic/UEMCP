@@ -69,6 +69,11 @@ def _safe_mesh_vertex_count(static_mesh) -> int:
     return -1
 
 
+def _normalize_path(path: str) -> str:
+    """Strip UE path suffix after ':' for consistent comparisons."""
+    return path.split(":")[0] if ":" in path else path
+
+
 def _is_instanced_component(comp) -> bool:
     """Check if a component is an InstancedStaticMeshComponent (or subclass)."""
     return isinstance(comp, unreal.InstancedStaticMeshComponent)
@@ -110,7 +115,7 @@ def rendering_stats() -> dict[str, Any]:
                 continue
             static_mesh_component_count += 1
 
-            mesh_path = sm.get_path_name()
+            mesh_path = _normalize_path(sm.get_path_name())
             unique_meshes.add(mesh_path)
 
             # Materials
@@ -118,7 +123,7 @@ def rendering_stats() -> dict[str, Any]:
             material_slot_count += len(mats)
             for mat in mats:
                 if mat:
-                    unique_materials.add(mat.get_path_name())
+                    unique_materials.add(_normalize_path(mat.get_path_name()))
 
             # Tri/vert counts from LOD 0
             tri_count = _safe_mesh_triangle_count(sm)
@@ -136,14 +141,14 @@ def rendering_stats() -> dict[str, Any]:
                 continue
             instanced_mesh_component_count += 1
 
-            mesh_path = sm.get_path_name()
+            mesh_path = _normalize_path(sm.get_path_name())
             unique_meshes.add(mesh_path)
 
             mats = comp.get_materials()
             material_slot_count += len(mats)
             for mat in mats:
                 if mat:
-                    unique_materials.add(mat.get_path_name())
+                    unique_materials.add(_normalize_path(mat.get_path_name()))
 
             tri_count = _safe_mesh_triangle_count(sm)
             vert_count = _safe_mesh_vertex_count(sm)
@@ -179,11 +184,19 @@ def rendering_stats() -> dict[str, Any]:
     }
 
 
-@validate_inputs({})
+@validate_inputs(
+    {
+        "fire_stat_commands": [TypeRule(bool)],
+    }
+)
 @handle_unreal_errors("perf_gpu_stats")
 @safe_operation("performance")
-def gpu_stats() -> dict[str, Any]:
+def gpu_stats(fire_stat_commands: bool = False) -> dict[str, Any]:
     """Get GPU and frame timing statistics via engine stat commands.
+
+    Args:
+        fire_stat_commands: If True, execute 'stat unit' in the viewport (toggles overlay).
+            Defaults to False to keep the tool read-only.
 
     Returns:
         Dictionary with GPU timing and memory info
@@ -213,14 +226,13 @@ def gpu_stats() -> dict[str, Any]:
     # call per material section; this is a lower bound.
     estimated_draw_calls = static_mesh_count + skeletal_mesh_count
 
-    # Execute stat console commands for additional info.
+    # Optionally execute stat console commands.
     # NOTE: These commands toggle stat displays in the viewport. In particular,
     # "stat unit" will toggle the frame timing overlay and may either enable
     # or disable it depending on its prior state.
     stat_commands_fired = []
 
-    # Fire stat unit to toggle the frame timing overlay
-    if world:
+    if fire_stat_commands and world:
         unreal.SystemLibrary.execute_console_command(world, "stat unit")
         stat_commands_fired.append("stat unit")
 
@@ -308,7 +320,7 @@ def scene_breakdown(
             if not sm:
                 continue
 
-            mesh_path = sm.get_path_name()
+            mesh_path = _normalize_path(sm.get_path_name())
             mesh_name = sm.get_name()
             num_lods = sm.get_num_lods()
             actor_lod_count = max(actor_lod_count, num_lods)
