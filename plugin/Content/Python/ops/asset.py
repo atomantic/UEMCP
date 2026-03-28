@@ -549,7 +549,7 @@ class AssetOperations:
         self,
         sourcePath: str,
         targetFolder: str = "/Game/ImportedAssets",
-        importSettings: dict | None = None,
+        importSettings: Optional[dict] = None,
         assetType: str = "auto",
         batchImport: bool = False,
     ) -> dict:

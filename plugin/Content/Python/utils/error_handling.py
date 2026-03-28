@@ -124,14 +124,28 @@ class NumericRangeRule(ValidationRule):
 
 
 class AssetPathRule(ValidationRule):
-    """Validates that an asset path is properly formatted."""
+    """Validates that a UE content-browser asset path is properly formatted.
+
+    Enforces:
+    - Must start with a known root (/Game/, /Engine/, or /Script/)
+    - No traversal segments (..)
+    - No backslashes (Windows path separators are invalid here)
+    - At least 3 slash-delimited components (e.g. /Game/Folder/Asset)
+    """
+
+    _VALID_ROOTS = ("/Game/", "/Engine/", "/Script/")
 
     def validate(self, value: Any, field_name: str) -> Optional[str]:
         if not isinstance(value, str):
             return f"{field_name} must be a string"
-        if not value.startswith("/"):
-            return f"{field_name} must start with '/'"
-        if len(value.split("/")) < 3:
+        if not any(value.startswith(root) for root in self._VALID_ROOTS):
+            return f"{field_name} must start with a valid UE content root " f"({', '.join(self._VALID_ROOTS)})"
+        if "\\" in value:
+            return f"{field_name} must not contain backslashes"
+        parts = value.split("/")
+        if ".." in parts:
+            return f"{field_name} must not contain traversal segments (..)"
+        if len(parts) < 3:
             return f"{field_name} must be a valid asset path like '/Game/Assets/MyAsset'"
         return None
 

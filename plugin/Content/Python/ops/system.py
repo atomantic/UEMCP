@@ -27,6 +27,8 @@ from version import VERSION
 
 # Module-level flag to prevent duplicate slate_post_tick_callback registrations
 _restart_scheduled = False
+# Module-level handle for the pending restart callback (used by force=True to cancel it)
+_restart_pending_handle = None
 
 
 class SystemOperations:
@@ -265,18 +267,27 @@ class SystemOperations:
         Returns:
             dict: Restart result
         """
-        global _restart_scheduled
-        if _restart_scheduled and not force:
-            return {
-                "success": True,
-                "message": "Listener restart already scheduled.",
-            }
+        global _restart_scheduled, _restart_pending_handle
+        if _restart_scheduled:
+            if not force:
+                return {
+                    "success": True,
+                    "message": "Listener restart already scheduled.",
+                }
+            # force=True: cancel the existing scheduled callback before re-scheduling
+            if _restart_pending_handle is not None:
+                try:
+                    unreal.unregister_slate_post_tick_callback(_restart_pending_handle)
+                except Exception:
+                    pass
+                _restart_pending_handle = None
+            _restart_scheduled = False
 
         # We'll use a counter to ensure we only run once
         restart_counter = [0]  # Use list so we can modify in nested function
 
         def perform_restart(delta_time):
-            global _restart_scheduled
+            global _restart_scheduled, _restart_pending_handle
             # Only run once
             if restart_counter[0] > 0:
                 return
@@ -289,10 +300,14 @@ class SystemOperations:
                 # Unregister this callback first
                 if hasattr(perform_restart, "_handle"):
                     unreal.unregister_slate_post_tick_callback(perform_restart._handle)
+                _restart_pending_handle = None
 
-                # Then restart
-                uemcp_listener.restart_listener()
-                unreal.log("UEMCP: Restart scheduled on next tick")
+                # Then restart and capture success/failure
+                restart_success = bool(uemcp_listener.restart_listener())
+                if restart_success:
+                    unreal.log("UEMCP: Listener restart completed successfully.")
+                else:
+                    unreal.log_error("UEMCP: Listener restart reported failure.")
             except Exception as e:
                 unreal.log_error(f"UEMCP: Restart error: {str(e)}")
             finally:
@@ -300,8 +315,17 @@ class SystemOperations:
 
         # Register the callback to run on next tick
         # This ensures the response is sent before restart
-        handle = unreal.register_slate_post_tick_callback(perform_restart)
+        try:
+            handle = unreal.register_slate_post_tick_callback(perform_restart)
+        except Exception as e:
+            _restart_scheduled = False
+            unreal.log_error(f"UEMCP: Failed to schedule listener restart: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Failed to schedule listener restart: {str(e)}",
+            }
         perform_restart._handle = handle
+        _restart_pending_handle = handle
         _restart_scheduled = True
 
         return {
@@ -387,12 +411,19 @@ class SystemOperations:
         )
 
         # Set up execution context
+        _RESERVED_NAMES = frozenset({"unreal", "math", "os", "sys", "result"})
         exec_globals = {"unreal": unreal, "math": __import__("math"), "os": os, "sys": sys, "result": None}
 
-        # Add context variables, rejecting dunder keys to prevent namespace poisoning
+        # Validate and add context variables
         if context:
-            safe_context = {k: v for k, v in context.items() if not k.startswith("__")}
-            exec_globals.update(safe_context)
+            for k, v in context.items():
+                if not isinstance(k, str):
+                    return {"success": False, "error": f"Context keys must be strings, got {type(k).__name__!r}"}
+                if k.startswith("__"):
+                    return {"success": False, "error": f"Context key {k!r} is rejected: dunder keys are not allowed"}
+                if k in _RESERVED_NAMES:
+                    return {"success": False, "error": f"Context key {k!r} would overwrite a reserved name"}
+                exec_globals[k] = v
 
         # Execute the code
         exec(code, exec_globals)
