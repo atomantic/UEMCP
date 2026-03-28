@@ -399,7 +399,10 @@ def set_parameter(
     elif parameter_type == "int":
         coerced_value = int(parameter_value)
     elif parameter_type == "bool":
-        coerced_value = bool(parameter_value)
+        if isinstance(parameter_value, bool):
+            coerced_value = parameter_value
+        else:
+            coerced_value = str(parameter_value).lower() in ("true", "1", "yes")
     elif parameter_type == "string":
         coerced_value = str(parameter_value)
 

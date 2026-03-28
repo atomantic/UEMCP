@@ -171,6 +171,9 @@ def add_expression(
         expression.set_editor_property("material_expression_editor_y", int(position_y))
 
     expr_index = _get_expression_index(material, expression)
+
+    unreal.MaterialEditingLibrary.recompile_material(material)
+    unreal.EditorAssetLibrary.save_asset(material_path)
     log_debug(f"Added {expression_type} expression (index: {expr_index}) to {material_path}")
 
     return {
@@ -233,6 +236,8 @@ def connect_expressions(
                 operation="material_connect_expressions",
                 details={"source_index": source_index, "target": target},
             )
+        unreal.MaterialEditingLibrary.recompile_material(material)
+        unreal.EditorAssetLibrary.save_asset(material_path)
         log_debug(f"Connected expression {source_index} -> {target} in {material_path}")
         return {
             "success": True,
@@ -279,9 +284,9 @@ def connect_expressions(
             },
         )
 
-    log_debug(
-        f"Connected expression {source_index}:{source_output} -> " f"{target_index}:{input_name} in {material_path}"
-    )
+    unreal.MaterialEditingLibrary.recompile_material(material)
+    unreal.EditorAssetLibrary.save_asset(material_path)
+    log_debug(f"Connected expression {source_index}:{source_output} -> {target_index}:{input_name} in {material_path}")
     return {
         "success": True,
         "materialPath": material_path,
@@ -348,6 +353,8 @@ def set_expression_property(
     else:
         expression.set_editor_property(property_name, property_value)
 
+    unreal.MaterialEditingLibrary.recompile_material(material)
+    unreal.EditorAssetLibrary.save_asset(material_path)
     log_debug(f"Set {property_name}={property_value} on expression {expression_index} in {material_path}")
 
     return {
