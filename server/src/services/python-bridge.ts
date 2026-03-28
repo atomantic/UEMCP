@@ -63,9 +63,8 @@ export class PythonBridge {
         errorText = await response.text();
       } catch (bodyError) {
         // If the timer fired while reading the error body, rethrow as timeout
-        // rather than masking it as an HTTP error
+        // rather than masking it as an HTTP error (finally will clear the timer)
         if (bodyError instanceof Error && bodyError.name === 'AbortError') {
-          clearTimeout(timer);
           throw bodyError;
         }
         errorText = 'No error body';
@@ -127,9 +126,12 @@ export class PythonBridge {
         clearTimeout(timer);
       }
 
-      // Fallback to command execution; use remaining budget from the 3s total
+      // Fallback to command execution within the remaining 3s budget
       const elapsedS = (Date.now() - checkStart) / 1000;
-      const remainingS = Math.max(1, (AVAILABILITY_CHECK_TIMEOUT_MS / 1000) - elapsedS);
+      const remainingS = (AVAILABILITY_CHECK_TIMEOUT_MS / 1000) - elapsedS;
+      if (remainingS <= 0) {
+        return false;
+      }
       const cmdResponse = await this.executeCommand({
         type: 'project.info',
         params: {},

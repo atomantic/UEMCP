@@ -100,11 +100,11 @@ async function main(): Promise<void> {
     
   } catch (error) {
     logger.error('Failed during initialization', { error: ResponseFormatter.getErrorMessage(error) });
-    process.exit(1);
+    throw error;
   }
 }
 
-// Start the server
+// Start the server — single exit/logging point for all startup failures
 main().catch((error: unknown) => {
   logger.error('Unhandled error in main', { error: ResponseFormatter.getErrorMessage(error) });
   process.exit(1);
