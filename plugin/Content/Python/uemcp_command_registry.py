@@ -3,7 +3,7 @@ UEMCP Command Registry - Manages command registration and dispatch
 """
 
 import inspect
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable
 
 from utils import log_debug, log_error
 
@@ -12,7 +12,7 @@ class CommandRegistry:
     """Registry for all MCP commands with automatic handler discovery."""
 
     def __init__(self):
-        self.handlers: Dict[str, Tuple[Callable, List[str], bool]] = {}
+        self.handlers: dict[str, tuple[Callable, list[str], bool]] = {}
         self._operation_classes = {}
 
     def register_operations(self, operations_instance, prefix: str = ""):
@@ -55,7 +55,7 @@ class CommandRegistry:
             self.handlers[command_name] = (method, params, has_validate)
             log_debug(f"Registered command: {command_name} with params: {params}")
 
-    def register_command(self, name: str, handler: Callable, params: List[str] = None):
+    def register_command(self, name: str, handler: Callable, params: list[str] | None = None):
         """Register a single command handler.
 
         Args:
@@ -71,7 +71,7 @@ class CommandRegistry:
         self.handlers[name] = (handler, params, has_validate)
         log_debug(f"Registered command: {name}")
 
-    def dispatch(self, command: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    def dispatch(self, command: str, params: dict[str, Any]) -> dict[str, Any]:
         """Dispatch a command to its handler.
 
         Args:
@@ -114,7 +114,7 @@ class CommandRegistry:
             log_error(f"Command {command} failed: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    def get_command_info(self, command: str) -> Optional[Dict[str, Any]]:
+    def get_command_info(self, command: str) -> dict[str, Any] | None:
         """Get information about a command.
 
         Args:
@@ -143,7 +143,7 @@ class CommandRegistry:
             "module": handler.__module__,
         }
 
-    def list_commands(self) -> List[Dict[str, Any]]:
+    def list_commands(self) -> list[dict[str, Any]]:
         """List all registered commands.
 
         Returns:
@@ -244,7 +244,7 @@ def register_all_operations():
         raise
 
 
-def dispatch_command(command: str, params: Dict[str, Any]) -> Dict[str, Any]:
+def dispatch_command(command: str, params: dict[str, Any]) -> dict[str, Any]:
     """Convenience function to dispatch commands through the global registry.
 
     Args:
