@@ -57,18 +57,43 @@ export class DynamicToolRegistry {
         return false;
       }
 
-      // Validate each tool has required fields before storing
+      // Validate each tool has required fields and a well-formed inputSchema before storing
       const rawTools = result.tools as unknown[];
       const validTools = rawTools.filter((tool): tool is DynamicToolDefinition => {
         if (typeof tool !== 'object' || tool === null) return false;
         const t = tool as Record<string, unknown>;
-        return typeof t['name'] === 'string' &&
-          typeof t['description'] === 'string' &&
-          typeof t['category'] === 'string' &&
-          typeof t['inputSchema'] === 'object' && t['inputSchema'] !== null;
+        if (typeof t['name'] !== 'string' ||
+          typeof t['description'] !== 'string' ||
+          typeof t['category'] !== 'string') {
+          return false;
+        }
+        const schema = t['inputSchema'] as Record<string, unknown> | null | undefined;
+        if (!schema || typeof schema !== 'object') return false;
+        if (schema['type'] !== 'object') return false;
+        if (typeof schema['properties'] !== 'object' || schema['properties'] === null) return false;
+        if (schema['required'] !== undefined) {
+          if (!Array.isArray(schema['required']) ||
+            !(schema['required'] as unknown[]).every((v) => typeof v === 'string')) {
+            return false;
+          }
+        }
+        if (schema['additionalProperties'] !== undefined &&
+          typeof schema['additionalProperties'] !== 'boolean') {
+          return false;
+        }
+        return true;
       });
       if (validTools.length !== rawTools.length) {
-        logger.warn(`Manifest contained ${rawTools.length - validTools.length} invalid tool definitions (missing required fields)`);
+        logger.warn(`Manifest contained ${rawTools.length - validTools.length} invalid tool definitions (missing required fields or malformed inputSchema)`);
+      }
+
+      // Rebuild categories to only include valid tool names, keeping manifest internally consistent
+      const validNames = new Set(validTools.map(t => t.name));
+      const rawCategories = (result.categories || {}) as Record<string, string[]>;
+      const filteredCategories: Record<string, string[]> = {};
+      for (const [cat, names] of Object.entries(rawCategories)) {
+        const kept = names.filter(n => validNames.has(n));
+        if (kept.length > 0) filteredCategories[cat] = kept;
       }
 
       this.manifest = {
@@ -77,28 +102,24 @@ export class DynamicToolRegistry {
         version: String(result.version || getVersion()),
         totalTools: validTools.length,
         tools: validTools,
-        categories: (result.categories || {}) as Record<string, string[]>,
+        categories: filteredCategories,
         error: result.error ? String(result.error) : undefined
       };
       logger.info(`Received manifest with ${this.manifest.totalTools} tools`);
 
       // Create dynamic tools from manifest
-      if (this.manifest && this.manifest.tools) {
-        for (const toolDef of this.manifest.tools) {
-          const tool = new DynamicTool(toolDef, this.bridge);
-          this.tools.set(toolDef.name, tool);
-          logger.debug(`Registered dynamic tool: ${toolDef.name}`);
-        }
+      for (const toolDef of this.manifest.tools) {
+        const tool = new DynamicTool(toolDef, this.bridge);
+        this.tools.set(toolDef.name, tool);
+        logger.debug(`Registered dynamic tool: ${toolDef.name}`);
       }
 
       this.initialized = true;
       logger.info(`Successfully initialized ${this.tools.size} dynamic tools`);
-      
+
       // Log categories for debugging
-      if (this.manifest && this.manifest.categories) {
-        for (const [category, tools] of Object.entries(this.manifest.categories)) {
-          logger.debug(`Category ${category}: ${tools.length} tools`);
-        }
+      for (const [category, tools] of Object.entries(this.manifest.categories)) {
+        logger.debug(`Category ${category}: ${tools.length} tools`);
       }
 
       return true;

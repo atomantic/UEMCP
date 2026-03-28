@@ -18,7 +18,7 @@ try:
     import uemcp_listener
 
     # Also check if port is in use from a crashed session
-    from utils import force_free_port_silent, is_port_in_use
+    from utils import is_port_in_use
 
     def _deferred_startup(delta_time):
         """Deferred startup to avoid blocking the UE main thread."""
@@ -26,16 +26,22 @@ try:
             unreal.unregister_slate_post_tick_callback(_deferred_startup._handle)
 
         # Stop any listener already running in this process (e.g. from a previous
-        # hot-reload).  stop_listener() closes the socket, waits for the thread, and
-        # only falls back to force_free_port_silent if the thread refuses to exit —
-        # so we never kill an external port that belongs to this process.
+        # hot-reload).  stop_listener() waits for the server thread to exit cleanly;
+        # as a last resort it calls force_free_port_silent, which kills any process
+        # holding the port — including the Unreal Editor itself if the thread hangs.
         if uemcp_listener.server_running:
             unreal.log("UEMCP: Stopping previous listener...")
             uemcp_listener.stop_listener()
         elif is_port_in_use(8765):
-            # Port is held by a *different* process from a crashed session.
-            unreal.log("UEMCP: Port 8765 in use from previous session, cleaning up...")
-            force_free_port_silent(8765)
+            # Port is held by an unknown (likely crashed) process from a previous
+            # session.  Killing it risks terminating the editor; skip automatic
+            # cleanup and let the user decide.
+            unreal.log_warning(
+                "UEMCP: Port 8765 is already in use by an external process; "
+                "listener will not start automatically. "
+                "Close the process and call start_listener() manually."
+            )
+            return
 
         # Try to start the listener
         started = uemcp_listener.start_listener()
