@@ -1,13 +1,10 @@
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+
 /**
  * Utility class for formatting consistent tool responses
+ * ToolResponse aligns directly with the MCP SDK CallToolResult type.
  */
-export interface ToolResponse {
-  content: Array<{
-    type: string;
-    text?: string;
-    data?: unknown;
-  }>;
-}
+export type ToolResponse = CallToolResult;
 
 export class ResponseFormatter {
   /**
@@ -17,7 +14,7 @@ export class ResponseFormatter {
     return {
       content: [
         {
-          type: 'text',
+          type: 'text' as const,
           text,
         },
       ],

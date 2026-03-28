@@ -47,7 +47,7 @@ def validate_actor_location(actor, expected_location, tolerance=0.1):
                 result.add_error(
                     f"Location {axis} mismatch: expected {expected:.2f}, got {actual:.2f} (diff: {diff:.2f})"
                 )
-    except Exception as e:
+    except (AttributeError, IndexError, RuntimeError, TypeError) as e:
         result.add_error(f"Failed to validate location: {str(e)}")
 
     return result
@@ -80,7 +80,7 @@ def validate_actor_rotation(actor, expected_rotation, tolerance=0.1):
                 result.add_error(
                     f"Rotation {component} mismatch: expected {expected:.2f}°, got {actual:.2f}° (diff: {diff:.2f}°)"
                 )
-    except Exception as e:
+    except (AttributeError, IndexError, RuntimeError, TypeError) as e:
         result.add_error(f"Failed to validate rotation: {str(e)}")
 
     return result
@@ -102,7 +102,7 @@ def validate_actor_scale(actor, expected_scale, tolerance=0.001):
             diff = abs(expected - actual)
             if diff > tolerance:
                 result.add_error(f"Scale {axis} mismatch: expected {expected:.3f}, got {actual:.3f} (diff: {diff:.3f})")
-    except Exception as e:
+    except (AttributeError, IndexError, RuntimeError, TypeError) as e:
         result.add_error(f"Failed to validate scale: {str(e)}")
 
     return result
@@ -122,7 +122,7 @@ def validate_actor_folder(actor, expected_folder):
 
         if actual_folder != expected_folder:
             result.add_error(f"Folder mismatch: expected '{expected_folder}', got '{actual_folder}'")
-    except Exception as e:
+    except (AttributeError, RuntimeError, TypeError) as e:
         result.add_error(f"Failed to validate folder: {str(e)}")
 
     return result
@@ -152,7 +152,7 @@ def validate_actor_mesh(actor, expected_mesh_path):
         # Compare paths
         if current_path != expected_mesh_path:
             result.add_error(f"Mesh mismatch: expected '{expected_mesh_path}', got '{current_path}'")
-    except Exception as e:
+    except (AttributeError, RuntimeError, TypeError) as e:
         result.add_error(f"Failed to validate mesh: {str(e)}")
 
     return result
@@ -173,7 +173,7 @@ def validate_actor_exists(actor_name):
                 continue
 
         result.add_error(f"Actor '{actor_name}' not found in level")
-    except Exception as e:
+    except (AttributeError, RuntimeError, TypeError) as e:
         result.add_error(f"Failed to check actor existence: {str(e)}")
 
     return result
@@ -196,7 +196,7 @@ def validate_actor_deleted(actor_name):
 
         # Success - actor not found
         return result
-    except Exception as e:
+    except (AttributeError, RuntimeError, TypeError) as e:
         result.add_error(f"Failed to validate actor deletion: {str(e)}")
 
     return result

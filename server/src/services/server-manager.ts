@@ -5,6 +5,7 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -12,7 +13,7 @@ import {
 import { logger } from '../utils/logger.js';
 import { HybridToolRegistry } from './dynamic-tool-registry.js';
 import { ConfigManager } from './config-manager.js';
-import { ResponseFormatter, ToolResponse } from '../utils/response-formatter.js';
+import { ResponseFormatter } from '../utils/response-formatter.js';
 
 export interface ServerOptions {
   name?: string;
@@ -89,15 +90,14 @@ export class ServerManager {
         arguments: unknown 
       };
       
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-      return this.handleToolCall(name, args) as any;
+      return this.handleToolCall(name, args);
     });
   }
 
   /**
    * Handle individual tool calls with logging and error handling
    */
-  private async handleToolCall(name: string, args: unknown): Promise<ToolResponse> {
+  private async handleToolCall(name: string, args: unknown): Promise<CallToolResult> {
     logger.info(`Tool called: ${name}`, { arguments: args });
     const startTime = Date.now();
 
@@ -114,7 +114,10 @@ export class ServerManager {
       
       logger.info(`Tool ${name} completed successfully`, { 
         duration: `${duration}ms`,
-        resultLength: result.content?.[0]?.text?.length || 0
+        resultLength: ((): number => {
+          const first = result.content?.[0];
+          return (first && 'text' in first && typeof first.text === 'string') ? first.text.length : 0;
+        })()
       });
       
       return result;
@@ -153,11 +156,6 @@ export class ServerManager {
         categories: Object.keys(stats.categories).length,
         transport: 'stdio'
       });
-
-      // Log tool statistics
-      for (const [category, count] of Object.entries(stats.categories)) {
-        logger.info(`  ${category}: ${count} tools`);
-      }
 
     } catch (error) {
       logger.error('Failed to start server', { error: ResponseFormatter.getErrorMessage(error) });
@@ -236,6 +234,7 @@ export class ServerManager {
     
     process.on('SIGINT', () => void shutdown('SIGINT'));
     process.on('SIGTERM', () => void shutdown('SIGTERM'));
+    process.on('SIGHUP', () => void shutdown('SIGHUP'));
   }
 
   /**

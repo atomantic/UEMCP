@@ -1,4 +1,10 @@
+import type { TextContent } from '@modelcontextprotocol/sdk/types.js';
 import { ResponseFormatter } from '../../../src/utils/response-formatter.js';
+
+/** Narrow a CallToolResult content item to TextContent for test assertions */
+function asText(item: unknown): TextContent {
+  return item as TextContent;
+}
 
 describe('ResponseFormatter Business Logic', () => {
   describe('success', () => {
@@ -18,21 +24,21 @@ describe('ResponseFormatter Business Logic', () => {
     it('should handle empty text', () => {
       const result = ResponseFormatter.success('');
 
-      expect(result.content[0].text).toBe('');
+      expect(asText(result.content[0]).text).toBe('');
     });
 
     it('should handle multiline text', () => {
       const text = 'Line 1\nLine 2\nLine 3';
       const result = ResponseFormatter.success(text);
 
-      expect(result.content[0].text).toBe(text);
+      expect(asText(result.content[0]).text).toBe(text);
     });
 
     it('should handle special characters', () => {
       const text = 'Special chars: áéíóú ñ ¿¡ €';
       const result = ResponseFormatter.success(text);
 
-      expect(result.content[0].text).toBe(text);
+      expect(asText(result.content[0]).text).toBe(text);
     });
   });
 
@@ -101,13 +107,13 @@ describe('ResponseFormatter Business Logic', () => {
     it('should handle empty validation text', () => {
       const result = ResponseFormatter.withValidation('Base text', '');
 
-      expect(result.content[0].text).toBe('Base text');
+      expect(asText(result.content[0]).text).toBe('Base text');
     });
 
     it('should handle empty base text', () => {
       const result = ResponseFormatter.withValidation('', 'Validation only');
 
-      expect(result.content[0].text).toBe('Validation only');
+      expect(asText(result.content[0]).text).toBe('Validation only');
     });
 
     it('should handle multiline validation text', () => {
@@ -115,7 +121,7 @@ describe('ResponseFormatter Business Logic', () => {
       const validationText = 'Validation:\n- Check 1: PASS\n- Check 2: PASS';
       const result = ResponseFormatter.withValidation(baseText, validationText);
 
-      expect(result.content[0].text).toBe(baseText + validationText);
+      expect(asText(result.content[0]).text).toBe(baseText + validationText);
     });
   });
 
@@ -197,34 +203,34 @@ describe('ResponseFormatter Business Logic', () => {
       const longText = 'A'.repeat(10000);
       const result = ResponseFormatter.success(longText);
 
-      expect(result.content[0].text).toBe(longText);
-      expect(result.content[0].text?.length).toBe(10000);
+      expect(asText(result.content[0]).text).toBe(longText);
+      expect(asText(result.content[0]).text?.length).toBe(10000);
     });
 
     it('should handle text with null characters', () => {
       const textWithNull = 'Before\x00After';
       const result = ResponseFormatter.success(textWithNull);
 
-      expect(result.content[0].text).toBe(textWithNull);
+      expect(asText(result.content[0]).text).toBe(textWithNull);
     });
 
     it('should handle text with control characters', () => {
       const textWithControls = 'Tab\tNewline\nCarriage\rReturn';
       const result = ResponseFormatter.success(textWithControls);
 
-      expect(result.content[0].text).toBe(textWithControls);
+      expect(asText(result.content[0]).text).toBe(textWithControls);
     });
 
     it('should maintain object structure immutability', () => {
       const result1 = ResponseFormatter.success('Test 1');
       const result2 = ResponseFormatter.success('Test 2');
 
-      expect(result1.content[0].text).toBe('Test 1');
-      expect(result2.content[0].text).toBe('Test 2');
+      expect(asText(result1.content[0]).text).toBe('Test 1');
+      expect(asText(result2.content[0]).text).toBe('Test 2');
       
       // Ensure objects are independent
-      result1.content[0].text = 'Modified';
-      expect(result2.content[0].text).toBe('Test 2');
+      asText(result1.content[0]).text = 'Modified';
+      expect(asText(result2.content[0]).text).toBe('Test 2');
     });
   });
 });

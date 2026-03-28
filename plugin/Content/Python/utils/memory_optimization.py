@@ -12,6 +12,7 @@ from utils import execute_console_command, log_debug, log_warning
 # Unreal Engine streaming pool size valid range in MB
 MIN_STREAMING_POOL_SIZE = 64
 MAX_STREAMING_POOL_SIZE = 4096
+DEFAULT_STREAMING_POOL_SIZE_MB = 1000
 
 # Try to import psutil, fall back to basic implementation if not available
 try:
@@ -32,7 +33,6 @@ class MemoryManager:
         self.memory_threshold = 0.85  # 85% memory usage threshold
         self.operation_count = 0
         self.cleanup_frequency = 100  # Cleanup every 100 operations
-        self.original_streaming_pool_size = None  # Store original texture streaming pool size
         self.streaming_cleanup_delay = 1.0  # Configurable delay for streaming pool cleanup in seconds
 
     def track_operation(self) -> None:
@@ -47,19 +47,6 @@ class MemoryManager:
 
         if should_cleanup:
             self.cleanup_memory()
-
-    def _get_streaming_pool_size(self) -> int:
-        """Get current texture streaming pool size from Unreal Engine."""
-        try:
-            # Try to query the current value - this is a simplified approach
-            # In reality, UE console variables are harder to query directly
-            # We'll use a reasonable default if we can't get the original
-            if self.original_streaming_pool_size is None:
-                # Default UE streaming pool size is typically 1000MB
-                self.original_streaming_pool_size = 1000
-            return self.original_streaming_pool_size
-        except Exception:
-            return 1000  # Safe fallback
 
     def cleanup_memory(self) -> Dict[str, Any]:
         """Perform memory cleanup and return statistics."""
@@ -90,7 +77,7 @@ class MemoryManager:
             execute_console_command("obj gc")
 
             # Clear unused texture streaming pool
-            original_pool_size = self._get_streaming_pool_size()
+            original_pool_size = DEFAULT_STREAMING_POOL_SIZE_MB
             execute_console_command("r.Streaming.PoolSize 0")
 
             # Allow time for memory cleanup to take effect

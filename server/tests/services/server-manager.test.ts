@@ -344,8 +344,11 @@ describe('ServerManager', () => {
 
       await serverManager.startServer();
 
-      expect(mockLogger.info).toHaveBeenCalledWith('  actors: 2 tools');
-      expect(mockLogger.info).toHaveBeenCalledWith('  viewport: 3 tools');
+      expect(mockLogger.info).toHaveBeenCalledWith('UEMCP Server started successfully', {
+        tools: 5,
+        categories: 2,
+        transport: 'stdio',
+      });
     });
 
     it('should throw if server not initialized before starting', async () => {
@@ -475,6 +478,20 @@ describe('ServerManager', () => {
 
       expect(mockProcess.on).toHaveBeenCalledWith('SIGINT', expect.any(Function));
       expect(mockProcess.on).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
+      expect(mockProcess.on).toHaveBeenCalledWith('SIGHUP', expect.any(Function));
+    });
+
+    it('should handle SIGHUP shutdown gracefully', async () => {
+      serverManager.setupShutdownHandlers();
+
+      const sighupHandler = mockProcess.on.mock.calls
+        .find(call => call[0] === 'SIGHUP')[1];
+
+      await sighupHandler();
+
+      expect(mockLogger.info).toHaveBeenCalledWith('Received SIGHUP, shutting down gracefully...');
+      expect(mockLogger.info).toHaveBeenCalledWith('Shutdown complete');
+      expect(mockProcess.exit).toHaveBeenCalledWith(0);
     });
 
     it('should handle SIGINT shutdown gracefully', async () => {

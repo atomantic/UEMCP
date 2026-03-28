@@ -6,6 +6,7 @@
  * 2. Static Mode: Falls back to hardcoded tools if manifest unavailable
  */
 
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '../utils/logger.js';
 import { PythonBridge } from './python-bridge.js';
 import { DynamicToolRegistry } from '../tools/dynamic-registry.js';
@@ -17,9 +18,7 @@ export interface MCPTool {
     description: string;
     inputSchema: unknown;
   };
-  handler: (args: unknown) => Promise<{
-    content: Array<{ type: string; text: string }>;
-  }>;
+  handler: (args: unknown) => Promise<CallToolResult>;
 }
 
 /**
@@ -76,13 +75,13 @@ export class HybridToolRegistry {
   private createToolHandler(tool: DynamicTool): MCPTool {
     return {
       definition: tool.definition,
-      handler: async (args: unknown): Promise<{ content: Array<{ type: string; text: string }> }> => {
+      handler: async (args: unknown): Promise<CallToolResult> => {
         const typedArgs = args as Record<string, unknown> | undefined;
         const response = await tool.execute(typedArgs);
         return {
           content: response.content.map(item => ({
-            type: item.type,
-            text: item.text || ''
+            type: 'text' as const,
+            text: ('text' in item && typeof item.text === 'string') ? item.text : ''
           }))
         };
       }

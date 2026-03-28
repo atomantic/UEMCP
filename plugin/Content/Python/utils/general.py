@@ -114,8 +114,8 @@ def find_actor_by_name(actor_name):
         try:
             if actor and hasattr(actor, "get_actor_label") and actor.get_actor_label() == actor_name:
                 return actor
-        except Exception:
-            # Skip actors that cause errors
+        except Exception as e:
+            log_debug(f"Skipping actor due to error: {e}")
             continue
 
     return None
@@ -148,7 +148,8 @@ def get_all_actors(filter_text=None, limit=30):
 
                 if filter_lower in actor_name or filter_lower in actor_class:
                     filtered_actors.append(actor)
-            except Exception:
+            except Exception as e:
+                log_debug(f"Skipping actor due to error: {e}")
                 continue
 
         actors_to_process = filtered_actors

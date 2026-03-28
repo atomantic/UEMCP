@@ -5,6 +5,7 @@
 
 import * as os from 'os';
 import { logger } from '../utils/logger.js';
+import { getVersion } from '../utils/version.js';
 
 export interface ServerConfig {
   version: string;
@@ -25,7 +26,7 @@ export interface ServerConfig {
 export class ConfigManager {
   private config: ServerConfig;
 
-  constructor(version = '0.2.0', name = 'uemcp') {
+  constructor(version = getVersion(), name = 'uemcp') {
     this.config = this.loadConfiguration(version, name);
   }
 
