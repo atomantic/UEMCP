@@ -67,18 +67,31 @@ export class DynamicToolRegistry {
           typeof t['category'] !== 'string') {
           return false;
         }
-        const schema = t['inputSchema'] as Record<string, unknown> | null | undefined;
-        if (!schema || typeof schema !== 'object') return false;
-        if (schema['type'] !== 'object') return false;
-        if (typeof schema['properties'] !== 'object' || schema['properties'] === null) return false;
-        if (schema['required'] !== undefined) {
-          if (!Array.isArray(schema['required']) ||
-            !(schema['required'] as unknown[]).every((v) => typeof v === 'string')) {
-            return false;
+        // Validate optional timeout: must be a finite positive number if present
+        const timeout = t['timeout'];
+        if (timeout !== undefined) {
+          if (typeof timeout !== 'number' || !Number.isFinite(timeout) || timeout <= 0) {
+            logger.warn(`Ignoring invalid timeout for tool "${t['name']}" in manifest (expected finite positive number)`);
+            delete t['timeout'];
           }
         }
-        if (schema['additionalProperties'] !== undefined &&
-          typeof schema['additionalProperties'] !== 'boolean') {
+        // inputSchema must be a non-null, non-array object
+        const schema = t['inputSchema'] as Record<string, unknown> | null | undefined;
+        if (!schema || typeof schema !== 'object' || Array.isArray(schema)) return false;
+        if (schema['type'] !== 'object') return false;
+        // properties must be a non-null, non-array object
+        if (typeof schema['properties'] !== 'object' ||
+          schema['properties'] === null ||
+          Array.isArray(schema['properties'])) {
+          return false;
+        }
+        // required must be present and an array of strings
+        if (!Array.isArray(schema['required']) ||
+          !(schema['required'] as unknown[]).every((v) => typeof v === 'string')) {
+          return false;
+        }
+        // additionalProperties must be present and a boolean
+        if (typeof schema['additionalProperties'] !== 'boolean') {
           return false;
         }
         return true;

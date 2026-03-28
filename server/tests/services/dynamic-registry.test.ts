@@ -202,6 +202,67 @@ describe('DynamicToolRegistry.initialize()', () => {
     expect(registry.getManifest()?.totalTools).toBe(1);
   });
 
+  it('filters out tool where required is missing from inputSchema', async () => {
+    const badTool = { ...validTool, name: 'missing_required', inputSchema: { type: 'object', properties: {}, additionalProperties: false } };
+    const bridge = makeBridge({ success: true, tools: [badTool, validTool], categories: {} });
+    const registry = new DynamicToolRegistry(bridge);
+    await registry.initialize();
+    expect(registry.getTools()).toHaveLength(1);
+  });
+
+  it('filters out tool where additionalProperties is missing from inputSchema', async () => {
+    const badTool = { ...validTool, name: 'missing_addl', inputSchema: { type: 'object', properties: {}, required: [] } };
+    const bridge = makeBridge({ success: true, tools: [badTool, validTool], categories: {} });
+    const registry = new DynamicToolRegistry(bridge);
+    await registry.initialize();
+    expect(registry.getTools()).toHaveLength(1);
+  });
+
+  it('filters out tool where inputSchema is an array', async () => {
+    const badTool = { ...validTool, name: 'array_schema', inputSchema: [] };
+    const bridge = makeBridge({ success: true, tools: [badTool, validTool], categories: {} });
+    const registry = new DynamicToolRegistry(bridge);
+    await registry.initialize();
+    expect(registry.getTools()).toHaveLength(1);
+  });
+
+  it('filters out tool where properties is an array', async () => {
+    const badTool = { ...validTool, name: 'array_props', inputSchema: { type: 'object', properties: [], required: [], additionalProperties: false } };
+    const bridge = makeBridge({ success: true, tools: [badTool, validTool], categories: {} });
+    const registry = new DynamicToolRegistry(bridge);
+    await registry.initialize();
+    expect(registry.getTools()).toHaveLength(1);
+  });
+
+  it('warns and strips invalid timeout (non-number)', async () => {
+    const { logger } = require('../../src/utils/logger.js');
+    const toolWithBadTimeout = { ...validTool, name: 'bad_timeout', timeout: 'thirty' };
+    const bridge = makeBridge({ success: true, tools: [toolWithBadTimeout, validTool], categories: {} });
+    const registry = new DynamicToolRegistry(bridge);
+    await registry.initialize();
+    // Both tools accepted (timeout is normalized, not rejected)
+    expect(registry.getTools()).toHaveLength(2);
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('bad_timeout'));
+  });
+
+  it('warns and strips invalid timeout (negative number)', async () => {
+    const { logger } = require('../../src/utils/logger.js');
+    const toolWithBadTimeout = { ...validTool, name: 'neg_timeout', timeout: -5 };
+    const bridge = makeBridge({ success: true, tools: [toolWithBadTimeout, validTool], categories: {} });
+    const registry = new DynamicToolRegistry(bridge);
+    await registry.initialize();
+    expect(registry.getTools()).toHaveLength(2);
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('neg_timeout'));
+  });
+
+  it('accepts valid timeout value', async () => {
+    const toolWithTimeout = { ...validTool, name: 'good_timeout', timeout: 30 };
+    const bridge = makeBridge({ success: true, tools: [toolWithTimeout], categories: {} });
+    const registry = new DynamicToolRegistry(bridge);
+    await registry.initialize();
+    expect(registry.getTools()).toHaveLength(1);
+  });
+
   it('returns true immediately if already initialized', async () => {
     const bridge = makeBridge({
       success: true,
