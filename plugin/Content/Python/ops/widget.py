@@ -193,6 +193,66 @@ def _component_supports_event(component, delegate_prop: str) -> bool:
     return False
 
 
+def _get_widget_type_name(widget) -> str:
+    """Get a human-readable type name for a widget."""
+    if hasattr(widget, "get_class"):
+        return widget.get_class().get_name()
+    return type(widget).__name__
+
+
+def _validate_panel_widget(widget, label: str, operation: str, extra_details: dict):
+    """Validate that a widget is a PanelWidget that can accept children."""
+    if not isinstance(widget, unreal.PanelWidget):
+        widget_type = _get_widget_type_name(widget)
+        raise ProcessingError(
+            f"{label} is of type '{widget_type}' and cannot accept child widgets",
+            operation=operation,
+            details={**extra_details, "widget_type": widget_type},
+        )
+
+
+def _deduplicate_bindings(bindings, object_name: str, property_name):
+    """Remove existing bindings for a component/property pair to prevent duplicates."""
+    target_prop = unreal.Name(property_name) if isinstance(property_name, str) else property_name
+    return [
+        b
+        for b in bindings
+        if not (getattr(b, "object_name", None) == object_name and getattr(b, "property_name", None) == target_prop)
+    ]
+
+
+def _try_get_editor_property(component, prop_name: str):
+    """Try to get an editor property, returning None on failure."""
+    try:
+        return component.get_editor_property(prop_name)
+    except (AttributeError, TypeError, RuntimeError):
+        return None
+
+
+def _resolve_parent_class(parent_class: str):
+    """Resolve a parent class name to a UE class, raising ProcessingError on failure."""
+    if "/" in parent_class:
+        parent_asset = unreal.EditorAssetLibrary.load_asset(parent_class)
+        if parent_asset and isinstance(parent_asset, unreal.Blueprint):
+            return parent_asset.generated_class()
+        raise ProcessingError(
+            f"Parent class not found: {parent_class}",
+            operation="widget_create",
+            details={"parent_class": parent_class},
+        )
+
+    parent_cls = unreal.load_class(None, f"/Script/UMG.{parent_class}")
+    if not parent_cls:
+        parent_cls = unreal.load_class(None, f"/Script/Engine.{parent_class}")
+    if parent_cls:
+        return parent_cls
+    raise ProcessingError(
+        f"Parent class not found: {parent_class}",
+        operation="widget_create",
+        details={"parent_class": parent_class},
+    )
+
+
 @validate_inputs(
     {
         "widget_name": [RequiredRule(), TypeRule(str)],
@@ -229,22 +289,8 @@ def create(
     factory = unreal.WidgetBlueprintFactory()
 
     if parent_class:
-        if "/" in parent_class:
-            parent_asset = unreal.EditorAssetLibrary.load_asset(parent_class)
-            if parent_asset and isinstance(parent_asset, unreal.Blueprint):
-                factory.set_editor_property("parent_class", parent_asset.generated_class())
-            else:
-                raise ProcessingError(
-                    f"Parent class not found: {parent_class}",
-                    operation="widget_create",
-                    details={"parent_class": parent_class},
-                )
-        else:
-            parent_cls = unreal.load_class(None, f"/Script/UMG.{parent_class}")
-            if not parent_cls:
-                parent_cls = unreal.load_class(None, f"/Script/Engine.{parent_class}")
-            if parent_cls:
-                factory.set_editor_property("parent_class", parent_cls)
+        resolved_cls = _resolve_parent_class(parent_class)
+        factory.set_editor_property("parent_class", resolved_cls)
 
     asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
     created_asset = asset_tools.create_asset(
@@ -264,11 +310,15 @@ def create(
     unreal.EditorAssetLibrary.save_asset(asset_path)
     log_debug(f"Created Widget Blueprint: {asset_path}")
 
+    resolved_parent = "UserWidget"
+    if created_asset.parent_class:
+        resolved_parent = created_asset.parent_class.get_name()
+
     return {
         "success": True,
         "widgetPath": asset_path,
         "widgetName": widget_name,
-        "parentClass": parent_class or "UserWidget",
+        "parentClass": resolved_parent,
     }
 
 
@@ -345,10 +395,29 @@ def add_component(
     new_widget.set_editor_property("name", component_name)
 
     if parent_widget:
+        _validate_panel_widget(
+            parent_widget,
+            f"Parent component '{parent_name}'",
+            "widget_add_component",
+            {
+                "parent_name": parent_name,
+                "component_name": component_name,
+                "component_type": component_type,
+            },
+        )
         slot = parent_widget.add_child(new_widget)
     else:
         root = widget_tree.root_widget
         if root:
+            _validate_panel_widget(
+                root,
+                "Root widget",
+                "widget_add_component",
+                {
+                    "component_name": component_name,
+                    "component_type": component_type,
+                },
+            )
             slot = root.add_child(new_widget)
         else:
             widget_tree.set_editor_property("root_widget", new_widget)
@@ -365,6 +434,55 @@ def add_component(
         "parentName": parent_name,
         "hasSlot": slot is not None,
     }
+
+
+def _apply_canvas_position(slot, position):
+    """Apply position to a CanvasPanelSlot."""
+    current_offsets = slot.get_offsets()
+    current_offsets.left = float(position[0])
+    current_offsets.top = float(position[1])
+    slot.set_offsets(current_offsets)
+
+
+def _apply_render_position(component, position):
+    """Apply position via render_transform, preserving existing scale/rotation/shear."""
+    current_transform = component.get_editor_property("render_transform")
+    if current_transform is None:
+        current_transform = unreal.WidgetTransform()
+    current_transform.translation = unreal.Vector2D(float(position[0]), float(position[1]))
+    component.set_editor_property("render_transform", current_transform)
+
+
+def _apply_canvas_size(slot, size):
+    """Apply size to a CanvasPanelSlot."""
+    current_offsets = slot.get_offsets()
+    current_offsets.right = float(size[0])
+    current_offsets.bottom = float(size[1])
+    slot.set_offsets(current_offsets)
+
+
+def _apply_canvas_anchors(slot, anchors):
+    """Apply anchors to a CanvasPanelSlot."""
+    anchor = unreal.Anchors()
+    anchor.minimum = unreal.Vector2D(
+        anchors.get("min_x", 0.0),
+        anchors.get("min_y", 0.0),
+    )
+    anchor.maximum = unreal.Vector2D(
+        anchors.get("max_x", 0.0),
+        anchors.get("max_y", 0.0),
+    )
+    slot.set_anchors(anchor)
+
+
+def _validate_list_length(value, min_length, name, operation):
+    """Validate a list has the required minimum length."""
+    if len(value) < min_length:
+        raise ProcessingError(
+            f"{name} must have at least {min_length} elements",
+            operation=operation,
+            details={name: value},
+        )
 
 
 @validate_inputs(
@@ -404,84 +522,64 @@ def set_layout(
     component = _find_widget_component(widget_bp, component_name)
 
     changes = []
+    skipped = []
 
     slot = component.slot
     is_canvas_slot = slot and isinstance(slot, unreal.CanvasPanelSlot)
 
     if position is not None:
-        if len(position) < 2:
-            raise ProcessingError(
-                "position must have at least 2 elements [X, Y]",
-                operation="widget_set_layout",
-                details={"position": position},
-            )
+        _validate_list_length(position, 2, "position", "widget_set_layout")
         if is_canvas_slot:
-            current_offsets = slot.get_offsets()
-            current_offsets.left = float(position[0])
-            current_offsets.top = float(position[1])
-            slot.set_offsets(current_offsets)
+            _apply_canvas_position(slot, position)
             changes.append("position")
         else:
-            component.set_editor_property(
-                "render_transform",
-                unreal.WidgetTransform(translation=unreal.Vector2D(float(position[0]), float(position[1]))),
-            )
+            _apply_render_position(component, position)
             changes.append("render_transform_position")
 
     if size is not None:
-        if len(size) < 2:
-            raise ProcessingError(
-                "size must have at least 2 elements [Width, Height]",
-                operation="widget_set_layout",
-                details={"size": size},
-            )
+        _validate_list_length(size, 2, "size", "widget_set_layout")
         if is_canvas_slot:
-            current_offsets = slot.get_offsets()
-            current_offsets.right = float(size[0])
-            current_offsets.bottom = float(size[1])
-            slot.set_offsets(current_offsets)
+            _apply_canvas_size(slot, size)
             changes.append("size")
+        else:
+            skipped.append("size (requires CanvasPanelSlot)")
 
     if anchors is not None:
         if is_canvas_slot:
-            anchor = unreal.Anchors()
-            anchor.minimum = unreal.Vector2D(
-                anchors.get("min_x", 0.0),
-                anchors.get("min_y", 0.0),
-            )
-            anchor.maximum = unreal.Vector2D(
-                anchors.get("max_x", 0.0),
-                anchors.get("max_y", 0.0),
-            )
-            slot.set_anchors(anchor)
+            _apply_canvas_anchors(slot, anchors)
             changes.append("anchors")
+        else:
+            skipped.append("anchors (requires CanvasPanelSlot)")
 
     if alignment is not None:
-        if len(alignment) < 2:
-            raise ProcessingError(
-                "alignment must have at least 2 elements [X, Y]",
-                operation="widget_set_layout",
-                details={"alignment": alignment},
-            )
+        _validate_list_length(alignment, 2, "alignment", "widget_set_layout")
         if is_canvas_slot:
             slot.set_alignment(unreal.Vector2D(float(alignment[0]), float(alignment[1])))
             changes.append("alignment")
+        else:
+            skipped.append("alignment (requires CanvasPanelSlot)")
 
     if z_order is not None:
         if is_canvas_slot:
             slot.set_z_order(z_order)
             changes.append("z_order")
+        else:
+            skipped.append("z_order (requires CanvasPanelSlot)")
 
     _compile_and_save_widget(widget_bp, widget_path)
     log_debug(f"Updated layout for '{component_name}' in {widget_path}: {changes}")
 
-    return {
+    result: dict[str, Any] = {
         "success": True,
         "widgetPath": widget_path,
         "componentName": component_name,
         "changes": changes,
         "isCanvasSlot": is_canvas_slot,
     }
+    if skipped:
+        result["skipped"] = skipped
+        result["warning"] = f"Some layout properties require a CanvasPanelSlot: {skipped}"
+    return result
 
 
 @validate_inputs(
@@ -564,7 +662,10 @@ def _set_text_property(component, value: str):
 
 
 def _set_color_property(component, prop_name: str, color_dict):
-    """Set a color property from a dict with r, g, b, a keys."""
+    """Set a color property from a dict with r, g, b, a keys.
+
+    Handles both LinearColor and SlateColor property types automatically.
+    """
     if not isinstance(color_dict, dict):
         raise ProcessingError(
             f"{prop_name} must be a dict with r, g, b, a keys (0.0-1.0)",
@@ -577,14 +678,35 @@ def _set_color_property(component, prop_name: str, color_dict):
         b=float(color_dict.get("b", 1.0)),
         a=float(color_dict.get("a", 1.0)),
     )
-    component.set_editor_property(prop_name, color)
+
+    # Detect the expected property type and wrap in SlateColor when needed
+    current_value = _try_get_editor_property(component, prop_name)
+    if isinstance(current_value, unreal.SlateColor):
+        value_to_set = unreal.SlateColor(specified_color=color)
+    else:
+        value_to_set = color
+
+    component.set_editor_property(prop_name, value_to_set)
 
 
 def _set_font_size(component, size: int):
     """Set font size on a text-capable widget component."""
-    font_info = component.get_editor_property("font")
-    font_info.size = int(size)
-    component.set_editor_property("font", font_info)
+    component_type = _get_widget_type_name(component)
+
+    # Validate the component supports a 'font' property before accessing it
+    current_font = _try_get_editor_property(component, "font")
+    if current_font is None:
+        raise ProcessingError(
+            "font_size is only supported for widgets with a 'font' editor property",
+            operation="widget_set_property",
+            details={
+                "property": "font_size",
+                "component_type": component_type,
+            },
+        )
+
+    current_font.size = int(size)
+    component.set_editor_property("font", current_font)
 
 
 def _set_visibility(component, visibility_str: str):
@@ -679,7 +801,11 @@ def bind_event(
             },
         )
 
-    bindings = widget_bp.get_editor_property("bindings")
+    bindings = widget_bp.get_editor_property("bindings") or []
+
+    # Remove existing bindings for this component/event to avoid duplicates
+    bindings = _deduplicate_bindings(bindings, component_name, delegate_prop)
+
     binding = unreal.DelegateRuntimeBinding()
     binding.object_name = component_name
     binding.property_name = unreal.Name(delegate_prop)
@@ -727,7 +853,11 @@ def set_binding(
     widget_bp = _resolve_widget_blueprint(widget_path)
     _find_widget_component(widget_bp, component_name)
 
-    bindings = widget_bp.get_editor_property("bindings")
+    bindings = widget_bp.get_editor_property("bindings") or []
+
+    # Remove existing bindings for this component/property to keep behavior deterministic
+    bindings = _deduplicate_bindings(bindings, component_name, property_name)
+
     binding = unreal.DelegateRuntimeBinding()
     binding.object_name = component_name
     binding.property_name = unreal.Name(property_name)
@@ -737,7 +867,7 @@ def set_binding(
 
     _compile_and_save_widget(widget_bp, widget_path)
     log_debug(
-        f"Bound property '{property_name}' on '{component_name}' to function '{binding_function}' in {widget_path}"
+        f"Bound property '{property_name}' on '{component_name}'" f" to function '{binding_function}' in {widget_path}"
     )
 
     return {
@@ -777,7 +907,7 @@ def get_metadata(
         "success": True,
         "widgetPath": widget_path,
         "widgetName": widget_bp.get_name(),
-        "parentClass": widget_bp.parent_class.get_name() if widget_bp.parent_class else "Unknown",
+        "parentClass": (widget_bp.parent_class.get_name() if widget_bp.parent_class else "Unknown"),
     }
 
     # When both hierarchy and component list are needed, build in a single recursive pass
@@ -930,6 +1060,9 @@ def screenshot(
         )
 
     try:
+        # Add widget to viewport so the screenshot captures its contents
+        widget_instance.add_to_viewport(0)
+
         unreal.AutomationLibrary.take_high_res_screenshot(
             width,
             height,
