@@ -4,7 +4,7 @@ UEMCP Operations Package - Contains all operation modules
 
 # Import all operation classes for easy access
 # Import blueprint operations as modules since they use standalone functions
-from . import animation, blueprint, blueprint_graph, blueprint_nodes, performance, widget
+from . import animation, audio, blueprint, blueprint_graph, blueprint_nodes, material_graph, performance, widget
 from .actor import ActorOperations
 from .asset import AssetOperations
 from .level import LevelOperations
@@ -27,10 +27,12 @@ __all__ = [
     "ViewportOperations",
     "SystemOperations",
     "MaterialOperations",
-    "animation",
-    "blueprint",
-    "blueprint_graph",
-    "blueprint_nodes",
-    "performance",
-    "widget",
+    "animation"",
+    "audio"",
+    "blueprint"",
+    "blueprint_graph"",
+    "blueprint_nodes"",
+    "material_graph"",
+    "performance"",
+    "widget"",
 ]

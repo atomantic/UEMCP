@@ -279,6 +279,24 @@ def register_all_operations():
         registry.register_command("widget_get_metadata", widget.get_metadata)
         registry.register_command("widget_screenshot", widget.screenshot)
 
+        # Material graph editing operations
+        from ops import material_graph
+
+        registry.register_command("material_add_expression", material_graph.add_expression)
+        registry.register_command("material_connect_expressions", material_graph.connect_expressions)
+        registry.register_command("material_set_expression_property", material_graph.set_expression_property)
+        registry.register_command("material_create_function", material_graph.create_function)
+        registry.register_command("material_get_graph", material_graph.get_graph)
+
+        # Audio operations
+        from ops import audio
+
+        registry.register_command("audio_import", audio.import_audio)
+        registry.register_command("audio_create_metasound", audio.create_metasound)
+        registry.register_command("audio_add_node", audio.add_node)
+        registry.register_command("audio_connect_nodes", audio.connect_nodes)
+        registry.register_command("audio_set_parameter", audio.set_parameter)
+
         # Register batch operations
         from ops.batch_operations import execute_batch_operations
 

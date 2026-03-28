@@ -171,6 +171,7 @@ class ManifestGenerator:
             "actor": "actors",
             "anim": "animation",
             "asset": "assets",
+            "audio": "audio",
             "blueprint": "blueprints",
             "material": "materials",
             "viewport": "viewport",
