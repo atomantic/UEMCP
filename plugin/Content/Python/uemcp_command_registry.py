@@ -235,14 +235,14 @@ def register_all_operations():
         # Register Widget Blueprint operations (standalone functions)
         from ops import widget
 
-        registry.register_command("widget_create", widget.widget_create)
-        registry.register_command("widget_add_component", widget.widget_add_component)
-        registry.register_command("widget_set_layout", widget.widget_set_layout)
-        registry.register_command("widget_set_property", widget.widget_set_property)
-        registry.register_command("widget_bind_event", widget.widget_bind_event)
-        registry.register_command("widget_set_binding", widget.widget_set_binding)
-        registry.register_command("widget_get_metadata", widget.widget_get_metadata)
-        registry.register_command("widget_screenshot", widget.widget_screenshot)
+        registry.register_command("widget_create", widget.create)
+        registry.register_command("widget_add_component", widget.add_component)
+        registry.register_command("widget_set_layout", widget.set_layout)
+        registry.register_command("widget_set_property", widget.set_property)
+        registry.register_command("widget_bind_event", widget.bind_event)
+        registry.register_command("widget_set_binding", widget.set_binding)
+        registry.register_command("widget_get_metadata", widget.get_metadata)
+        registry.register_command("widget_screenshot", widget.screenshot)
 
         # Register batch operations
         from ops.batch_operations import execute_batch_operations
