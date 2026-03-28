@@ -403,7 +403,7 @@ class SystemOperations:
             dict: Execution result
         """
         # Check kill-switch (default on for backward compat)
-        if os.environ.get("UEMCP_ALLOW_PYTHON_PROXY", "1") not in ("1", "true", "True", "yes"):
+        if os.environ.get("UEMCP_ALLOW_PYTHON_PROXY", "1").strip().lower() not in ("1", "true", "yes", "on"):
             return {"success": False, "error": "python_proxy is disabled (UEMCP_ALLOW_PYTHON_PROXY=0)"}
 
         # Audit log every invocation

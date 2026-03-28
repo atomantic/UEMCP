@@ -673,7 +673,7 @@ def execute_console_command(
     Returns:
         Dictionary with command execution result
     """
-    if os.environ.get("UEMCP_ALLOW_ALL_CONSOLE_COMMANDS", "0") not in ("1", "true", "True", "yes"):
+    if os.environ.get("UEMCP_ALLOW_ALL_CONSOLE_COMMANDS", "0").strip().lower() not in ("1", "true", "yes", "on"):
         if not any(command.startswith(prefix) for prefix in SAFE_COMMAND_PREFIXES):
             allowed = ", ".join(SAFE_COMMAND_PREFIXES)
             return {
