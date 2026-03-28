@@ -472,12 +472,12 @@ def _apply_canvas_anchors(slot, anchors):
     """Apply anchors to a CanvasPanelSlot."""
     anchor = unreal.Anchors()
     anchor.minimum = unreal.Vector2D(
-        anchors.get("min_x", 0.0),
-        anchors.get("min_y", 0.0),
+        float(anchors.get("min_x", 0.0)),
+        float(anchors.get("min_y", 0.0)),
     )
     anchor.maximum = unreal.Vector2D(
-        anchors.get("max_x", 0.0),
-        anchors.get("max_y", 0.0),
+        float(anchors.get("max_x", 0.0)),
+        float(anchors.get("max_y", 0.0)),
     )
     slot.set_anchors(anchor)
 
@@ -1059,8 +1059,21 @@ def screenshot(
     widget_name = widget_bp.get_name()
     filename = f"uemcp_widget_{widget_name}_{timestamp}"
 
+    # Ensure the widget blueprint is compiled so generated_class() is valid
+    generated_class = widget_bp.generated_class()
+    if generated_class is None:
+        unreal.KismetCompilerLibrary.compile_blueprint(widget_bp)
+        generated_class = widget_bp.generated_class()
+
+    if generated_class is None:
+        raise ProcessingError(
+            "Widget Blueprint has no generated class even after compilation",
+            operation="widget_screenshot",
+            details={"widget_path": widget_path},
+        )
+
     world = get_unreal_editor_subsystem().get_editor_world()
-    widget_instance = unreal.WidgetBlueprintLibrary.create(world, widget_bp.generated_class(), None)
+    widget_instance = unreal.WidgetBlueprintLibrary.create(world, generated_class, None)
 
     if not widget_instance:
         raise ProcessingError(
@@ -1071,17 +1084,22 @@ def screenshot(
 
     # Screenshot is asynchronous — widget must stay in viewport until capture completes.
     # Schedule cleanup via a deferred tick callback so the widget persists for the capture frame.
-    widget_instance.add_to_viewport(0)
+    # Use try/finally to ensure widget is always cleaned up even if screenshot fails.
+    try:
+        widget_instance.add_to_viewport(0)
 
-    unreal.AutomationLibrary.take_high_res_screenshot(
-        width,
-        height,
-        filename,
-        None,
-        False,
-        False,
-        unreal.ComparisonTolerance.LOW,
-    )
+        unreal.AutomationLibrary.take_high_res_screenshot(
+            width,
+            height,
+            filename,
+            None,
+            False,
+            False,
+            unreal.ComparisonTolerance.LOW,
+        )
+    except Exception:
+        widget_instance.remove_from_parent()
+        raise
 
     # Defer widget removal by one tick so the screenshot frame captures the widget
     _deferred_widget_cleanup(widget_instance)
