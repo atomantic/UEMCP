@@ -297,11 +297,6 @@ class SystemOperations:
                 unreal.log("UEMCP: Performing scheduled restart...")
                 import uemcp_listener
 
-                # Unregister this callback first
-                if hasattr(perform_restart, "_handle"):
-                    unreal.unregister_slate_post_tick_callback(perform_restart._handle)
-                _restart_pending_handle = None
-
                 # Then restart and capture success/failure
                 restart_success = bool(uemcp_listener.restart_listener())
                 if restart_success:
@@ -311,6 +306,13 @@ class SystemOperations:
             except Exception as e:
                 unreal.log_error(f"UEMCP: Restart error: {str(e)}")
             finally:
+                # Always unregister the callback so it doesn't persist on error
+                if hasattr(perform_restart, "_handle"):
+                    try:
+                        unreal.unregister_slate_post_tick_callback(perform_restart._handle)
+                    except Exception:
+                        pass
+                _restart_pending_handle = None
                 _restart_scheduled = False
 
         # Register the callback to run on next tick
@@ -322,7 +324,7 @@ class SystemOperations:
             unreal.log_error(f"UEMCP: Failed to schedule listener restart: {str(e)}")
             return {
                 "success": False,
-                "message": f"Failed to schedule listener restart: {str(e)}",
+                "error": f"Failed to schedule listener restart: {str(e)}",
             }
         perform_restart._handle = handle
         _restart_pending_handle = handle

@@ -127,26 +127,36 @@ class AssetPathRule(ValidationRule):
     """Validates that a UE content-browser asset path is properly formatted.
 
     Enforces:
-    - Must start with a known root (/Game/, /Engine/, or /Script/)
+    - Must start with a known root (/Game/, /Engine/, or /Script/, or a caller-specified subset)
     - No traversal segments (..)
     - No backslashes (Windows path separators are invalid here)
-    - At least 3 slash-delimited components (e.g. /Game/Folder/Asset)
+    - At least ``min_parts`` slash-delimited parts after splitting (default 3: '', root, name)
+
+    Args:
+        allowed_roots: Tuple of allowed path prefixes. Defaults to Game/Engine/Script.
+        min_parts: Minimum number of parts after split('/').
+            3 → '/Game/Asset' is valid (e.g. blueprint directly under Game root).
+            4 → '/Game/Folder/Asset' required (e.g. import destination folders).
     """
 
-    _VALID_ROOTS = ("/Game/", "/Engine/", "/Script/")
+    _DEFAULT_ROOTS = ("/Game/", "/Engine/", "/Script/")
+
+    def __init__(self, allowed_roots: tuple = None, min_parts: int = 3):
+        self._allowed_roots = allowed_roots if allowed_roots is not None else self._DEFAULT_ROOTS
+        self._min_parts = min_parts
 
     def validate(self, value: Any, field_name: str) -> Optional[str]:
         if not isinstance(value, str):
             return f"{field_name} must be a string"
-        if not any(value.startswith(root) for root in self._VALID_ROOTS):
-            return f"{field_name} must start with a valid UE content root " f"({', '.join(self._VALID_ROOTS)})"
+        if not any(value.startswith(root) for root in self._allowed_roots):
+            return f"{field_name} must start with a valid UE content root " f"({', '.join(self._allowed_roots)})"
         if "\\" in value:
             return f"{field_name} must not contain backslashes"
         parts = value.split("/")
         if ".." in parts:
             return f"{field_name} must not contain traversal segments (..)"
-        if len(parts) < 3:
-            return f"{field_name} must be a valid asset path like '/Game/Assets/MyAsset'"
+        if len(parts) < self._min_parts:
+            return f"{field_name} must be a valid asset path like '/Game/Folder/MyAsset'"
         return None
 
 

@@ -120,7 +120,7 @@ jobs:
         cat > ../dist/uemcp-server/start.sh << 'EOF'
         #!/bin/bash
         npm ci --omit=dev
-        node dist/index.js
+        node index.js
         EOF
         chmod +x ../dist/uemcp-server/start.sh
     

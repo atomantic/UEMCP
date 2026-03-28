@@ -537,7 +537,7 @@ class AssetOperations:
     @validate_inputs(
         {
             "sourcePath": [RequiredRule(), TypeRule(str), FileExistsRule()],
-            "targetFolder": [RequiredRule(), TypeRule(str), AssetPathRule()],
+            "targetFolder": [RequiredRule(), TypeRule(str), AssetPathRule(allowed_roots=("/Game/",), min_parts=4)],
             "assetType": [TypeRule(str)],
             "batchImport": [TypeRule(bool)],
             "importSettings": [TypeRule(dict, allow_none=True)],
