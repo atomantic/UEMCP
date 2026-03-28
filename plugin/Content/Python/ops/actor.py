@@ -1249,10 +1249,11 @@ class ActorOperations:
             ProcessingError: If the socket is not found on any component.
         """
         socket_transform = None
+        static_mesh_socket_names: list = []
 
         # Try to get socket from static mesh component
         if hasattr(target, "static_mesh_component"):
-            socket_transform = self._get_static_mesh_socket_transform(
+            socket_transform, static_mesh_socket_names = self._get_static_mesh_socket_transform(
                 target.static_mesh_component, targetActor, targetSocket
             )
 
@@ -1263,33 +1264,39 @@ class ActorOperations:
         if not socket_transform:
             raise ProcessingError(
                 f'Socket "{targetSocket}" not found on any component of {targetActor}',
-                operation="_get_target_socket_transform",
-                details={"targetActor": targetActor, "targetSocket": targetSocket},
+                operation="snap_to_socket",
+                details={
+                    "targetActor": targetActor,
+                    "targetSocket": targetSocket,
+                    "availableStaticMeshSockets": static_mesh_socket_names,
+                },
             )
 
         return socket_transform
 
     def _get_static_mesh_socket_transform(self, mesh_comp, targetActor, targetSocket):
-        """Get socket transform from static mesh component."""
+        """Get socket transform from static mesh component.
+
+        Returns:
+            tuple: (socket_transform or None, available_socket_names list)
+        """
         if not mesh_comp:
-            return None
+            return None, []
 
         static_mesh = mesh_comp.static_mesh
         if not static_mesh:
-            return None
+            return None, []
 
         # Get socket transform relative to component
         socket_found = static_mesh.find_socket(targetSocket)
         if socket_found:
-            # Get world transform of the socket
-            return mesh_comp.get_socket_transform(targetSocket)
+            return mesh_comp.get_socket_transform(targetSocket), []
 
-        # Socket not found on this component — log available sockets for debugging
-        # and return None so the caller can try other component types
+        # Socket not found — collect available socket names for diagnostics
         sockets = getattr(static_mesh, "sockets", None) if static_mesh else None
         socket_names = [s.socket_name for s in sockets] if sockets else []
         log_debug(f'Socket "{targetSocket}" not found on static mesh of {targetActor}; ' f"available: {socket_names}")
-        return None
+        return None, socket_names
 
     def _get_scene_component_socket_transform(self, target, targetSocket):
         """Get socket transform from scene components."""

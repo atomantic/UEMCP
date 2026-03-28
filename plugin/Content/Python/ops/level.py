@@ -68,6 +68,8 @@ class LevelOperations:
         Returns:
             dict: List of actors with properties
         """
+        if isinstance(offset, bool) or isinstance(limit, bool):
+            raise ValidationError("offset and limit must be integers, not booleans", operation="get_level_actors")
         if offset < 0:
             raise ValidationError("offset must be greater than or equal to 0", operation="get_level_actors")
         if limit <= 0:
