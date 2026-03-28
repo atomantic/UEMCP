@@ -199,7 +199,7 @@ describe('ConfigManager', () => {
     });
 
     it('should validate Node.js version', () => {
-      const originalVersion = process.version;
+      const originalDescriptor = Object.getOwnPropertyDescriptor(process, 'version')!;
       try {
         // Test old Node version (major too low)
         Object.defineProperty(process, 'version', { value: 'v16.0.0', configurable: true });
@@ -222,7 +222,7 @@ describe('ConfigManager', () => {
         expect(validation3.valid).toBe(true);
         expect(validation3.errors).toHaveLength(0);
       } finally {
-        Object.defineProperty(process, 'version', { value: originalVersion, configurable: true });
+        Object.defineProperty(process, 'version', originalDescriptor);
       }
     });
   });
