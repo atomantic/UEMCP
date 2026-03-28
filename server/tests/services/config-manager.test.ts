@@ -199,31 +199,31 @@ describe('ConfigManager', () => {
     });
 
     it('should validate Node.js version', () => {
-      // Mock process.version for testing
       const originalVersion = process.version;
+      try {
+        // Test old Node version (major too low)
+        Object.defineProperty(process, 'version', { value: 'v16.0.0', configurable: true });
+        const validation = configManager.validateConfiguration();
 
-      // Test old Node version (major too low)
-      Object.defineProperty(process, 'version', { value: 'v16.0.0', configurable: true });
-      const validation = configManager.validateConfiguration();
+        expect(validation.valid).toBe(false);
+        expect(validation.errors).toContain('Node.js >=20.19.0 required, current: v16.0.0');
 
-      expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain('Node.js >=20.19.0 required, current: v16.0.0');
+        // Test Node 20 with minor too low (20.18.x should fail)
+        Object.defineProperty(process, 'version', { value: 'v20.18.0', configurable: true });
+        const validation2 = configManager.validateConfiguration();
 
-      // Test Node 20 with minor too low (20.18.x should fail)
-      Object.defineProperty(process, 'version', { value: 'v20.18.0', configurable: true });
-      const validation2 = configManager.validateConfiguration();
+        expect(validation2.valid).toBe(false);
+        expect(validation2.errors).toContain('Node.js >=20.19.0 required, current: v20.18.0');
 
-      expect(validation2.valid).toBe(false);
-      expect(validation2.errors).toContain('Node.js >=20.19.0 required, current: v20.18.0');
+        // Test Node 20.19.0 should pass
+        Object.defineProperty(process, 'version', { value: 'v20.19.0', configurable: true });
+        const validation3 = configManager.validateConfiguration();
 
-      // Test Node 20.19.0 should pass
-      Object.defineProperty(process, 'version', { value: 'v20.19.0', configurable: true });
-      const validation3 = configManager.validateConfiguration();
-
-      expect(validation3.errors).not.toContain(expect.stringContaining('Node.js'));
-
-      // Restore original version
-      Object.defineProperty(process, 'version', { value: originalVersion, configurable: true });
+        expect(validation3.valid).toBe(true);
+        expect(validation3.errors).toHaveLength(0);
+      } finally {
+        Object.defineProperty(process, 'version', { value: originalVersion, configurable: true });
+      }
     });
   });
 
