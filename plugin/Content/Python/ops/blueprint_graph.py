@@ -130,6 +130,75 @@ def _make_pin_type(var_type, sub_type=None):
     return pin_type
 
 
+def _validate_param_list(params, direction, function_name):
+    """Validate that a parameter list contains only dicts with a 'name' key.
+
+    Args:
+        params: The list to validate (may be None)
+        direction: 'input' or 'output' — used in error messages
+        function_name: Name of the parent function — used in error messages
+
+    Raises:
+        ValidationError: If params is not a list or contains non-dict elements
+    """
+    if params is None:
+        return
+    if not isinstance(params, list):
+        raise ValidationError(
+            f"Function '{function_name}' {direction}s must be a list, got {type(params).__name__}",
+            operation="blueprint_function_params",
+            details={"function_name": function_name, "direction": direction},
+        )
+    for i, item in enumerate(params):
+        if not isinstance(item, dict):
+            raise ValidationError(
+                f"Function '{function_name}' {direction}[{i}] must be a dict, got {type(item).__name__}",
+                operation="blueprint_function_params",
+                details={"function_name": function_name, "direction": direction, "index": i},
+            )
+
+
+def _add_function_params(blueprint, function_name, inputs=None, outputs=None):
+    """Add input and output parameters to a function graph on a Blueprint.
+
+    Args:
+        blueprint: The Blueprint asset
+        function_name: Name of the function to add params to
+        inputs: Optional list of input param dicts with 'name', 'type', optional 'sub_type'
+        outputs: Optional list of output param dicts with 'name', 'type', optional 'sub_type'
+
+    Returns:
+        Tuple of (input_count, output_count)
+
+    Raises:
+        ValidationError: If inputs/outputs is not a list or contains non-dict elements
+    """
+    _validate_param_list(inputs, "input", function_name)
+    _validate_param_list(outputs, "output", function_name)
+
+    input_count = 0
+    if inputs:
+        for param in inputs:
+            param_name = param.get("name")
+            param_type = param.get("type", "string")
+            if param_name:
+                pin_type = _make_pin_type(param_type, param.get("sub_type"))
+                unreal.BlueprintEditorLibrary.add_function_input(blueprint, function_name, param_name, pin_type)
+                input_count += 1
+
+    output_count = 0
+    if outputs:
+        for param in outputs:
+            param_name = param.get("name")
+            param_type = param.get("type", "bool")
+            if param_name:
+                pin_type = _make_pin_type(param_type, param.get("sub_type"))
+                unreal.BlueprintEditorLibrary.add_function_output(blueprint, function_name, param_name, pin_type)
+                output_count += 1
+
+    return input_count, output_count
+
+
 # ============================================================================
 # Variable Operations
 # ============================================================================
@@ -593,27 +662,7 @@ def add_function(
             details={"blueprint_path": blueprint_path, "function_name": function_name},
         )
 
-    # Add input parameters
-    input_count = 0
-    if inputs:
-        for param in inputs:
-            param_name = param.get("name")
-            param_type = param.get("type", "string")
-            if param_name:
-                pin_type = _make_pin_type(param_type, param.get("sub_type"))
-                unreal.BlueprintEditorLibrary.add_function_input(blueprint, function_name, param_name, pin_type)
-                input_count += 1
-
-    # Add output parameters
-    output_count = 0
-    if outputs:
-        for param in outputs:
-            param_name = param.get("name")
-            param_type = param.get("type", "bool")
-            if param_name:
-                pin_type = _make_pin_type(param_type, param.get("sub_type"))
-                unreal.BlueprintEditorLibrary.add_function_output(blueprint, function_name, param_name, pin_type)
-                output_count += 1
+    input_count, output_count = _add_function_params(blueprint, function_name, inputs, outputs)
 
     # Set pure flag
     if is_pure:
@@ -1226,6 +1275,125 @@ def implement_interface(
         "blueprintPath": blueprint_path,
         "interfacePath": interface_path,
     }
+
+
+@validate_inputs(
+    {
+        "interface_path": [RequiredRule(), AssetPathRule()],
+        "functions": [TypeRule(list, allow_none=True)],
+    }
+)
+@handle_unreal_errors("blueprint_create_interface")
+@safe_operation("blueprint")
+def create_interface(
+    interface_path: str,
+    functions: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """
+    Create a Blueprint Interface asset with optional function signatures.
+
+    Args:
+        interface_path: Full asset path for the interface
+                        (e.g., '/Game/Interfaces/BPI_Interactable')
+        functions: Optional list of function definitions, each a dict with:
+                   - name (str): Function name. Entries without 'name' are skipped.
+                   - inputs (list[dict], optional): Input params [{name, type}]
+                   - outputs (list[dict], optional): Output params [{name, type}]
+
+    Returns:
+        Dictionary with interface creation result including functionCount,
+        functions list, and optional failedFunctions/warning if any failed.
+    """
+    last_slash = interface_path.rfind("/")
+    target_folder = interface_path[:last_slash]
+    asset_name = interface_path[last_slash + 1 :]
+
+    if not asset_name:
+        raise ProcessingError(
+            "Interface asset name cannot be empty",
+            operation="blueprint_create_interface",
+            details={"interface_path": interface_path},
+        )
+
+    # Check if asset already exists
+    if unreal.EditorAssetLibrary.does_asset_exist(interface_path):
+        raise ProcessingError(
+            f"Asset already exists at {interface_path}",
+            operation="blueprint_create_interface",
+            details={"interface_path": interface_path},
+        )
+
+    # Ensure target folder exists
+    if not unreal.EditorAssetLibrary.does_directory_exist(target_folder):
+        unreal.EditorAssetLibrary.make_directory(target_folder)
+
+    # Create the Blueprint Interface asset
+    asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
+    factory = unreal.BlueprintFactory()
+    factory.set_editor_property("blueprint_type", unreal.BlueprintType.BPTYPE_INTERFACE)
+
+    interface_bp = asset_tools.create_asset(
+        asset_name=asset_name,
+        package_path=target_folder,
+        asset_class=unreal.Blueprint,
+        factory=factory,
+    )
+
+    if not interface_bp:
+        raise ProcessingError(
+            f"Failed to create Blueprint Interface at {interface_path}",
+            operation="blueprint_create_interface",
+            details={"interface_path": interface_path},
+        )
+
+    # Add function signatures
+    function_count = 0
+    function_names = []
+    failed_functions = []
+    if functions:
+        for func_def in functions:
+            if not isinstance(func_def, dict):
+                raise ValidationError(
+                    "Each function definition must be a dict with at least a 'name' key",
+                    operation="blueprint_create_interface",
+                    details={"invalid_element": str(func_def)},
+                )
+
+            func_name = func_def.get("name")
+            if not func_name:
+                continue
+
+            func_graph = unreal.BlueprintEditorLibrary.add_function_graph(interface_bp, func_name)
+            if not func_graph:
+                log_error(f"Failed to add function '{func_name}' to interface")
+                failed_functions.append(func_name)
+                continue
+
+            _add_function_params(
+                interface_bp,
+                func_name,
+                func_def.get("inputs"),
+                func_def.get("outputs"),
+            )
+
+            function_count += 1
+            function_names.append(func_name)
+
+    compile_and_save(interface_bp, interface_path)
+    log_info(f"Created Blueprint Interface: {interface_path} with {function_count} functions")
+
+    result = {
+        "success": True,
+        "interfacePath": interface_path,
+        "functionCount": function_count,
+        "functions": function_names,
+    }
+
+    if failed_functions:
+        result["failedFunctions"] = failed_functions
+        result["warning"] = f"Failed to add {len(failed_functions)} function(s): {', '.join(failed_functions)}"
+
+    return result
 
 
 # ============================================================================
