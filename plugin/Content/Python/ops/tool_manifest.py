@@ -175,6 +175,7 @@ class ManifestGenerator:
             "viewport": "viewport",
             "level": "level",
             "placement": "actors",
+            "niagara": "niagara",
             "batch": "system",
             "help": "system",
             "test": "system",
