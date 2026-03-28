@@ -87,13 +87,22 @@ export class DynamicToolRegistry {
         logger.warn(`Manifest contained ${rawTools.length - validTools.length} invalid tool definitions (missing required fields or malformed inputSchema)`);
       }
 
-      // Rebuild categories to only include valid tool names, keeping manifest internally consistent
+      // Rebuild categories to only include valid tool names, keeping manifest internally consistent.
+      // Validate each entry to avoid runtime errors if the Python manifest is malformed.
       const validNames = new Set(validTools.map(t => t.name));
-      const rawCategories = (result.categories || {}) as Record<string, string[]>;
       const filteredCategories: Record<string, string[]> = {};
-      for (const [cat, names] of Object.entries(rawCategories)) {
-        const kept = names.filter(n => validNames.has(n));
-        if (kept.length > 0) filteredCategories[cat] = kept;
+      const rawCategories = result.categories;
+      if (rawCategories && typeof rawCategories === 'object' && !Array.isArray(rawCategories)) {
+        for (const [cat, names] of Object.entries(rawCategories as Record<string, unknown>)) {
+          if (!Array.isArray(names) || !(names as unknown[]).every((n) => typeof n === 'string')) {
+            logger.warn(`Skipping malformed category "${cat}" in manifest (expected string[])`);
+            continue;
+          }
+          const kept = (names as string[]).filter(n => validNames.has(n));
+          if (kept.length > 0) filteredCategories[cat] = kept;
+        }
+      } else if (rawCategories !== undefined && rawCategories !== null) {
+        logger.warn('Manifest categories field is malformed; expected object mapping category names to string[]');
       }
 
       this.manifest = {
