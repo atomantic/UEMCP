@@ -239,16 +239,17 @@ def handle_unreal_errors(operation_name: str = None):
     """
     Decorator that catches and converts UE-specific errors to UEMCPError types.
 
-    Args:
-        operation_name: Name of the operation for error context
-
-    Decorator stack order (outermost first):
-        @validate_inputs   — validates params, raises ValidationError before execution
-        @handle_unreal_errors — converts AttributeError/RuntimeError → ProcessingError
-        @safe_operation    — catches all UEMCPError/Exception, returns error dict
+    This decorator is intentionally kept separate from safe_operation so that
+    each layer has a single responsibility:
+        @validate_inputs       — validates params, raises ValidationError before execution
+        @handle_unreal_errors  — converts AttributeError/RuntimeError → ProcessingError
+        @safe_operation        — catches all UEMCPError/Exception, returns error dict
 
     handle_unreal_errors re-raises UEMCPError unchanged so safe_operation can
     catch it. It only intercepts raw UE exceptions and wraps them as ProcessingError.
+
+    Args:
+        operation_name: Name of the operation for error context
     """
 
     def decorator(func):

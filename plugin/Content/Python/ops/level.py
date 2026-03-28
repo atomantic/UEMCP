@@ -61,6 +61,10 @@ class LevelOperations:
         Returns:
             dict: List of actors with properties
         """
+        if offset < 0:
+            raise ProcessingError("offset must be greater than or equal to 0")
+        if limit <= 0:
+            raise ProcessingError("limit must be greater than 0")
         actors = get_all_actors(filter_text=filter, limit=offset + limit)
         actors = actors[offset:]
 

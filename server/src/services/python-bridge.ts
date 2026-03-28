@@ -75,8 +75,12 @@ export class PythonBridge {
       throw new Error(`Python listener HTTP ${response.status}: ${response.statusText}. Body: ${errorText}`);
     }
 
-    const data = await response.json() as PythonResponse;
-    clearTimeout(timer);
+    let data: PythonResponse;
+    try {
+      data = await response.json() as PythonResponse;
+    } finally {
+      clearTimeout(timer);
+    }
     logger.debug('Python command response', { response: data });
     return data;
   }

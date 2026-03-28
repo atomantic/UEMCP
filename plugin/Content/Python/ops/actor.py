@@ -840,7 +840,14 @@ class ActorOperations:
         """
         # Pre-build label→actor dict to avoid O(N*M) find_actor_by_name calls
         all_level_actors = get_actor_subsystem().get_all_level_actors()
-        actor_lookup = {a.get_actor_label(): a for a in all_level_actors if a and hasattr(a, "get_actor_label")}
+        actor_lookup: dict = {}
+        for a in all_level_actors:
+            if not a or not hasattr(a, "get_actor_label"):
+                continue
+            try:
+                actor_lookup[a.get_actor_label()] = a
+            except Exception as e:
+                log_debug(f"Skipping actor due to label access error: {e}")
 
         actor_objects = []
         missing_actors = []
@@ -1208,10 +1215,8 @@ class ActorOperations:
         source = require_actor(sourceActor)
         target = require_actor(targetActor)
 
-        # Get the target socket transform
-        socket_transform, error = self._get_target_socket_transform(target, targetActor, targetSocket)
-        if error:
-            return error
+        # Get the target socket transform (raises ProcessingError on failure)
+        socket_transform = self._get_target_socket_transform(target, targetActor, targetSocket)
 
         # Calculate new transform for source actor
         new_location, new_rotation = self._calculate_snap_transform(socket_transform, offset, source, sourceSocket)
@@ -1236,7 +1241,10 @@ class ActorOperations:
         """Get the target socket transform.
 
         Returns:
-            tuple: (socket_transform, error_dict or None)
+            The socket transform.
+
+        Raises:
+            ProcessingError: If the socket is not found on any component.
         """
         socket_transform = None
 
@@ -1257,7 +1265,7 @@ class ActorOperations:
                 details={"targetActor": targetActor, "targetSocket": targetSocket},
             )
 
-        return socket_transform, None
+        return socket_transform
 
     def _get_static_mesh_socket_transform(self, mesh_comp, targetActor, targetSocket):
         """Get socket transform from static mesh component."""
