@@ -627,16 +627,20 @@ def _coerce_property_value(value):
 
     Handles vectors ([x,y,z] -> Vector), colors ([r,g,b,a] -> LinearColor),
     asset paths (strings starting with /Game/ or /Engine/), and pass-through
-    for strings, numbers, and booleans.
+    for strings, numbers, and booleans. Raises ProcessingError for unsupported
+    types (None, dict, etc.).
 
     Note: Rotator coercion is handled by the caller (modify_component) via
     property name detection, not by this function.
 
     Args:
-        value: The value to coerce
+        value: The value to coerce (str, int, float, bool, list, or asset path)
 
     Returns:
         UE-compatible value
+
+    Raises:
+        ProcessingError: If value type is unsupported or asset not found
     """
     if isinstance(value, list):
         if len(value) == 3:
@@ -656,7 +660,13 @@ def _coerce_property_value(value):
             )
         return asset
 
-    # Pass-through for str, int, float, bool
+    # Pass-through for str, int, float, bool — reject unsupported types
+    if not isinstance(value, (str, int, float, bool)):
+        raise ProcessingError(
+            f"Unsupported property value type: {type(value).__name__}",
+            operation="coerce_property_value",
+            details={"value": repr(value), "type": type(value).__name__},
+        )
     return value
 
 
@@ -753,7 +763,21 @@ def modify_component(
         else:
             value = _coerce_property_value(raw_value)
 
-        template.set_editor_property(prop_name, value)
+        try:
+            template.set_editor_property(prop_name, value)
+        except Exception as exc:
+            raise ProcessingError(
+                f"Failed to set component property '{prop_name}'",
+                operation="blueprint_modify_component",
+                details={
+                    "blueprint_path": blueprint_path,
+                    "component_name": component_name,
+                    "failed_property": prop_name,
+                    "properties_set_so_far": list(properties_set),
+                    "raw_value": raw_value,
+                    "error": str(exc),
+                },
+            ) from exc
         properties_set.append(prop_name)
 
     compile_and_save(blueprint, blueprint_path)

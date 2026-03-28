@@ -938,6 +938,26 @@ class TestCoercePropertyValue:
         with pytest.raises(ProcessingError, match="3-element array must contain only numbers"):
             _coerce_property_value([True, False, True])
 
+    def test_none_raises(self):
+        """Test that None is rejected with ProcessingError."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_property_value
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError, match="Unsupported property value type"):
+            _coerce_property_value(None)
+
+    def test_dict_raises(self):
+        """Test that dict is rejected with ProcessingError."""
+        import pytest
+
+        from ops.blueprint_graph import _coerce_property_value
+        from utils.error_handling import ProcessingError
+
+        with pytest.raises(ProcessingError, match="Unsupported property value type"):
+            _coerce_property_value({"key": "val"})
+
 
 class TestValidateNumericList:
     """Test the _validate_numeric_list helper."""
@@ -1123,6 +1143,33 @@ class TestModifyComponentIntegration:
 
         assert set(result["propertiesSet"]) == {"visible", "cast_shadow"}
         assert mock_template.set_editor_property.call_count == 2
+
+    def test_set_editor_property_failure_includes_context(self, monkeypatch):
+        """Test that set_editor_property failure includes property name and prior successes."""
+        from ops.blueprint_graph import modify_component
+
+        mock_bp, mock_template = self._make_mock_blueprint_with_component("Light")
+        monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+        monkeypatch.setattr("ops.blueprint_graph.compile_and_save", lambda *a: None)
+
+        # First call succeeds, second call raises
+        call_count = [0]
+
+        def mock_set_editor_property(prop_name, value):
+            call_count[0] += 1
+            if call_count[0] == 2:
+                raise RuntimeError("Property 'bad_prop' not found")
+
+        mock_template.set_editor_property = mock_set_editor_property
+
+        result = modify_component(
+            blueprint_path="/Game/BP_Test",
+            component_name="Light",
+            properties={"intensity": 500.0, "bad_prop": "invalid"},
+        )
+
+        assert result["success"] is False
+        assert "bad_prop" in result["error"]
 
 
 class TestFindComponentNode:
