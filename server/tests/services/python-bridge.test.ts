@@ -270,5 +270,33 @@ describe('PythonBridge', () => {
 
       expect(result).toBe(false);
     });
+
+    it('should use fallback command with remaining budget when health check returns non-OK', async () => {
+      // First fetch (health check) returns non-OK; second fetch (command) returns success
+      const healthResponse = {
+        ok: false,
+        status: 503,
+        statusText: 'Service Unavailable',
+        text: jest.fn().mockResolvedValue(''),
+      };
+      const cmdResponse = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({ success: true }),
+      };
+      mockFetch
+        .mockResolvedValueOnce(healthResponse)
+        .mockResolvedValueOnce(cmdResponse);
+
+      const result = await pythonBridge.isUnrealEngineAvailable();
+
+      expect(result).toBe(true);
+      // Second call must be the fallback command (POST to base endpoint, not /)
+      const secondCall = mockFetch.mock.calls[1];
+      expect(secondCall[0]).toBe('http://localhost:8765');
+      // Verify the command body includes project.info with a positive timeout (remaining budget)
+      const parsedBody = JSON.parse(secondCall[1].body as string);
+      expect(parsedBody).toMatchObject({ type: 'project.info', params: {} });
+      expect(parsedBody.timeout).toBeGreaterThan(0);
+    });
   });
 });
