@@ -297,6 +297,30 @@ def register_all_operations():
         registry.register_command("audio_connect_nodes", audio.connect_nodes)
         registry.register_command("audio_set_parameter", audio.set_parameter)
 
+        # Register DataTable operations
+        from ops import datatable
+
+        registry.register_command("datatable_create", datatable.create)
+        registry.register_command("datatable_add_rows", datatable.add_rows)
+        registry.register_command("datatable_get_rows", datatable.get_rows)
+        registry.register_command("datatable_update_row", datatable.update_row)
+        registry.register_command("datatable_delete_row", datatable.delete_row)
+
+        # Register Struct and Enum operations
+        from ops import struct_enum
+
+        registry.register_command("struct_create", struct_enum.create_struct)
+        registry.register_command("struct_update", struct_enum.update_struct)
+        registry.register_command("enum_create", struct_enum.create_enum)
+        registry.register_command("enum_get_values", struct_enum.get_enum_values)
+
+        # Register Enhanced Input System operations
+        from ops import input_system
+
+        registry.register_command("input_create_mapping", input_system.create_mapping)
+        registry.register_command("input_list_actions", input_system.list_actions)
+        registry.register_command("input_get_metadata", input_system.get_metadata)
+
         # Register batch operations
         from ops.batch_operations import execute_batch_operations
 
