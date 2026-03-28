@@ -10,9 +10,14 @@ import sys
 from unittest.mock import MagicMock, Mock
 
 # Mock the unreal module before any ops imports trigger it
-mock_unreal = MagicMock()
-mock_unreal.SceneComponent = type("SceneComponent", (), {})
-sys.modules["unreal"] = mock_unreal
+if "unreal" not in sys.modules:
+    mock_unreal = MagicMock()
+    mock_unreal.SceneComponent = type("SceneComponent", (), {})
+    sys.modules["unreal"] = mock_unreal
+else:
+    mock_unreal = sys.modules["unreal"]
+    if not hasattr(mock_unreal, "SceneComponent"):
+        mock_unreal.SceneComponent = type("SceneComponent", (), {})
 
 # Add the plugin directory to Python path for imports
 plugin_path = os.path.join(os.path.dirname(__file__), "../../../..", "plugin", "Content", "Python")
