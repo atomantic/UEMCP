@@ -489,10 +489,9 @@ class TestConfigureModuleListCoercion:
         mock_handle.get_name.return_value = "TestEmitter"
         mock_handle.get_instance.return_value = mock_instance
 
-        # Plain MagicMock with __class__ override so isinstance() passes
-        mock_system = MagicMock()
-        mock_system.__class__ = mock_unreal.NiagaraSystem
-        mock_system.get_emitter_handles.return_value = [mock_handle]
+        # Real NiagaraSystem instance so isinstance() passes without __class__ mutation
+        mock_system = mock_unreal.NiagaraSystem()
+        mock_system.get_emitter_handles = MagicMock(return_value=[mock_handle])
         return mock_system, mock_module
 
     def test_vector_list_coerced_to_dict(self):
