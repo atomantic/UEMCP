@@ -225,12 +225,14 @@ class TestConvertToUeValue:
     def test_color_dict_creates_linear_color(self):
         from ops.niagara import _convert_to_ue_value
 
+        mock_unreal.LinearColor.reset_mock()
         _convert_to_ue_value({"r": 1.0, "g": 0.5, "b": 0.0, "a": 0.8}, "color")
         mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.5, b=0.0, a=0.8)
 
     def test_color_dict_defaults_alpha_to_one(self):
         from ops.niagara import _convert_to_ue_value
 
+        mock_unreal.LinearColor.reset_mock()
         _convert_to_ue_value({"r": 1.0, "g": 0.5, "b": 0.0}, "color")
         mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.5, b=0.0, a=1.0)
 
@@ -483,6 +485,7 @@ class TestConvertToUeValueDictInputs:
         """Verify color dict with 3 components gets alpha=1.0 default."""
         from ops.niagara import _convert_to_ue_value
 
+        mock_unreal.LinearColor.reset_mock()
         _convert_to_ue_value({"r": 1.0, "g": 0.0, "b": 0.5}, "color")
         mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.0, b=0.5, a=1.0)
 
@@ -490,6 +493,7 @@ class TestConvertToUeValueDictInputs:
         """Verify color dict with 4 components preserves custom alpha."""
         from ops.niagara import _convert_to_ue_value
 
+        mock_unreal.LinearColor.reset_mock()
         _convert_to_ue_value({"r": 1.0, "g": 0.0, "b": 0.5, "a": 0.3}, "color")
         mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.0, b=0.5, a=0.3)
 
@@ -538,6 +542,7 @@ class TestConfigureModuleListCoercion:
 
         system, mod = self._make_mock_system_with_module("ColorMod")
         with patch("ops.niagara.require_asset", return_value=system):
+            mock_unreal.LinearColor.reset_mock()
             configure_module("/Game/VFX/T", "TestEmitter", "ColorMod", "Color", (1.0, 0.0, 0.5), "color")
             mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.0, b=0.5, a=1.0)
 
@@ -547,6 +552,7 @@ class TestConfigureModuleListCoercion:
 
         system, mod = self._make_mock_system_with_module("ColorMod")
         with patch("ops.niagara.require_asset", return_value=system):
+            mock_unreal.LinearColor.reset_mock()
             configure_module("/Game/VFX/T", "TestEmitter", "ColorMod", "Color", [1.0, 0.0, 0.5, 0.3], "color")
             mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.0, b=0.5, a=0.3)
 
