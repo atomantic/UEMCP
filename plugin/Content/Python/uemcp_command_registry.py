@@ -242,13 +242,11 @@ def register_all_operations():
 
         if niagara is not None:
             registry.register_command("niagara_create_system", niagara.create_system)
-            registry.register_command("niagara_add_emitter", niagara.add_emitter)
-            registry.register_command("niagara_add_module", niagara.add_module)
-            registry.register_command("niagara_configure_module", niagara.configure_module)
-            registry.register_command("niagara_set_renderer", niagara.set_renderer)
-            registry.register_command("niagara_compile", niagara.compile)
             registry.register_command("niagara_spawn", niagara.spawn)
             registry.register_command("niagara_get_metadata", niagara.get_metadata)
+            registry.register_command("niagara_compile", niagara.compile)
+            registry.register_command("niagara_set_parameter", niagara.set_parameter)
+            registry.register_command("niagara_list_templates", niagara.list_templates)
 
         # Register Widget Blueprint operations (standalone functions)
         from ops import widget

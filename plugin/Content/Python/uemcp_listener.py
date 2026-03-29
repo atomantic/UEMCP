@@ -56,6 +56,9 @@ _COMMAND_TIMEOUTS = {
     "python_proxy": 30,
     "material_create_simple_material": 20,
     "material_create_material_instance": 20,
+    "niagara_create_system": 30,
+    "niagara_compile": 30,
+    "niagara_spawn": 15,
 }
 _DEFAULT_TIMEOUT = 10
 
@@ -614,6 +617,17 @@ def restart_listener():
     if not stop_server():
         unreal.log_error("UEMCP: Failed to stop listener for restart")
         return False
+
+    # Clear cached ops and command_registry modules so start_server re-imports
+    # the latest code from disk.  This ensures code changes in ops/*.py are
+    # picked up without a full editor restart.
+    import sys as _sys
+
+    stale = [k for k in _sys.modules if k.startswith("ops") or k == "uemcp_command_registry"]
+    for k in stale:
+        del _sys.modules[k]
+    if stale:
+        unreal.log(f"UEMCP: Cleared {len(stale)} cached modules for hot-reload")
 
     # Schedule start_server on the next Slate tick instead of sleeping on the game thread.
     def _deferred_start(delta_time):
