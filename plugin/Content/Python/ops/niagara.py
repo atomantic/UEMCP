@@ -166,6 +166,16 @@ def create_system(
                 },
             )
 
+        # Validate custom asset paths are actually NiagaraSystems
+        if template_info.get("template") == "custom":
+            source_asset = unreal.EditorAssetLibrary.load_asset(source_path)
+            if not isinstance(source_asset, unreal.NiagaraSystem):
+                raise ProcessingError(
+                    f"Source asset is not a NiagaraSystem: {source_path}",
+                    operation="niagara_create_system",
+                    details={"source": source_path, "actual_type": type(source_asset).__name__},
+                )
+
         # Duplicate the source system to the target path
         success = unreal.EditorAssetLibrary.duplicate_asset(source_path, system_path)
         if not success:
@@ -451,6 +461,13 @@ def set_parameter(
         if isinstance(value, (list, tuple)) and len(value) == 3:
             nc.set_variable_vec3(parameter_name, create_vector(value))
         elif isinstance(value, dict):
+            for key in ("x", "y", "z"):
+                if key not in value:
+                    raise ProcessingError(
+                        f"Vector dict missing required key '{key}': need {{x, y, z}}",
+                        operation="niagara_set_parameter",
+                        details={"value": value, "missing_key": key},
+                    )
             nc.set_variable_vec3(parameter_name, create_vector([value["x"], value["y"], value["z"]]))
         else:
             raise ProcessingError(
@@ -473,6 +490,13 @@ def set_parameter(
                 a=float(value[3]) if len(value) > 3 else 1.0,
             )
         elif isinstance(value, dict):
+            for key in ("r", "g", "b"):
+                if key not in value:
+                    raise ProcessingError(
+                        f"Color dict missing required key '{key}': need {{r, g, b[, a]}}",
+                        operation="niagara_set_parameter",
+                        details={"value": value, "missing_key": key},
+                    )
             color = unreal.LinearColor(
                 r=float(value["r"]),
                 g=float(value["g"]),

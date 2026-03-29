@@ -40,7 +40,7 @@ class LevelOperations:
     )
 
     @validate_inputs({"save": [TypeRule(bool)], "delete_test_assets": [TypeRule(bool)]})
-    @handle_unreal_errors("reset_demo_scene")
+    @handle_unreal_errors("level_reset_demo_scene")
     @safe_operation("level")
     def reset_demo_scene(self, save: bool = True, delete_test_assets: bool = True):
         """Reset the Demo project scene to its clean baseline state.
