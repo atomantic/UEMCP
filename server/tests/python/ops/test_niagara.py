@@ -326,8 +326,7 @@ class TestLoadNiagaraSystem:
         from ops.niagara import _load_niagara_system
         from utils.error_handling import ProcessingError
 
-        mock_asset = MagicMock()
-        mock_asset.__class__ = type("StaticMesh", (), {})
+        mock_asset = type("StaticMesh", (), {})()
         with patch("ops.niagara.require_asset", return_value=mock_asset):
             with pytest.raises(ProcessingError, match="not a NiagaraSystem"):
                 _load_niagara_system("/Game/Meshes/Cube")
