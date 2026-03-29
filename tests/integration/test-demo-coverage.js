@@ -248,15 +248,15 @@ class DemoCoverageTest {
 
     await this.test('batch_spawn', async () => {
       const result = await this.sendCommand({
-        type: 'batch_operations',
+        type: 'actor_batch_spawn',
         params: {
-          operations: [
-            { type: 'actor_spawn', params: { assetPath: '/Engine/BasicShapes/Sphere', location: [3000, 0, 100], name: 'BatchTestSphere1' } },
-            { type: 'actor_spawn', params: { assetPath: '/Engine/BasicShapes/Sphere', location: [3200, 0, 100], name: 'BatchTestSphere2' } }
+          actors: [
+            { assetPath: '/Engine/BasicShapes/Sphere', location: [3000, 0, 100], name: 'BatchTestSphere1' },
+            { assetPath: '/Engine/BasicShapes/Sphere', location: [3200, 0, 100], name: 'BatchTestSphere2' }
           ]
         }
       });
-      if (!result.success) throw new Error(result.error || 'Batch operations failed');
+      if (!result.success) throw new Error(result.error || 'Batch spawn failed');
       this.toolCoverage.batch_spawn = true;
 
       // Clean up batch actors
@@ -653,7 +653,7 @@ result = {'actor_count': num_actors, 'test': 'success'}
         type: 'console_command',
         params: { command: 'stat unit' }
       });
-      // console_command may not return success for all commands, just verify no crash
+      if (result.error) throw new Error(`console_command returned error: ${result.error}`);
       this.toolCoverage.console_command = true;
     });
   }

@@ -456,7 +456,17 @@ def set_parameter(
     elif value_type == "int":
         nc.set_variable_int(parameter_name, int(value))
     elif value_type == "bool":
-        nc.set_variable_bool(parameter_name, bool(value))
+        if isinstance(value, bool):
+            bool_val = value
+        elif isinstance(value, (int, float)):
+            bool_val = value != 0
+        else:
+            raise ProcessingError(
+                f"Bool value must be a boolean or number, got {type(value).__name__}: {value!r}",
+                operation="niagara_set_parameter",
+                details={"value": value, "value_type": type(value).__name__},
+            )
+        nc.set_variable_bool(parameter_name, bool_val)
     elif value_type == "vector":
         if isinstance(value, (list, tuple)) and len(value) == 3:
             nc.set_variable_vec3(parameter_name, create_vector(value))

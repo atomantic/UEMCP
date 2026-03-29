@@ -74,7 +74,8 @@ class LevelOperations:
 
         deleted_assets = []
         if delete_test_assets:
-            test_dirs = ["/Game/VFX", "/Game/TestBlueprints/CoverageTest"]
+            # Only delete known test-only directories to avoid destroying project content
+            test_dirs = ["/Game/TestBlueprints/CoverageTest"]
             for path in test_dirs:
                 if unreal.EditorAssetLibrary.does_directory_exist(path):
                     unreal.EditorAssetLibrary.delete_directory(path)
