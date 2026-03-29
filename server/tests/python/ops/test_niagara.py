@@ -430,7 +430,7 @@ class TestNiagaraCommandRegistration:
     """Verify all expected Niagara tools are properly exposed."""
 
     def test_all_tool_functions_importable(self):
-        from ops import niagara
+        import ops.niagara as niagara
 
         expected_fns = [
             "create_system",
@@ -448,7 +448,7 @@ class TestNiagaraCommandRegistration:
 
     def test_tool_count_matches_registry(self):
         """Verify the expected tool functions are all present."""
-        from ops import niagara
+        import ops.niagara as niagara
 
         expected_tools = {
             "create_system",
