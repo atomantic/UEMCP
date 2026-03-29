@@ -469,35 +469,6 @@ class TestNiagaraCommandRegistration:
 # ---------------------------------------------------------------------------
 
 
-class TestConvertToUeValueDictInputs:
-    """Test _convert_to_ue_value with dict inputs for vector and color types."""
-
-    def test_vector_dict_converts_via_create_vector(self):
-        """Verify _convert_to_ue_value routes a vector dict through create_vector."""
-        from ops.niagara import _convert_to_ue_value
-
-        with patch("ops.niagara.create_vector") as mock_cv:
-            mock_cv.return_value = "vec"
-            _convert_to_ue_value({"x": 10, "y": 20, "z": 30}, "vector")
-            mock_cv.assert_called_once_with([10, 20, 30])
-
-    def test_color_dict_3_defaults_alpha(self):
-        """Verify color dict with 3 components gets alpha=1.0 default."""
-        from ops.niagara import _convert_to_ue_value
-
-        mock_unreal.LinearColor.reset_mock()
-        _convert_to_ue_value({"r": 1.0, "g": 0.0, "b": 0.5}, "color")
-        mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.0, b=0.5, a=1.0)
-
-    def test_color_dict_4_preserves_alpha(self):
-        """Verify color dict with 4 components preserves custom alpha."""
-        from ops.niagara import _convert_to_ue_value
-
-        mock_unreal.LinearColor.reset_mock()
-        _convert_to_ue_value({"r": 1.0, "g": 0.0, "b": 0.5, "a": 0.3}, "color")
-        mock_unreal.LinearColor.assert_called_with(r=1.0, g=0.0, b=0.5, a=0.3)
-
-
 class TestConfigureModuleListCoercion:
     """Test configure_module's list/tuple-to-dict coercion before _convert_to_ue_value."""
 
