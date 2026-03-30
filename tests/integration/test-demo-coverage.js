@@ -261,9 +261,25 @@ class DemoCoverageTest {
       if (!result.success) throw new Error(result.error || 'Batch spawn failed');
       this.toolCoverage.actor_batch_spawn = true;
 
+      // Test viewport_focus_on_actor while we have spawned actors
+      await this.test('viewport_focus_on_actor', async () => {
+        const focusResult = await this.sendCommand({
+          type: 'viewport_focus_on_actor',
+          params: { actorName: 'BatchTestSphere1' }
+        });
+        if (!focusResult.success) throw new Error(focusResult.error || 'Focus on actor failed');
+        this.toolCoverage.viewport_focus_on_actor = true;
+      });
+
       // Clean up batch actors
       await this.sendCommand({ type: 'actor_delete', params: { actorName: 'BatchTestSphere1' } });
       await this.sendCommand({ type: 'actor_delete', params: { actorName: 'BatchTestSphere2' } });
+    });
+
+    await this.test('level_save_level', async () => {
+      const result = await this.sendCommand({ type: 'level_save_level', params: {} });
+      if (!result.success) throw new Error(result.error || 'Level save failed');
+      this.toolCoverage.level_save_level = true;
     });
   }
 
@@ -716,8 +732,8 @@ result = {"cleanup": "done"}
     const categories = {
       'Project & System': ['level_get_project_info', 'test_connection'],
       'Asset Management': ['asset_list_assets', 'asset_get_asset_info'],
-      'Level Editing': ['level_get_level_actors', 'actor_spawn', 'actor_modify', 'actor_delete', 'actor_batch_spawn'],
-      'Viewport Control': ['viewport_screenshot', 'viewport_set_camera', 'viewport_set_mode', 'viewport_set_render_mode'],
+      'Level Editing': ['level_get_level_actors', 'level_save_level', 'actor_spawn', 'actor_modify', 'actor_delete', 'actor_batch_spawn'],
+      'Viewport Control': ['viewport_screenshot', 'viewport_set_camera', 'viewport_set_mode', 'viewport_set_render_mode', 'viewport_focus_on_actor'],
       'Blueprint': [
         'blueprint_create', 'blueprint_get_info', 'blueprint_add_variable',
         'blueprint_add_component', 'blueprint_add_function', 'blueprint_get_graph',

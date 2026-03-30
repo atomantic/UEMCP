@@ -362,7 +362,6 @@ def get_metadata(
 @safe_operation("niagara")
 def compile(
     system_path: str,
-    force: bool = False,
 ) -> dict[str, Any]:
     """Save a Niagara system, triggering recompilation.
 
@@ -371,7 +370,6 @@ def compile(
 
     Args:
         system_path: Path to the Niagara system asset
-        force: Unused (kept for API compatibility); save always triggers compile
 
     Returns:
         Dictionary with compile/save result

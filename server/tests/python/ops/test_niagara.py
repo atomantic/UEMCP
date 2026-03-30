@@ -374,3 +374,109 @@ class TestListTemplates:
             result = list_templates()
             for t in result["templates"]:
                 assert t["available"] is False
+
+
+# ---------------------------------------------------------------------------
+# set_parameter Tests
+# ---------------------------------------------------------------------------
+
+
+class TestSetParameter:
+    """Test set_parameter value coercion and validation."""
+
+    def _make_actor_with_component(self):
+        """Helper: return a mock actor with a niagara_component."""
+        nc = MagicMock()
+        actor = MagicMock()
+        actor.get_actor_label.return_value = "TestVFX"
+        actor.niagara_component = nc
+        return actor, nc
+
+    def _patch_editor(self, actor):
+        """Helper: patch EditorActorSubsystem to return [actor]."""
+        mock_editor = MagicMock()
+        mock_editor.get_all_level_actors.return_value = [actor]
+        return patch("ops.niagara.unreal.get_editor_subsystem", return_value=mock_editor)
+
+    def test_float_calls_set_variable_float(self):
+        from ops.niagara import set_parameter
+
+        actor, nc = self._make_actor_with_component()
+        with self._patch_editor(actor):
+            result = set_parameter("TestVFX", "SpawnRate", value=42.0, value_type="float")
+            assert result["success"] is True
+            nc.set_variable_float.assert_called_once_with("SpawnRate", 42.0)
+
+    def test_int_calls_set_variable_int(self):
+        from ops.niagara import set_parameter
+
+        actor, nc = self._make_actor_with_component()
+        with self._patch_editor(actor):
+            result = set_parameter("TestVFX", "Count", value=10, value_type="int")
+            assert result["success"] is True
+            nc.set_variable_int.assert_called_once_with("Count", 10)
+
+    def test_bool_true(self):
+        from ops.niagara import set_parameter
+
+        actor, nc = self._make_actor_with_component()
+        with self._patch_editor(actor):
+            result = set_parameter("TestVFX", "Enabled", value=True, value_type="bool")
+            assert result["success"] is True
+            nc.set_variable_bool.assert_called_once_with("Enabled", True)
+
+    def test_bool_rejects_string(self):
+        from ops.niagara import set_parameter
+
+        actor, nc = self._make_actor_with_component()
+        with self._patch_editor(actor):
+            result = set_parameter("TestVFX", "Enabled", value="false", value_type="bool")
+            assert result["success"] is False
+            assert "Bool value" in result["error"]
+
+    def test_vector_list(self):
+        from ops.niagara import set_parameter
+
+        actor, nc = self._make_actor_with_component()
+        with self._patch_editor(actor), patch("ops.niagara.create_vector") as mock_cv:
+            mock_cv.return_value = "mock_vec"
+            result = set_parameter("TestVFX", "Vel", value=[1, 2, 3], value_type="vector")
+            assert result["success"] is True
+            nc.set_variable_vec3.assert_called_once()
+
+    def test_vector_dict_missing_key(self):
+        from ops.niagara import set_parameter
+
+        actor, nc = self._make_actor_with_component()
+        with self._patch_editor(actor):
+            result = set_parameter("TestVFX", "Vel", value={"x": 1, "y": 2}, value_type="vector")
+            assert result["success"] is False
+            assert "missing required key" in result["error"]
+
+    def test_color_tuple_rgb(self):
+        from ops.niagara import set_parameter
+
+        actor, nc = self._make_actor_with_component()
+        with self._patch_editor(actor):
+            result = set_parameter("TestVFX", "Col", value=[1.0, 0.5, 0.0], value_type="color")
+            assert result["success"] is True
+            nc.set_variable_linear_color.assert_called_once()
+
+    def test_actor_not_found(self):
+        from ops.niagara import set_parameter
+
+        mock_editor = MagicMock()
+        mock_editor.get_all_level_actors.return_value = []
+        with patch("ops.niagara.unreal.get_editor_subsystem", return_value=mock_editor):
+            result = set_parameter("Missing", "Param", value=1.0, value_type="float")
+            assert result["success"] is False
+            assert "not found" in result["error"]
+
+    def test_invalid_value_type(self):
+        from ops.niagara import set_parameter
+
+        actor, nc = self._make_actor_with_component()
+        with self._patch_editor(actor):
+            result = set_parameter("TestVFX", "Param", value=1, value_type="quaternion")
+            assert result["success"] is False
+            assert "Invalid value_type" in result["error"]
