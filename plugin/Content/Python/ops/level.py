@@ -81,14 +81,15 @@ class LevelOperations:
                     unreal.EditorAssetLibrary.delete_directory(path)
                     deleted_assets.append(path)
 
-        if save and (removed or deleted_assets):
+        saved = bool(save and (removed or deleted_assets))
+        if saved:
             unreal.EditorLoadingAndSavingUtils.save_dirty_packages(True, True)
 
         return {
             "removedActors": removed,
             "removedCount": len(removed),
             "deletedAssets": deleted_assets,
-            "saved": save,
+            "saved": saved,
         }
 
     @handle_unreal_errors("save_level")

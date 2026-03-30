@@ -28,27 +28,27 @@ class DemoCoverageTest {
     // Track MCP tool coverage by category
     this.toolCoverage = {
       // Project & System
-      'project_info': false,
+      'level_get_project_info': false,
       'test_connection': false,
 
       // Asset Management
-      'asset_list': false,
-      'asset_info': false,
+      'asset_list_assets': false,
+      'asset_get_asset_info': false,
 
       // Level Editing
-      'level_actors': false,
-      'level_save': false,
+      'level_get_level_actors': false,
+      'level_save_level': false,
       'actor_spawn': false,
       'actor_modify': false,
       'actor_delete': false,
-      'batch_spawn': false,
+      'actor_batch_spawn': false,
 
       // Viewport Control
       'viewport_screenshot': false,
-      'viewport_camera': false,
-      'viewport_mode': false,
-      'viewport_focus': false,
-      'viewport_render_mode': false,
+      'viewport_set_camera': false,
+      'viewport_set_mode': false,
+      'viewport_focus_on_actor': false,
+      'viewport_set_render_mode': false,
 
       // Blueprint Operations
       'blueprint_create': false,
@@ -81,8 +81,8 @@ class DemoCoverageTest {
       'niagara_set_parameter': false,
 
       // Material Operations
-      'material_list': false,
-      'material_info': false,
+      'material_list_materials': false,
+      'material_get_material_info': false,
 
       // Advanced
       'python_proxy': false,
@@ -92,7 +92,9 @@ class DemoCoverageTest {
 
   async sendCommand(command, timeout = 30000) {
     return new Promise((resolve, reject) => {
-      const data = JSON.stringify(command);
+      // Include timeout in payload (seconds) so the UE listener uses it too
+      const payload = { ...command, timeout: Math.ceil(timeout / 1000) };
+      const data = JSON.stringify(payload);
 
       const options = {
         hostname: 'localhost',
@@ -170,10 +172,10 @@ class DemoCoverageTest {
   }
 
   async testProjectInfo() {
-    await this.test('project_info', async () => {
-      const result = await this.sendCommand({ type: 'project_info', params: {} });
+    await this.test('level_get_project_info', async () => {
+      const result = await this.sendCommand({ type: 'level_get_project_info', params: {} });
       if (!result.success) throw new Error(result.error || 'Project info failed');
-      this.toolCoverage.project_info = true;
+      this.toolCoverage.level_get_project_info = true;
     });
   }
 
@@ -182,17 +184,17 @@ class DemoCoverageTest {
   // -------------------------------------------------------------------------
 
   async testAssetOperations() {
-    await this.test('asset_list', async () => {
-      const result = await this.sendCommand({ type: 'asset_list', params: { path: '/Game', limit: 10 } });
+    await this.test('asset_list_assets', async () => {
+      const result = await this.sendCommand({ type: 'asset_list_assets', params: { path: '/Game', limit: 10 } });
       if (!result.success || !Array.isArray(result.assets)) throw new Error(result.error || 'Asset list failed');
-      this.toolCoverage.asset_list = true;
+      this.toolCoverage.asset_list_assets = true;
       console.log(`    Found ${result.assets.length} assets`);
     });
 
-    await this.test('asset_info', async () => {
-      const result = await this.sendCommand({ type: 'asset_info', params: { assetPath: '/Engine/BasicShapes/Cube' } });
+    await this.test('asset_get_asset_info', async () => {
+      const result = await this.sendCommand({ type: 'asset_get_asset_info', params: { assetPath: '/Engine/BasicShapes/Cube' } });
       if (!result.success) throw new Error(result.error || 'Asset info failed');
-      this.toolCoverage.asset_info = true;
+      this.toolCoverage.asset_get_asset_info = true;
     });
   }
 
@@ -201,10 +203,10 @@ class DemoCoverageTest {
   // -------------------------------------------------------------------------
 
   async testLevelOperations() {
-    await this.test('level_actors', async () => {
-      const result = await this.sendCommand({ type: 'level_actors', params: {} });
+    await this.test('level_get_level_actors', async () => {
+      const result = await this.sendCommand({ type: 'level_get_level_actors', params: {} });
       if (!result.success || !Array.isArray(result.actors)) throw new Error(result.error || 'Level actors failed');
-      this.toolCoverage.level_actors = true;
+      this.toolCoverage.level_get_level_actors = true;
       console.log(`    ${result.actors.length} actors in level`);
     });
 
@@ -257,7 +259,7 @@ class DemoCoverageTest {
         }
       });
       if (!result.success) throw new Error(result.error || 'Batch spawn failed');
-      this.toolCoverage.batch_spawn = true;
+      this.toolCoverage.actor_batch_spawn = true;
 
       // Clean up batch actors
       await this.sendCommand({ type: 'actor_delete', params: { actorName: 'BatchTestSphere1' } });
@@ -276,30 +278,30 @@ class DemoCoverageTest {
       this.toolCoverage.viewport_screenshot = true;
     });
 
-    await this.test('viewport_camera', async () => {
+    await this.test('viewport_set_camera', async () => {
       const result = await this.sendCommand({
-        type: 'viewport_camera',
+        type: 'viewport_set_camera',
         params: { location: [1000, 1000, 500], rotation: [0, -30, -45] }
       });
       if (!result.success) throw new Error(result.error || 'Camera positioning failed');
-      this.toolCoverage.viewport_camera = true;
+      this.toolCoverage.viewport_set_camera = true;
     });
 
-    await this.test('viewport_mode', async () => {
-      const result = await this.sendCommand({ type: 'viewport_mode', params: { mode: 'top' } });
+    await this.test('viewport_set_mode', async () => {
+      const result = await this.sendCommand({ type: 'viewport_set_mode', params: { mode: 'top' } });
       if (!result.success) throw new Error(result.error || 'Viewport mode failed');
-      this.toolCoverage.viewport_mode = true;
+      this.toolCoverage.viewport_set_mode = true;
     });
 
-    await this.test('viewport_render_mode', async () => {
-      const result = await this.sendCommand({ type: 'viewport_render_mode', params: { mode: 'wireframe' } });
+    await this.test('viewport_set_render_mode', async () => {
+      const result = await this.sendCommand({ type: 'viewport_set_render_mode', params: { mode: 'wireframe' } });
       if (!result.success) throw new Error(result.error || 'Render mode failed');
-      this.toolCoverage.viewport_render_mode = true;
+      this.toolCoverage.viewport_set_render_mode = true;
     });
 
     // Reset to normal view
-    await this.sendCommand({ type: 'viewport_render_mode', params: { mode: 'lit' } });
-    await this.sendCommand({ type: 'viewport_mode', params: { mode: 'perspective' } });
+    await this.sendCommand({ type: 'viewport_set_render_mode', params: { mode: 'lit' } });
+    await this.sendCommand({ type: 'viewport_set_mode', params: { mode: 'perspective' } });
   }
 
   // -------------------------------------------------------------------------
@@ -415,6 +417,7 @@ class DemoCoverageTest {
 
     // Use the BP created above (or an existing one)
     const bpPath = '/Game/TestBlueprints/CoverageTest/BP_CoverageTest';
+    let beginPlayNodeId = null;
     let printNodeId = null;
 
     await this.test('blueprint_add_node', async () => {
@@ -429,6 +432,7 @@ class DemoCoverageTest {
       });
       if (!result.success) throw new Error(result.error || 'Add node failed');
       this.toolCoverage.blueprint_add_node = true;
+      beginPlayNodeId = result.nodeId;
 
       // Add a PrintString node to connect to
       const printResult = await this.sendCommand({
@@ -445,16 +449,16 @@ class DemoCoverageTest {
       }
     });
 
-    if (printNodeId) {
+    if (beginPlayNodeId && printNodeId) {
       await this.test('blueprint_connect_nodes', async () => {
         const result = await this.sendCommand({
           type: 'blueprint_connect_nodes',
           params: {
             blueprint_path: bpPath,
-            source_node_id: 'BeginPlay',
-            source_pin: 'then',
+            source_node_id: beginPlayNodeId,
+            source_pin_name: 'then',
             target_node_id: printNodeId,
-            target_pin: 'execute'
+            target_pin_name: 'execute'
           }
         });
         // Connection may fail if pin names differ — still counts as exercised
@@ -606,22 +610,22 @@ class DemoCoverageTest {
   async testMaterialOperations() {
     console.log('\n--- Material Operations ---');
 
-    await this.test('material_list', async () => {
+    await this.test('material_list_materials', async () => {
       const result = await this.sendCommand({
-        type: 'material_list',
+        type: 'material_list_materials',
         params: { path: '/Engine' }
       });
       if (!result.success) throw new Error(result.error || 'Material list failed');
-      this.toolCoverage.material_list = true;
+      this.toolCoverage.material_list_materials = true;
     });
 
-    await this.test('material_info', async () => {
+    await this.test('material_get_material_info', async () => {
       const result = await this.sendCommand({
-        type: 'material_info',
+        type: 'material_get_material_info',
         params: { material_path: '/Engine/EngineMaterials/WorldGridMaterial' }
       });
       if (!result.success) throw new Error(result.error || 'Material info failed');
-      this.toolCoverage.material_info = true;
+      this.toolCoverage.material_get_material_info = true;
     });
   }
 
@@ -710,10 +714,10 @@ result = {"cleanup": "done"}
     console.log('='.repeat(60));
 
     const categories = {
-      'Project & System': ['project_info', 'test_connection'],
-      'Asset Management': ['asset_list', 'asset_info'],
-      'Level Editing': ['level_actors', 'actor_spawn', 'actor_modify', 'actor_delete', 'batch_spawn'],
-      'Viewport Control': ['viewport_screenshot', 'viewport_camera', 'viewport_mode', 'viewport_render_mode'],
+      'Project & System': ['level_get_project_info', 'test_connection'],
+      'Asset Management': ['asset_list_assets', 'asset_get_asset_info'],
+      'Level Editing': ['level_get_level_actors', 'actor_spawn', 'actor_modify', 'actor_delete', 'actor_batch_spawn'],
+      'Viewport Control': ['viewport_screenshot', 'viewport_set_camera', 'viewport_set_mode', 'viewport_set_render_mode'],
       'Blueprint': [
         'blueprint_create', 'blueprint_get_info', 'blueprint_add_variable',
         'blueprint_add_component', 'blueprint_add_function', 'blueprint_get_graph',
@@ -726,7 +730,7 @@ result = {"cleanup": "done"}
         'niagara_list_templates', 'niagara_create_system', 'niagara_compile',
         'niagara_spawn', 'niagara_get_metadata', 'niagara_set_parameter'
       ],
-      'Material': ['material_list', 'material_info'],
+      'Material': ['material_list_materials', 'material_get_material_info'],
       'Advanced': ['python_proxy', 'console_command']
     };
 
