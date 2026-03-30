@@ -394,6 +394,7 @@ def compile(
     {
         "actor_name": [RequiredRule(), TypeRule(str)],
         "parameter_name": [RequiredRule(), TypeRule(str)],
+        "value": [RequiredRule()],
         "value_type": [RequiredRule(), TypeRule(str)],
     }
 )
@@ -402,7 +403,7 @@ def compile(
 def set_parameter(
     actor_name: str,
     parameter_name: str,
-    value: Any = None,
+    value: Any = 0,
     value_type: str = "float",
 ) -> dict[str, Any]:
     """Set a user parameter on a spawned Niagara actor's component.

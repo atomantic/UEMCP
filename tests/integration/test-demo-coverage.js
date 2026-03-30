@@ -162,12 +162,12 @@ class DemoCoverageTest {
       const response = await fetch(this.pythonBridge);
       const status = await response.json();
 
-      if (!status.project || !status.engine_version) {
+      if (status.status !== 'online' || !status.ready || !status.manifest) {
         throw new Error('Invalid UE status response');
       }
 
       this.toolCoverage.test_connection = true;
-      console.log(`    Project: ${status.project} | Engine: ${status.engine_version}`);
+      console.log(`    Service: ${status.service} | Version: ${status.version} | Tools: ${status.manifest.totalTools}`);
     });
   }
 
