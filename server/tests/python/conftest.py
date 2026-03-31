@@ -5,9 +5,21 @@ This file provides common fixtures and mocks for testing UEMCP Python operations
 without requiring a running Unreal Engine instance.
 """
 
-from unittest.mock import Mock
+import sys
+from unittest.mock import MagicMock, Mock
 
 import pytest
+
+# Install a base unreal mock into sys.modules at import time.
+# This ensures all test files that conditionally check for "unreal"
+# share the same mock object, preventing one test module from
+# overwriting another's setup.  Attributes that are used with
+# isinstance() must be real types, not MagicMock auto-attributes.
+if "unreal" not in sys.modules:
+    _base_unreal = MagicMock()
+    _base_unreal.SceneComponent = type("SceneComponent", (), {})
+    _base_unreal.NiagaraSystem = type("NiagaraSystem", (), {})
+    sys.modules["unreal"] = _base_unreal
 
 
 @pytest.fixture

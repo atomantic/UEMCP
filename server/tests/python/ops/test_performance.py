@@ -23,10 +23,13 @@ class _MockInstancedStaticMeshComponent(_MockStaticMeshComponent):
     pass
 
 
-_mock_unreal = MagicMock()
+if "unreal" not in sys.modules:
+    _mock_unreal = MagicMock()
+    sys.modules["unreal"] = _mock_unreal
+else:
+    _mock_unreal = sys.modules["unreal"]
 _mock_unreal.StaticMeshComponent = _MockStaticMeshComponent
 _mock_unreal.InstancedStaticMeshComponent = _MockInstancedStaticMeshComponent
-sys.modules["unreal"] = _mock_unreal
 
 # Add the plugin directory to Python path for imports
 plugin_path = os.path.join(os.path.dirname(__file__), "../../../..", "plugin", "Content", "Python")
