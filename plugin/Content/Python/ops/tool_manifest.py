@@ -190,6 +190,8 @@ class ManifestGenerator:
             "python": "system",
             "perf": "performance",
             "widget": "widgets",
+            "pcg": "pcg",
+            "statetree": "ai",
         }
         category = category_map.get(prefix, "system")
 
