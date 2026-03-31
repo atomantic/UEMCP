@@ -174,6 +174,7 @@ class ManifestGenerator:
             "audio": "audio",
             "blueprint": "blueprints",
             "material": "materials",
+            "mesh": "meshes",
             "viewport": "viewport",
             "level": "level",
             "placement": "actors",

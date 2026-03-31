@@ -321,6 +321,15 @@ def register_all_operations():
         registry.register_command("input_list_actions", input_system.list_actions)
         registry.register_command("input_get_metadata", input_system.get_metadata)
 
+        # Mesh & LOD management operations
+        from ops import mesh
+
+        registry.register_command("mesh_get_metadata", mesh.get_metadata)
+        registry.register_command("mesh_import_lod", mesh.import_lod)
+        registry.register_command("mesh_set_lod_screen_size", mesh.set_lod_screen_size)
+        registry.register_command("mesh_auto_generate_lods", mesh.auto_generate_lods)
+        registry.register_command("mesh_get_instance_breakdown", mesh.get_instance_breakdown)
+
         # Register batch operations
         from ops.batch_operations import execute_batch_operations
 
