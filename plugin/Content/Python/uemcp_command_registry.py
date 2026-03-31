@@ -335,16 +335,22 @@ def register_all_operations():
 
         registry.register_command("batch_operations", execute_batch_operations)
 
-        # Register PCG operations (standalone functions)
-        from ops import pcg
+        # Register PCG operations (optional — requires PCG plugin)
+        # ops.pcg raises ImportError at import time if unreal.PCGGraphInterface is absent.
+        try:
+            from ops import pcg
+        except ImportError:
+            log_debug("PCG plugin not available; pcg_* tools not registered")
+            pcg = None  # type: ignore[assignment]
 
-        registry.register_command("pcg_create_graph", pcg.create_graph)
-        registry.register_command("pcg_add_node", pcg.add_node)
-        registry.register_command("pcg_connect_nodes", pcg.connect_nodes)
-        registry.register_command("pcg_set_node_property", pcg.set_node_property)
-        registry.register_command("pcg_search_palette", pcg.search_palette)
-        registry.register_command("pcg_spawn_actor", pcg.spawn_actor)
-        registry.register_command("pcg_execute", pcg.execute)
+        if pcg is not None:
+            registry.register_command("pcg_create_graph", pcg.create_graph)
+            registry.register_command("pcg_add_node", pcg.add_node)
+            registry.register_command("pcg_connect_nodes", pcg.connect_nodes)
+            registry.register_command("pcg_set_node_property", pcg.set_node_property)
+            registry.register_command("pcg_search_palette", pcg.search_palette)
+            registry.register_command("pcg_spawn_actor", pcg.spawn_actor)
+            registry.register_command("pcg_execute", pcg.execute)
 
         # Register StateTree AI operations (standalone functions)
         from ops import statetree

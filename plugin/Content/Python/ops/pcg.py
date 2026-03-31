@@ -3,9 +3,16 @@ PCG (Procedural Content Generation) operations for creating and managing
 PCG graphs, nodes, and procedural generation execution.
 """
 
+from __future__ import annotations
+
 from typing import Any, Optional
 
 import unreal
+
+# Fail fast at import time if PCG plugin is not available, so that
+# try/except ImportError guards in __init__.py and command_registry work.
+if not hasattr(unreal, "PCGGraphInterface"):
+    raise ImportError("PCG plugin is not available (unreal.PCGGraphInterface not found)")
 
 from utils.error_handling import (
     AssetPathRule,
