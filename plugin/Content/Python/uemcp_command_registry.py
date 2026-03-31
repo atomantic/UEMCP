@@ -248,6 +248,13 @@ def register_all_operations():
             registry.register_command("niagara_set_parameter", niagara.set_parameter)
             registry.register_command("niagara_list_templates", niagara.list_templates)
 
+        # Register performance profiling operations
+        from ops import performance
+
+        registry.register_command("perf_rendering_stats", performance.rendering_stats)
+        registry.register_command("perf_gpu_stats", performance.gpu_stats)
+        registry.register_command("perf_scene_breakdown", performance.scene_breakdown)
+
         # Register Widget Blueprint operations (standalone functions)
         from ops import widget
 
