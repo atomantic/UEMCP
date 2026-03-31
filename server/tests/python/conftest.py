@@ -13,9 +13,13 @@ import pytest
 # Install a base unreal mock into sys.modules at import time.
 # This ensures all test files that conditionally check for "unreal"
 # share the same mock object, preventing one test module from
-# overwriting another's setup.
+# overwriting another's setup.  Attributes that are used with
+# isinstance() must be real types, not MagicMock auto-attributes.
 if "unreal" not in sys.modules:
-    sys.modules["unreal"] = MagicMock()
+    _base_unreal = MagicMock()
+    _base_unreal.SceneComponent = type("SceneComponent", (), {})
+    _base_unreal.NiagaraSystem = type("NiagaraSystem", (), {})
+    sys.modules["unreal"] = _base_unreal
 
 
 @pytest.fixture
