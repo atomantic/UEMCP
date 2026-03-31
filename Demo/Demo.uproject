@@ -16,6 +16,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "Niagara",
+			"Enabled": true
+		},
+		{
 			"Name": "AutomationDriverTests",
 			"Enabled": true
 		}

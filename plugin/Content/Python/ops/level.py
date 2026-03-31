@@ -26,6 +26,72 @@ from utils.error_handling import (
 class LevelOperations:
     """Handles all level and project-related operations."""
 
+    # Actors matching these prefixes are considered part of the baseline
+    # Calibration level and are preserved during reset_demo_scene.
+    _BASELINE_PREFIXES = (
+        "Calib",
+        "Marker_",
+        "DirectionalLight",
+        "SkyAtmosphere",
+        "SkyLight",
+        "ExponentialHeightFog",
+        "VolumetricCloud",
+        "PlayerStart",
+    )
+
+    @validate_inputs({"save": [TypeRule(bool)], "delete_test_assets": [TypeRule(bool)]})
+    @handle_unreal_errors("level_reset_demo_scene")
+    @safe_operation("level")
+    def reset_demo_scene(self, save: bool = True, delete_test_assets: bool = True):
+        """Reset the Demo project scene to its clean baseline state.
+
+        Removes all actors that are not part of the Calibration level baseline
+        (calibration grid, lighting, atmosphere). Optionally deletes test assets
+        from the content browser and saves the level.
+
+        Args:
+            save: Save the level after cleanup (default True)
+            delete_test_assets: Delete test asset directories (default True)
+
+        Returns:
+            dict: Cleanup results with removed actors and deleted assets
+        """
+        import unreal
+
+        editor = get_actor_subsystem()
+        all_actors = editor.get_all_level_actors()
+
+        removed = []
+        for actor in all_actors:
+            label = actor.get_actor_label()
+            cls = type(actor).__name__
+            if cls in ("WorldSettings", "Brush", "AbstractNavData"):
+                continue
+            if any(label.startswith(p) for p in self._BASELINE_PREFIXES):
+                continue
+            removed.append(label)
+            editor.destroy_actor(actor)
+
+        deleted_assets = []
+        if delete_test_assets:
+            # Only delete known test-only directories to avoid destroying project content
+            test_dirs = ["/Game/TestBlueprints/CoverageTest"]
+            for path in test_dirs:
+                if unreal.EditorAssetLibrary.does_directory_exist(path):
+                    unreal.EditorAssetLibrary.delete_directory(path)
+                    deleted_assets.append(path)
+
+        saved = bool(save and (removed or deleted_assets))
+        if saved:
+            unreal.EditorLoadingAndSavingUtils.save_dirty_packages(True, True)
+
+        return {
+            "removedActors": removed,
+            "removedCount": len(removed),
+            "deletedAssets": deleted_assets,
+            "saved": saved,
+        }
+
     @handle_unreal_errors("save_level")
     @safe_operation("level")
     def save_level(self):
