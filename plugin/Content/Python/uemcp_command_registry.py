@@ -201,6 +201,18 @@ def register_all_operations():
         material_ops = MaterialOperations()
         registry.register_operations(material_ops)
 
+        # Register Animation Blueprint operations (standalone functions)
+        from ops import animation
+
+        registry.register_command("anim_create_blueprint", animation.create_blueprint)
+        registry.register_command("anim_create_state_machine", animation.create_state_machine)
+        registry.register_command("anim_add_state", animation.add_state)
+        registry.register_command("anim_add_transition", animation.add_transition)
+        registry.register_command("anim_add_variable", animation.add_variable)
+        registry.register_command("anim_get_metadata", animation.get_metadata)
+        registry.register_command("anim_create_montage", animation.create_montage)
+        registry.register_command("anim_link_layer", animation.link_layer)
+
         # Register Blueprint operations (standalone functions)
         from ops import blueprint, blueprint_graph, blueprint_nodes
 
