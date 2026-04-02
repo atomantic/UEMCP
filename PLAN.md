@@ -172,6 +172,18 @@ Required for character-driven games.
 - [x] `mesh_auto_generate_lods` — Built-in mesh reduction
 - [x] `mesh_get_instance_breakdown` — Rendering cost per LOD
 
+## Demo Showcase Redesign ✅
+
+Replaced the old calibration grid with a full feature showcase:
+- 9 themed zones (3x3 grid) demonstrating all MCP tool categories
+- Central hub with directional arrows to each zone
+- 17 showcase materials (11 zone + 6 showcase)
+- 4 live Niagara particle effects
+- TextRenderActor labels for all zones and features
+- E2E test areas in each zone with reset-safe naming
+- Updated baseline prefixes (Demo_ instead of Calib_)
+- 151 baseline actors, all organized in World Outliner folders
+
 ## Backlog
 
 - [ ] Streamable HTTP transport (MCP SDK supports this)

@@ -10,6 +10,7 @@ from typing import Any, Optional
 
 import unreal
 
+from utils.blueprint_helpers import compile_blueprint as _compile_bp
 from utils.error_handling import (
     AssetPathRule,
     ProcessingError,
@@ -134,7 +135,7 @@ def _find_widget_component(widget_bp, component_name: str):
 
 def _compile_and_save_widget(widget_bp, widget_path: str):
     """Compile and save a Widget Blueprint."""
-    unreal.KismetEditorUtilities.compile_blueprint(widget_bp)
+    _compile_bp(widget_bp)
     unreal.EditorAssetLibrary.save_asset(widget_path)
     log_debug(f"Saved Widget Blueprint: {widget_path}")
 

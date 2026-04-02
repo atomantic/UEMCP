@@ -7,6 +7,7 @@ from typing import Any, Optional
 
 import unreal
 
+from utils.blueprint_helpers import compile_blueprint as _compile_bp
 from utils.error_handling import (
     AssetPathRule,
     ProcessingError,
@@ -137,7 +138,7 @@ def create_blueprint(
             details={"asset_path": asset_path},
         )
 
-    unreal.KismetEditorUtilities.compile_blueprint(anim_bp)
+    _compile_bp(anim_bp)
     unreal.EditorAssetLibrary.save_asset(asset_path)
 
     log_debug(f"Created Animation Blueprint: {asset_path}")
@@ -186,7 +187,7 @@ def create_state_machine(
     anim_graph.add_node(sm_node, False, False)
     # Pin wiring to the final animation pose output is handled by UE compilation
 
-    unreal.KismetEditorUtilities.compile_blueprint(anim_bp)
+    _compile_bp(anim_bp)
     unreal.EditorAssetLibrary.save_asset(blueprint_path)
 
     log_debug(f"Created state machine '{machine_name}' in {blueprint_path}")
@@ -264,7 +265,7 @@ def add_state(
         if bound_graph:
             bound_graph.add_node(play_node, False, False)
 
-    unreal.KismetEditorUtilities.compile_blueprint(anim_bp)
+    _compile_bp(anim_bp)
     unreal.EditorAssetLibrary.save_asset(blueprint_path)
 
     log_debug(f"Added state '{state_name}' to machine '{machine_name}' in {blueprint_path}")
@@ -362,7 +363,7 @@ def add_transition(
         if crossfade is not None:
             transition_node.set_editor_property("crossfade_duration", duration)
 
-    unreal.KismetEditorUtilities.compile_blueprint(anim_bp)
+    _compile_bp(anim_bp)
     unreal.EditorAssetLibrary.save_asset(blueprint_path)
 
     log_debug(f"Added transition {source_state} -> {target_state} in '{machine_name}'")
@@ -434,14 +435,14 @@ def add_variable(
         log_debug(f"add_blueprint_variable returned falsy for '{variable_name}', attempting save anyway")
 
     # Compile first so the CDO has the new variable property available
-    unreal.KismetEditorUtilities.compile_blueprint(anim_bp)
+    _compile_bp(anim_bp)
 
     if default_value is not None:
         cdo = anim_bp.generated_class().get_default_object()
         if cdo and hasattr(cdo, variable_name):
             cdo.set_editor_property(variable_name, default_value)
             # Re-compile after setting default to persist the CDO change
-            unreal.KismetEditorUtilities.compile_blueprint(anim_bp)
+            _compile_bp(anim_bp)
 
     unreal.EditorAssetLibrary.save_asset(blueprint_path, only_if_is_dirty=False)
 
@@ -685,7 +686,7 @@ def link_layer(
         inner_node.set_editor_property("interface", layer_class)
     anim_graph.add_node(layer_node, False, False)
 
-    unreal.KismetEditorUtilities.compile_blueprint(base_bp)
+    _compile_bp(base_bp)
     unreal.EditorAssetLibrary.save_asset(blueprint_path)
 
     log_debug(f"Linked layer '{layer_comment}' to {blueprint_path}")

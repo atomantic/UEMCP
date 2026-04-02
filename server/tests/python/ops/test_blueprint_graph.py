@@ -1103,12 +1103,14 @@ class TestModifyComponentIntegration:
         assert "not found" in result["error"]
 
     def test_no_scs_returns_error(self, monkeypatch):
-        """Test that Blueprint without SCS returns error dict."""
+        """Test that Blueprint without SCS or SubobjectDataSubsystem returns error."""
         from ops.blueprint_graph import modify_component
 
         mock_bp = Mock()
         mock_bp.simple_construction_script = None
         monkeypatch.setattr("ops.blueprint_graph.resolve_blueprint", lambda _: mock_bp)
+        monkeypatch.setattr("ops.blueprint_graph.get_scs", lambda _: None)
+        monkeypatch.setattr("ops.blueprint_graph.get_subobject_subsystem", lambda: None)
 
         result = modify_component(
             blueprint_path="/Game/BP_Test",
@@ -1116,7 +1118,7 @@ class TestModifyComponentIntegration:
             properties={"foo": 1},
         )
         assert result["success"] is False
-        assert "SimpleConstructionScript" in result["error"]
+        assert "not found" in result["error"]
 
     def test_rotation_property_coerced_to_rotator(self, monkeypatch):
         """Test that rotation-named properties use Rotator instead of Vector."""

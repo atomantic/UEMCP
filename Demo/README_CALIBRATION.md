@@ -1,135 +1,128 @@
-# Simple Calibration Grid - Demo Project
+# UEMCP Feature Showcase - Demo Project
 
 ## Overview
 
-The Demo project now uses a **simple calibration grid** made of colored geometric shapes instead of complex text rendering. This approach is:
-- Much easier to manipulate programmatically
-- More performant 
-- Free from text rendering complications
-- Visually clearer for calibration purposes
+The Demo project is a **walkable feature showcase** organized as a linear corridor of themed zones, each demonstrating a category of MCP tools. Every zone includes a dedicated **E2E test area** where integration tests operate and reset. Press **Play** in the editor to fly through the corridor using WASD + mouse look.
 
-## Grid Structure
+## Layout (Linear Corridor, 2500-unit spacing along X axis)
 
-### Main Grid
-- **8x10 grid** of colored cubes (8 rows × 10 columns)
-- **150 units** spacing between elements
-- **Center markers** at corners for orientation
-- **8 distinct colors**: Red, Green, Blue, Yellow, Cyan, Magenta, Orange, White
-
-### Markers
-- **4 corner cones** (NW, NE, SW, SE) in yellow
-- Help with orientation and grid boundaries
-
-### Ground Plane
-- Dark gray plane for visual reference
-- 20x20 scale units
-
-## Color Manipulation
-
-### Using Python in UE Console
-
-You can manipulate the grid colors directly in the UE Python console:
-
-```python
-import unreal
-
-# Get all calibration grid actors
-actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
-grid_actors = [a for a in actors if 'CalibCube' in a.get_actor_label()]
-
-# Change colors using dynamic materials
-for actor in grid_actors:
-    mesh_comp = actor.get_component_by_class(unreal.StaticMeshComponent)
-    if mesh_comp:
-        material = mesh_comp.get_material(0)
-        dynamic_mat = mesh_comp.create_dynamic_material_instance(0)
-        # Set to red (R=1, G=0, B=0)
-        dynamic_mat.set_vector_parameter_value("BaseColor", unreal.LinearColor(1, 0, 0, 1))
+```
+PlayerStart  Hub    Actor   Material  Niagara  Blueprint  Audio   Widget   Anim    Data
+X: -1500     0      2500    5000      7500     10000      12500   15000    17500   20000
 ```
 
-### Using MCP Tools
+Navigation signs between each zone guide you to the next area.
+
+## Zone Details
+
+### Central Hub (X=0)
+- Welcome title and subtitle text
+- Globe with emissive material on metallic pedestal
+- Forward/back corridor arrows
+
+### Actor Operations (X=2500) - Red
+- Shape gallery: Cube, Sphere, Cylinder, Cone
+- Wall and pillar demonstrations
+- Batch spawn array (3 spheres)
+- Organized/rotated cubes
+- **Tools**: spawn, modify, duplicate, delete, batch_spawn, organize, snap_to_socket
+
+### Material System (X=5000) - Blue
+- Material spheres: Metallic, Rough, Emissive, Gold, Copper, Neon
+- Cube variants with metallic/gold finishes
+- **Tools**: create_simple_material, create_instance, apply, graph editing
+
+### Niagara VFX (X=7500) - Purple
+- 4 live particle effects on pedestals: Fountain, Burst, Explosion, Trails
+- **Tools**: create_system, spawn, set_parameter, compile, list_templates
+
+### Blueprint System (X=10000) - Green
+- 3 pedestals with demo shapes (Components, Variables, Functions)
+- Visual graph wall with node blocks and connection
+- **Tools**: create, compile, add_variable, add_component, add_function, graph
+
+### Audio/MetaSound (X=12500) - Orange
+- 3 speaker cones
+- Sound wave visualization rings
+- MetaSound node graph wall (Oscillator, Filter, Output)
+- **Tools**: import, create_metasound, add_node, connect_nodes, set_parameter
+
+### Widget/UMG (X=15000) - Cyan
+- 2 screen panels
+- 3 button blocks
+- Slider with knob
+- Progress bar
+- **Tools**: create, add_component, set_layout, set_property, bind_event
+
+### Animation & AI (X=17500) - Yellow
+- 3 humanoid figures (cylinder body + sphere head)
+- State machine visualization wall with 3 state nodes
+- **Tools**: anim_create_blueprint, state_machine, montage, statetree_create
+
+### Data Systems (X=20000) - Magenta
+- DataTable visualization (table + 3 rows)
+- Struct block with field layers
+- Enum wheel with arrow
+- PCG grid (5 procedural cubes)
+- **Tools**: datatable, struct, enum, PCG, input, mesh/LOD, performance
+
+## Naming Convention
+
+All showcase elements use these prefixes (preserved during reset):
+
+| Prefix | Purpose |
+|--------|---------|
+| `Demo_` | Showcase objects (actors, shapes, pedestals) |
+| `DemoFloor_` | Zone platform floors |
+| `DemoLabel_` | Text labels (zone titles, feature lists, test areas) |
+| `DemoTestArea_` | E2E test area platforms |
+
+## E2E Test Areas
+
+Each zone has a grey platform labeled "E2E TEST AREA" where integration tests:
+1. Create test actors/assets
+2. Perform operations
+3. Verify results
+4. Clean up (via `reset_demo_scene` or targeted deletion)
+
+Test actors do NOT use the `Demo_` prefix, so `reset_demo_scene` removes them while preserving the showcase.
+
+## Reset Mechanism
 
 ```javascript
-// Change individual element colors
-mcp.python_proxy({
-  code: `
-    actor = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_actor_reference("CalibCube_3_3_Orange")
-    mesh_comp = actor.get_component_by_class(unreal.StaticMeshComponent)
-    mid = mesh_comp.create_dynamic_material_instance(0)
-    mid.set_vector_parameter_value("BaseColor", unreal.LinearColor(1, 0, 1, 1))
-  `
-})
+// Reset to clean showcase state
+mcp.level_reset_demo_scene({ save: true, delete_test_assets: true })
 ```
 
-## Advantages Over Text-Based Calibration
+**Preserved**: All `Demo_*`, `DemoFloor_*`, `DemoLabel_*`, `DemoTestArea_*` actors + lighting/atmosphere
+**Removed**: Any actor without these prefixes (test artifacts)
 
-1. **Simple Materials**: Uses basic dynamic material instances with just color parameters
-2. **No Font Dependencies**: No text rendering issues or font loading problems
-3. **Easy Color Control**: Direct RGB values without complex material graphs
-4. **Better Performance**: Geometric shapes render faster than text
-5. **Predictable Behavior**: No text alignment or scaling issues
+## Materials
 
-## Element Naming Convention
+### Zone Materials (`/Game/Demo/Materials/`)
+M_Demo_Ground, M_Demo_Hub, M_Demo_Actor, M_Demo_Material, M_Demo_Niagara, M_Demo_Blueprint, M_Demo_Audio, M_Demo_Widget, M_Demo_Animation, M_Demo_Data, M_Demo_TestArea
 
-Each grid element follows this naming pattern:
+### Showcase Materials (`/Game/Demo/Materials/Showcase/`)
+M_Demo_Metallic, M_Demo_Rough, M_Demo_Emissive, M_Demo_Gold, M_Demo_Copper, M_Demo_Neon
+
+### VFX Assets (`/Game/Demo/VFX/`)
+NS_Demo_Fountain, NS_Demo_Burst, NS_Demo_Explosion, NS_Demo_Trails
+
+## World Outliner Structure
+
 ```
-Calib[Shape]_[Row]_[Column]_[ColorName]
+Demo/
+  Hub/           - Central hub objects
+  Infrastructure/ - Floors, test areas
+  Labels/        - Zone titles
+    Features/    - Feature sub-labels
+  Zones/
+    Actor/       - Actor zone objects
+    Animation/   - Animation zone objects
+    Audio/       - Audio zone objects
+    Blueprint/   - Blueprint zone objects
+    Data/        - Data zone objects
+    Material/    - Material zone objects
+    Niagara/     - Niagara zone objects
+    Widget/      - Widget zone objects
 ```
-
-Examples:
-- `CalibCube_0_0_Red` - Top-left red cube
-- `CalibSphere_3_3_Orange` - Center orange sphere
-- `CalibCube_6_6_Magenta` - Bottom-right magenta cube
-
-## Folder Structure
-
-All calibration elements are organized in the World Outliner:
-```
-CalibrationGrid/
-  ├── CalibCube_* (grid elements)
-  ├── CalibSphere_* (center marker)
-  ├── CalibrationGround (ground plane)
-  └── Markers/
-      ├── Marker_NW
-      ├── Marker_NE
-      ├── Marker_SW
-      └── Marker_SE
-```
-
-## Modifying the Grid
-
-The grid is built into the Demo project's Calibration.umap level. To modify it:
-
-1. Open the level in Unreal Engine
-2. Select grid actors in the World Outliner (under CalibrationGrid folder)
-3. Adjust properties like position, scale, or materials
-4. Save the level to preserve changes
-
-## Customization
-
-The Demo project's calibration grid uses:
-
-- **Grid Size**: 8 rows × 10 columns  
-- **Cell Size**: 150 units spacing between elements
-- **Element Scale**: 0.8 scale for each shape
-
-You can modify these values in the creation scripts to suit your needs.
-
-## Troubleshooting
-
-If colors don't appear:
-1. Make sure the Python listener is running
-2. Try using different parameter names: "BaseColor", "Color", "Base Color"
-3. Check that dynamic material instances are being created properly
-4. Verify the base material supports color parameters
-
-## Next Steps
-
-This simple calibration grid can be extended with:
-- Different shapes per row/column
-- Gradient patterns
-- Animation through color cycling
-- Interactive color picking
-- Save/load color configurations
-
-The key benefit is that all manipulation is now straightforward RGB color changes on simple geometric shapes!
