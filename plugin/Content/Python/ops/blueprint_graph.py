@@ -758,7 +758,7 @@ def modify_component(
         # Modern path (UE 5.7+): gather once, search and collect available in one pass
         bfl = unreal.SubobjectDataBlueprintFunctionLibrary
         for h, data in gather_component_handles(blueprint):
-            display = bfl.get_display_name(data)
+            display = str(bfl.get_display_name(data))
             var_name = str(bfl.get_variable_name(data))
             available.append(display)
             if display == component_name or var_name == component_name:
@@ -1091,12 +1091,12 @@ def _get_blueprint_components(blueprint):
         if not template:
             continue
         comp_info = _extract_component_info(template)
-        comp_info["name"] = bfl.get_display_name(data)
+        comp_info["name"] = str(bfl.get_display_name(data))
         parent_handle = bfl.get_parent_handle(data)
         if parent_handle:
             parent_data = sds.k2_find_subobject_data_from_handle(parent_handle)
             if parent_data and bfl.is_component(parent_data):
-                comp_info["parent"] = bfl.get_display_name(parent_data)
+                comp_info["parent"] = str(bfl.get_display_name(parent_data))
         components.append(comp_info)
 
     return components

@@ -140,7 +140,7 @@ def find_component_handle(blueprint, component_name):
         data = sds.k2_find_subobject_data_from_handle(h)
         if not data:
             continue
-        display = bfl.get_display_name(data)
+        display = str(bfl.get_display_name(data))
         # Match by display name or variable name
         if display == component_name:
             return h
