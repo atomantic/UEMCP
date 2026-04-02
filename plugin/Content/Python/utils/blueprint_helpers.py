@@ -30,8 +30,13 @@ def compile_blueprint(blueprint):
     """
     if hasattr(unreal, "KismetEditorUtilities"):
         unreal.KismetEditorUtilities.compile_blueprint(blueprint)
-    else:
+    elif hasattr(unreal, "BlueprintEditorLibrary"):
         unreal.BlueprintEditorLibrary.compile_blueprint(blueprint)
+    else:
+        raise ProcessingError(
+            "No Blueprint compilation API available (requires KismetEditorUtilities or BlueprintEditorLibrary)",
+            operation="compile_blueprint",
+        )
 
 
 def compile_and_save(blueprint, blueprint_path, force_save=False):
