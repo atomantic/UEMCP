@@ -30,6 +30,9 @@ class LevelOperations:
     # showcase level and are preserved during reset_demo_scene.
     _BASELINE_PREFIXES = (
         "Demo_",
+        "DemoFloor_",
+        "DemoLabel_",
+        "DemoTestArea_",
         "DirectionalLight",
         "SkyAtmosphere",
         "SkyLight",
