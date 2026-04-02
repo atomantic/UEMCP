@@ -1,6 +1,6 @@
 {
   "name": "uemcp-server",
-  "version": "3.1.0",
+  "version": "3.8.0",
   "description": "Unreal Engine Model Context Protocol Server",
   "engines": {
     "node": ">=20.19.0"
