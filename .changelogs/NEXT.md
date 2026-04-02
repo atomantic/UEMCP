@@ -17,6 +17,6 @@
 ## Changed
 
 - Demo layout: replaced 3x3 calibration grid with linear walkable corridor (X=0 to X=20000)
-- Reset baseline prefixes: simplified to Demo_ prefix (replaces old Calib_/Marker_ prefixes)
+- Reset baseline prefixes: now preserve Demo_, DemoFloor_, DemoLabel_, DemoTestArea_ prefixes (replaces old Calib_/Marker_ prefixes)
 - Demo.uproject engine association updated from 5.6 to 5.7
 - All KismetEditorUtilities.compile_blueprint calls replaced with version-compatible compile_blueprint helper

@@ -435,9 +435,16 @@ def add_variable(
     elif hasattr(unreal, "BlueprintEditorLibrary"):
         added = unreal.BlueprintEditorLibrary.add_member_variable(anim_bp, variable_name, pin_type)
     else:
-        added = False
+        raise ProcessingError(
+            "No Blueprint variable API available (requires KismetEditorUtilities or BlueprintEditorLibrary)",
+            operation="add_variable",
+        )
     if not added:
-        log_debug(f"add_blueprint_variable returned falsy for '{variable_name}', attempting save anyway")
+        raise ProcessingError(
+            f"Failed to add variable '{variable_name}' to Blueprint",
+            operation="add_variable",
+            details={"blueprint_path": blueprint_path, "variable_name": variable_name, "variable_type": variable_type},
+        )
 
     # Compile first so the CDO has the new variable property available
     _compile_bp(anim_bp)

@@ -82,7 +82,7 @@ coverage/
 Demo/*
 # Keep only the project file and documentation
 !Demo/*.uproject
-!Demo/README_CALIBRATION.md
+!Demo/README_SHOWCASE.md
 # Include demo showcase content and test assets
 !Demo/Content/
 !Demo/Content/*.umap
