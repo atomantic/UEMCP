@@ -360,8 +360,8 @@ result = {"success": True, "message": "Test folder structure cleaned"}
       // Each pattern allows up to maxSuppress occurrences; further hits are treated
       // as real errors so regressions producing the same messages still surface in CI.
       const expectedTestErrorPatterns = [
-        { regex: /LogPython: Error: UEMCP: actor operation failed: Socket .* not found/, maxSuppress: 10 },
-        { regex: /LogPython: Error: UEMCP: actor operation failed: Actor .* not found in level/, maxSuppress: 10 },
+        { regex: /LogPython: Error: UEMCP: actor operation failed: Socket .* not found/, maxSuppress: 5 },
+        { regex: /LogPython: Error: UEMCP: actor operation failed: Actor .* not found in level/, maxSuppress: 3 },
       ];
       const suppressionCounts = new Map();
 
