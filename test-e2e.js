@@ -348,6 +348,7 @@ result = {"success": True, "message": "Test folder structure cleaned"}
       
       const logLines = logContent.split('\n').filter(line => line.trim());
       const errorLines = [];
+      let suppressedCount = 0;
       const criticalPatterns = [
         /Error:/i,
         /Fatal error/i,
@@ -355,7 +356,8 @@ result = {"success": True, "message": "Test folder structure cleaned"}
         /=== Critical error: ===/i,
         /Assertion failed/i,
       ];
-      // Expected errors produced intentionally by error-handling test cases
+      // Expected errors produced intentionally by error-handling test cases.
+      // Tracked separately so unexpected occurrences of the same pattern still surface.
       const expectedTestErrorPatterns = [
         /LogPython: Error: UEMCP: actor operation failed: Socket .* not found/,
         /LogPython: Error: UEMCP: actor operation failed: Actor .* not found in level/,
@@ -363,7 +365,10 @@ result = {"success": True, "message": "Test folder structure cleaned"}
 
       // Scan for errors
       for (const line of logLines) {
-        if (expectedTestErrorPatterns.some(p => p.test(line))) continue;
+        if (expectedTestErrorPatterns.some(p => p.test(line))) {
+          suppressedCount++;
+          continue;
+        }
         for (const pattern of criticalPatterns) {
           if (pattern.test(line)) {
             errorLines.push(line);
@@ -371,19 +376,23 @@ result = {"success": True, "message": "Test folder structure cleaned"}
           }
         }
       }
-      
+
+      if (suppressedCount > 0) {
+        this.log(`Suppressed ${suppressedCount} expected error-handling test error(s) from UE log scan`, 'info');
+      }
+
       if (errorLines.length > 0) {
         this.log(`❌ Found ${errorLines.length} errors in UE logs:`, 'error');
-        
+
         // Show first 10 errors
         errorLines.slice(0, 10).forEach(line => {
           console.log(`   ${line.trim()}`);
         });
-        
+
         if (errorLines.length > 10) {
           console.log(`   ... and ${errorLines.length - 10} more errors`);
         }
-        
+
         this.results.e2e.ueLogErrors = errorLines.length;
       } else {
         this.log('✅ No errors found in UE logs', 'success');
