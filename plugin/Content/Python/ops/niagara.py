@@ -400,6 +400,12 @@ def _apply_niagara_parameter(nc: Any, parameter_name: str, value: Any, value_typ
         _apply_niagara_vector(nc, parameter_name, value)
     elif value_type == "color":
         _apply_niagara_color(nc, parameter_name, value)
+    else:
+        raise ProcessingError(
+            f"Unsupported Niagara parameter type '{value_type}' for parameter '{parameter_name}'",
+            operation="niagara_set_parameter",
+            details={"parameter_name": parameter_name, "value_type": value_type, "value": value},
+        )
 
 
 def _apply_niagara_bool(nc: Any, parameter_name: str, value: Any) -> None:
