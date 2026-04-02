@@ -82,11 +82,15 @@ coverage/
 Demo/*
 # Keep only the project file and documentation
 !Demo/*.uproject
-!Demo/README_CALIBRATION.md
-# Include Blueprint test system (part of UEMCP development)
+!Demo/README_SHOWCASE.md
+# Include demo showcase content and test assets
 !Demo/Content/
+!Demo/Content/*.umap
 !Demo/Content/TestBlueprints/
 !Demo/Content/TestBlueprints/**
+!Demo/Content/Demo/
+!Demo/Content/Demo/**
+# Demo/Content/Tests/ is excluded — created by test runs, cleaned by reset_demo_scene
 # Always ignore Unreal's generated folders
 Demo/Saved/
 Demo/Intermediate/

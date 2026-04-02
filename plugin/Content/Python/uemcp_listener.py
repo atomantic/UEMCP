@@ -623,7 +623,11 @@ def restart_listener():
     # picked up without a full editor restart.
     import sys as _sys
 
-    stale = [k for k in _sys.modules if k == "ops" or k.startswith("ops.") or k == "uemcp_command_registry"]
+    stale = [
+        k
+        for k in _sys.modules
+        if k == "ops" or k.startswith("ops.") or k == "uemcp_command_registry" or k == "utils" or k.startswith("utils.")
+    ]
     for k in stale:
         del _sys.modules[k]
     if stale:

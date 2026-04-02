@@ -27,10 +27,12 @@ class LevelOperations:
     """Handles all level and project-related operations."""
 
     # Actors matching these prefixes are considered part of the baseline
-    # Calibration level and are preserved during reset_demo_scene.
+    # showcase level and are preserved during reset_demo_scene.
     _BASELINE_PREFIXES = (
-        "Calib",
-        "Marker_",
+        "Demo_",
+        "DemoFloor_",
+        "DemoLabel_",
+        "DemoTestArea_",
         "DirectionalLight",
         "SkyAtmosphere",
         "SkyLight",
@@ -45,9 +47,9 @@ class LevelOperations:
     def reset_demo_scene(self, save: bool = True, delete_test_assets: bool = True):
         """Reset the Demo project scene to its clean baseline state.
 
-        Removes all actors that are not part of the Calibration level baseline
-        (calibration grid, lighting, atmosphere). Optionally deletes test assets
-        from the content browser and saves the level.
+        Removes all actors that are not part of the showcase baseline
+        (Demo_ prefixed elements, lighting, atmosphere). Optionally deletes
+        test assets from the content browser and saves the level.
 
         Args:
             save: Save the level after cleanup (default True)
@@ -75,7 +77,7 @@ class LevelOperations:
         deleted_assets = []
         if delete_test_assets:
             # Only delete known test-only directories to avoid destroying project content
-            test_dirs = ["/Game/TestBlueprints/CoverageTest"]
+            test_dirs = ["/Game/TestBlueprints/CoverageTest", "/Game/Tests"]
             for path in test_dirs:
                 if unreal.EditorAssetLibrary.does_directory_exist(path):
                     unreal.EditorAssetLibrary.delete_directory(path)

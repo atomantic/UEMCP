@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional
 
 import unreal
 
+from utils.blueprint_helpers import compile_blueprint as _compile_bp
+
 # Enhanced error handling framework
 from utils.error_handling import (
     AssetPathRule,
@@ -304,9 +306,8 @@ def compile(blueprint_path: str) -> Dict[str, Any]:
         )
 
     # Compile the Blueprint (fail-fast; decorators handle UE errors)
-    # Note: Direct compilation via Python has limitations
-    blueprint.mark_package_dirty()
-    # Force compilation by accessing the generated class
+    _compile_bp(blueprint)
+    # Check compilation status by accessing the generated class
     generated_class = blueprint.generated_class()
     # Check compilation status (best-effort)
     compilation_success = generated_class is not None

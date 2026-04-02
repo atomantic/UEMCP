@@ -8,7 +8,17 @@ from typing import Any, Dict, List, Optional
 
 import unreal
 
-from utils.blueprint_helpers import compile_and_save, resolve_blueprint
+from utils.blueprint_helpers import (
+    add_component_subobject,
+    compile_and_save,
+    compile_blueprint,
+    find_component_handle,
+    gather_component_handles,
+    get_component_template,
+    get_scs,
+    get_subobject_subsystem,
+    resolve_blueprint,
+)
 from utils.error_handling import (
     AssetPathRule,
     ListLengthRule,
@@ -415,7 +425,7 @@ def set_variable_default(
     blueprint = resolve_blueprint(blueprint_path)
 
     # Compile first to ensure CDO exists and is up to date
-    unreal.KismetEditorUtilities.compile_blueprint(blueprint)
+    compile_blueprint(blueprint)
 
     gen_class = blueprint.generated_class()
     if not gen_class:
@@ -523,38 +533,55 @@ def add_component(
                 },
             )
 
-    scs = blueprint.simple_construction_script
+    scs = get_scs(blueprint)
+    sds = get_subobject_subsystem()
 
-    if not scs:
+    if not scs and not sds:
         raise ProcessingError(
-            "Blueprint does not support components (no SimpleConstructionScript)",
+            "Blueprint does not support components (no SCS or SubobjectDataSubsystem)",
             operation="blueprint_add_component",
             details={"blueprint_path": blueprint_path},
         )
 
-    # Create the component node
-    new_node = scs.create_node(comp_cls, component_name)
-
-    if not new_node:
-        raise ProcessingError(
-            f"Failed to create component '{component_name}'",
-            operation="blueprint_add_component",
-            details={"blueprint_path": blueprint_path, "component_name": component_name},
-        )
-
-    # Attach to parent or add as root
-    if parent_component:
-        parent_node = _find_component_node(scs, parent_component)
-        if parent_node:
-            parent_node.add_child_node(new_node, False)
+    template = None
+    if scs:
+        # Legacy path (UE 5.4-5.6): use SimpleConstructionScript
+        new_node = scs.create_node(comp_cls, component_name)
+        if not new_node:
+            raise ProcessingError(
+                f"Failed to create component '{component_name}'",
+                operation="blueprint_add_component",
+                details={"blueprint_path": blueprint_path, "component_name": component_name},
+            )
+        if parent_component:
+            parent_node = _find_component_node(scs, parent_component)
+            if parent_node:
+                parent_node.add_child_node(new_node, False)
+            else:
+                log_info(f"Parent component '{parent_component}' not found, adding '{component_name}' as root")
+                scs.add_node(new_node)
         else:
-            log_info(f"Parent component '{parent_component}' not found, adding '{component_name}' as root")
             scs.add_node(new_node)
+        template = new_node.component_template
     else:
-        scs.add_node(new_node)
+        # Modern path (UE 5.7+): use SubobjectDataSubsystem
+        parent_handle = None
+        if parent_component:
+            parent_handle = find_component_handle(blueprint, parent_component)
+            if not parent_handle:
+                log_info(f"Parent component '{parent_component}' not found, using root")
+        new_handle, fail_reason = add_component_subobject(blueprint, comp_cls, parent_handle)
+        if not new_handle:
+            raise ProcessingError(
+                f"Failed to create component '{component_name}': {fail_reason}",
+                operation="blueprint_add_component",
+                details={"blueprint_path": blueprint_path, "component_name": component_name},
+            )
+        template = get_component_template(new_handle, blueprint)
+        # Rename the component
+        if template:
+            sds.rename_subobject(new_handle, component_name)
 
-    # Set transform if component has one
-    template = new_node.component_template
     if template and isinstance(template, unreal.SceneComponent):
         if location:
             template.set_editor_property(
@@ -716,18 +743,28 @@ def modify_component(
     """
     blueprint = resolve_blueprint(blueprint_path)
 
-    scs = blueprint.simple_construction_script
-    if not scs:
-        raise ProcessingError(
-            "Blueprint does not support components (no SimpleConstructionScript)",
-            operation="blueprint_modify_component",
-            details={"blueprint_path": blueprint_path},
-        )
+    scs = get_scs(blueprint)
+    sds = get_subobject_subsystem()
 
-    template = _find_component_template(scs, component_name)
+    template = None
+    available = []
+
+    if scs:
+        # Legacy path (UE 5.4-5.6)
+        template = _find_component_template(scs, component_name)
+        if not template:
+            available = [node.component_template.get_name() for node in scs.get_all_nodes() if node.component_template]
+    elif sds:
+        # Modern path (UE 5.7+): gather once, search and collect available in one pass
+        bfl = unreal.SubobjectDataBlueprintFunctionLibrary
+        for h, data in gather_component_handles(blueprint):
+            display = str(bfl.get_display_name(data))
+            var_name = str(bfl.get_variable_name(data))
+            available.append(display)
+            if display == component_name or var_name == component_name:
+                template = get_component_template(h, blueprint, data=data)
+
     if not template:
-        # Collect available names for a helpful error message
-        available = [node.component_template.get_name() for node in scs.get_all_nodes() if node.component_template]
         raise ProcessingError(
             f"Component '{component_name}' not found in Blueprint",
             operation="blueprint_modify_component",
@@ -1028,38 +1065,57 @@ def _get_blueprint_components(blueprint):
     """
     components = []
 
-    scs = blueprint.simple_construction_script
-    if not scs:
+    scs = get_scs(blueprint)
+    if scs:
+        # Legacy path (UE 5.4-5.6)
+        all_nodes = scs.get_all_nodes()
+        for node in all_nodes:
+            template = node.component_template
+            if not template:
+                continue
+            comp_info = _extract_component_info(template)
+            parent_node = node.get_editor_property("parent_component_or_variable_name")
+            if parent_node:
+                comp_info["parent"] = str(parent_node)
+            components.append(comp_info)
         return components
 
-    all_nodes = scs.get_all_nodes()
-    for node in all_nodes:
-        template = node.component_template
+    # Modern path (UE 5.7+): use SubobjectDataSubsystem
+    sds = get_subobject_subsystem()
+    if not sds:
+        return components
+
+    bfl = unreal.SubobjectDataBlueprintFunctionLibrary
+    for handle, data in gather_component_handles(blueprint):
+        template = get_component_template(handle, blueprint, data=data)
         if not template:
             continue
-
-        comp_info = {
-            "name": template.get_name(),
-            "class": template.get_class().get_name(),
-        }
-
-        # Get relative transform for scene components
-        if isinstance(template, unreal.SceneComponent):
-            loc = template.get_editor_property("relative_location")
-            rot = template.get_editor_property("relative_rotation")
-            scale = template.get_editor_property("relative_scale3d")
-            comp_info["location"] = [loc.x, loc.y, loc.z]
-            comp_info["rotation"] = [rot.roll, rot.pitch, rot.yaw]
-            comp_info["scale"] = [scale.x, scale.y, scale.z]
-
-        # Check for parent
-        parent_node = node.get_editor_property("parent_component_or_variable_name")
-        if parent_node:
-            comp_info["parent"] = str(parent_node)
-
+        comp_info = _extract_component_info(template)
+        comp_info["name"] = str(bfl.get_display_name(data))
+        parent_handle = bfl.get_parent_handle(data)
+        if parent_handle:
+            parent_data = sds.k2_find_subobject_data_from_handle(parent_handle)
+            if parent_data and bfl.is_component(parent_data):
+                comp_info["parent"] = str(bfl.get_display_name(parent_data))
         components.append(comp_info)
 
     return components
+
+
+def _extract_component_info(template):
+    """Extract info dict from a component template object."""
+    comp_info = {
+        "name": template.get_name(),
+        "class": template.get_class().get_name(),
+    }
+    if isinstance(template, unreal.SceneComponent):
+        loc = template.get_editor_property("relative_location")
+        rot = template.get_editor_property("relative_rotation")
+        scale = template.get_editor_property("relative_scale3d")
+        comp_info["location"] = [loc.x, loc.y, loc.z]
+        comp_info["rotation"] = [rot.roll, rot.pitch, rot.yaw]
+        comp_info["scale"] = [scale.x, scale.y, scale.z]
+    return comp_info
 
 
 def _get_graph_nodes(blueprint, detail_level="flow"):
@@ -1313,7 +1369,7 @@ def compile_enhanced(blueprint_path: str) -> Dict[str, Any]:
     blueprint = resolve_blueprint(blueprint_path)
 
     # Perform compilation
-    unreal.KismetEditorUtilities.compile_blueprint(blueprint)
+    compile_blueprint(blueprint)
 
     # Check compilation status
     generated_class = blueprint.generated_class()
