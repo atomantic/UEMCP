@@ -1063,7 +1063,7 @@ def screenshot(
     # Ensure the widget blueprint is compiled so generated_class() is valid
     generated_class = widget_bp.generated_class()
     if generated_class is None:
-        unreal.KismetCompilerLibrary.compile_blueprint(widget_bp)
+        _compile_bp(widget_bp)
         generated_class = widget_bp.generated_class()
 
     if generated_class is None:

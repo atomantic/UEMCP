@@ -430,7 +430,12 @@ def add_variable(
     pin_type.set_editor_property("container_type", unreal.EPinContainerType.NONE)
 
     name_field = unreal.Name(variable_name)
-    added = unreal.KismetEditorUtilities.add_blueprint_variable(anim_bp, name_field, pin_type)
+    if hasattr(unreal, "KismetEditorUtilities"):
+        added = unreal.KismetEditorUtilities.add_blueprint_variable(anim_bp, name_field, pin_type)
+    elif hasattr(unreal, "BlueprintEditorLibrary"):
+        added = unreal.BlueprintEditorLibrary.add_member_variable(anim_bp, variable_name, pin_type)
+    else:
+        added = False
     if not added:
         log_debug(f"add_blueprint_variable returned falsy for '{variable_name}', attempting save anyway")
 

@@ -175,8 +175,8 @@ Required for character-driven games.
 ## Demo Showcase Redesign ✅
 
 Replaced the old calibration grid with a full feature showcase:
-- 9 themed zones (3x3 grid) demonstrating all MCP tool categories
-- Central hub with directional arrows to each zone
+- 9 themed zones in a walkable linear corridor demonstrating all MCP tool categories
+- Central hub with navigation arrows along the corridor
 - 17 showcase materials (11 zone + 6 showcase)
 - 4 live Niagara particle effects
 - TextRenderActor labels for all zones and features
