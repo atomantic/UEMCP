@@ -357,17 +357,28 @@ result = {"success": True, "message": "Test folder structure cleaned"}
         /Assertion failed/i,
       ];
       // Expected errors produced intentionally by error-handling test cases.
-      // Tracked separately so unexpected occurrences of the same pattern still surface.
+      // Each pattern allows up to maxSuppress occurrences; further hits are treated
+      // as real errors so regressions producing the same messages still surface in CI.
       const expectedTestErrorPatterns = [
-        /LogPython: Error: UEMCP: actor operation failed: Socket .* not found/,
-        /LogPython: Error: UEMCP: actor operation failed: Actor .* not found in level/,
+        { regex: /LogPython: Error: UEMCP: actor operation failed: Socket .* not found/, maxSuppress: 10 },
+        { regex: /LogPython: Error: UEMCP: actor operation failed: Actor .* not found in level/, maxSuppress: 10 },
       ];
+      const suppressionCounts = new Map();
 
       // Scan for errors
-      for (const line of logLines) {
-        if (expectedTestErrorPatterns.some(p => p.test(line))) {
-          suppressedCount++;
-          continue;
+      lineLoop: for (const line of logLines) {
+        for (const { regex, maxSuppress } of expectedTestErrorPatterns) {
+          if (regex.test(line)) {
+            const key = regex.toString();
+            const count = suppressionCounts.get(key) || 0;
+            if (count < maxSuppress) {
+              suppressionCounts.set(key, count + 1);
+              suppressedCount++;
+              continue lineLoop;
+            }
+            // maxSuppress reached — fall through and treat as a real error
+            break;
+          }
         }
         for (const pattern of criticalPatterns) {
           if (pattern.test(line)) {
