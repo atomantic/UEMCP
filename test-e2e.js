@@ -355,9 +355,15 @@ result = {"success": True, "message": "Test folder structure cleaned"}
         /=== Critical error: ===/i,
         /Assertion failed/i,
       ];
-      
+      // Expected errors produced intentionally by error-handling test cases
+      const expectedTestErrorPatterns = [
+        /LogPython: Error: UEMCP: actor operation failed: Socket .* not found/,
+        /LogPython: Error: UEMCP: actor operation failed: Actor .* not found in level/,
+      ];
+
       // Scan for errors
       for (const line of logLines) {
+        if (expectedTestErrorPatterns.some(p => p.test(line))) continue;
         for (const pattern of criticalPatterns) {
           if (pattern.test(line)) {
             errorLines.push(line);

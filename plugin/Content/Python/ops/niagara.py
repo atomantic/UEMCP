@@ -388,6 +388,91 @@ def compile(
     }
 
 
+def _apply_niagara_parameter(nc: Any, parameter_name: str, value: Any, value_type: str) -> None:
+    """Dispatch a typed Niagara user-parameter set onto a NiagaraComponent."""
+    if value_type == "float":
+        nc.set_variable_float(parameter_name, float(value))
+    elif value_type == "int":
+        nc.set_variable_int(parameter_name, int(value))
+    elif value_type == "bool":
+        _apply_niagara_bool(nc, parameter_name, value)
+    elif value_type == "vector":
+        _apply_niagara_vector(nc, parameter_name, value)
+    elif value_type == "color":
+        _apply_niagara_color(nc, parameter_name, value)
+
+
+def _apply_niagara_bool(nc: Any, parameter_name: str, value: Any) -> None:
+    if isinstance(value, bool):
+        bool_val = value
+    elif isinstance(value, (int, float)):
+        bool_val = value != 0
+    else:
+        raise ProcessingError(
+            f"Bool value must be a boolean or number, got {type(value).__name__}: {value!r}",
+            operation="niagara_set_parameter",
+            details={"value": value, "value_type": type(value).__name__},
+        )
+    nc.set_variable_bool(parameter_name, bool_val)
+
+
+def _apply_niagara_vector(nc: Any, parameter_name: str, value: Any) -> None:
+    if isinstance(value, (list, tuple)) and len(value) == 3:
+        nc.set_variable_vec3(parameter_name, create_vector(value))
+    elif isinstance(value, dict):
+        for key in ("x", "y", "z"):
+            if key not in value:
+                raise ProcessingError(
+                    f"Vector dict missing required key '{key}': need {{x, y, z}}",
+                    operation="niagara_set_parameter",
+                    details={"value": value, "missing_key": key},
+                )
+        nc.set_variable_vec3(parameter_name, create_vector([value["x"], value["y"], value["z"]]))
+    else:
+        raise ProcessingError(
+            "Vector value must be [x, y, z] or {x, y, z}",
+            operation="niagara_set_parameter",
+            details={"value": value},
+        )
+
+
+def _apply_niagara_color(nc: Any, parameter_name: str, value: Any) -> None:
+    if isinstance(value, (list, tuple)):
+        if len(value) not in (3, 4):
+            raise ProcessingError(
+                "Color value must have 3 or 4 components (RGB or RGBA)",
+                operation="niagara_set_parameter",
+                details={"value": value},
+            )
+        color = unreal.LinearColor(
+            r=float(value[0]),
+            g=float(value[1]),
+            b=float(value[2]),
+            a=float(value[3]) if len(value) > 3 else 1.0,
+        )
+    elif isinstance(value, dict):
+        for key in ("r", "g", "b"):
+            if key not in value:
+                raise ProcessingError(
+                    f"Color dict missing required key '{key}': need {{r, g, b[, a]}}",
+                    operation="niagara_set_parameter",
+                    details={"value": value, "missing_key": key},
+                )
+        color = unreal.LinearColor(
+            r=float(value["r"]),
+            g=float(value["g"]),
+            b=float(value["b"]),
+            a=float(value.get("a", 1.0)),
+        )
+    else:
+        raise ProcessingError(
+            "Color value must be [r, g, b, a] or {r, g, b, a}",
+            operation="niagara_set_parameter",
+            details={"value": value},
+        )
+    nc.set_variable_linear_color(parameter_name, color)
+
+
 @validate_inputs(
     {
         "actor_name": [RequiredRule(), TypeRule(str)],
@@ -449,76 +534,7 @@ def set_parameter(
             details={"actor_name": actor_name, "actor_class": type(target).__name__},
         )
 
-    # Apply the parameter using the typed setter methods on NiagaraComponent
-    if value_type == "float":
-        nc.set_variable_float(parameter_name, float(value))
-    elif value_type == "int":
-        nc.set_variable_int(parameter_name, int(value))
-    elif value_type == "bool":
-        if isinstance(value, bool):
-            bool_val = value
-        elif isinstance(value, (int, float)):
-            bool_val = value != 0
-        else:
-            raise ProcessingError(
-                f"Bool value must be a boolean or number, got {type(value).__name__}: {value!r}",
-                operation="niagara_set_parameter",
-                details={"value": value, "value_type": type(value).__name__},
-            )
-        nc.set_variable_bool(parameter_name, bool_val)
-    elif value_type == "vector":
-        if isinstance(value, (list, tuple)) and len(value) == 3:
-            nc.set_variable_vec3(parameter_name, create_vector(value))
-        elif isinstance(value, dict):
-            for key in ("x", "y", "z"):
-                if key not in value:
-                    raise ProcessingError(
-                        f"Vector dict missing required key '{key}': need {{x, y, z}}",
-                        operation="niagara_set_parameter",
-                        details={"value": value, "missing_key": key},
-                    )
-            nc.set_variable_vec3(parameter_name, create_vector([value["x"], value["y"], value["z"]]))
-        else:
-            raise ProcessingError(
-                "Vector value must be [x, y, z] or {x, y, z}",
-                operation="niagara_set_parameter",
-                details={"value": value},
-            )
-    elif value_type == "color":
-        if isinstance(value, (list, tuple)):
-            if len(value) not in (3, 4):
-                raise ProcessingError(
-                    "Color value must have 3 or 4 components (RGB or RGBA)",
-                    operation="niagara_set_parameter",
-                    details={"value": value},
-                )
-            color = unreal.LinearColor(
-                r=float(value[0]),
-                g=float(value[1]),
-                b=float(value[2]),
-                a=float(value[3]) if len(value) > 3 else 1.0,
-            )
-        elif isinstance(value, dict):
-            for key in ("r", "g", "b"):
-                if key not in value:
-                    raise ProcessingError(
-                        f"Color dict missing required key '{key}': need {{r, g, b[, a]}}",
-                        operation="niagara_set_parameter",
-                        details={"value": value, "missing_key": key},
-                    )
-            color = unreal.LinearColor(
-                r=float(value["r"]),
-                g=float(value["g"]),
-                b=float(value["b"]),
-                a=float(value.get("a", 1.0)),
-            )
-        else:
-            raise ProcessingError(
-                "Color value must be [r, g, b, a] or {r, g, b, a}",
-                operation="niagara_set_parameter",
-                details={"value": value},
-            )
-        nc.set_variable_linear_color(parameter_name, color)
+    _apply_niagara_parameter(nc, parameter_name, value, value_type)
 
     log_debug(f"Set parameter '{parameter_name}'={value} ({value_type}) on {actor_name}")
 
