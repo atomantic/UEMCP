@@ -472,7 +472,7 @@ def _apply_niagara_color(nc: Any, parameter_name: str, value: Any) -> None:
         )
     else:
         raise ProcessingError(
-            "Color value must be [r, g, b, a] or {r, g, b, a}",
+            "Color value must be [r, g, b] or [r, g, b, a] or {r, g, b[, a]}",
             operation="niagara_set_parameter",
             details={"value": value},
         )
