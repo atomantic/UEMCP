@@ -308,10 +308,7 @@ def compile(blueprint_path: str) -> Dict[str, Any]:
     # Compile the Blueprint (fail-fast; decorators handle UE errors)
     _compile_bp(blueprint)
     # Check compilation status by accessing the generated class
-    if hasattr(unreal, "BlueprintEditorLibrary"):
-        generated_class = unreal.BlueprintEditorLibrary.generated_class(blueprint)
-    else:
-        generated_class = blueprint.generated_class()
+    generated_class = blueprint.generated_class()
     # Check compilation status (best-effort)
     compilation_success = generated_class is not None
     result = {"success": True, "compilationSuccess": compilation_success, "errors": [], "warnings": []}

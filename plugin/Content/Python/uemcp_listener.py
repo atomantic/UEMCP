@@ -626,7 +626,7 @@ def restart_listener():
     stale = [
         k
         for k in _sys.modules
-        if k == "ops" or k.startswith("ops.") or k == "uemcp_command_registry" or k.startswith("utils.")
+        if k == "ops" or k.startswith("ops.") or k == "uemcp_command_registry" or k == "utils" or k.startswith("utils.")
     ]
     for k in stale:
         del _sys.modules[k]
