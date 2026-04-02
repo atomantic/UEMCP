@@ -90,8 +90,7 @@ Demo/*
 !Demo/Content/TestBlueprints/**
 !Demo/Content/Demo/
 !Demo/Content/Demo/**
-!Demo/Content/Tests/
-!Demo/Content/Tests/**
+# Demo/Content/Tests/ is excluded — created by test runs, cleaned by reset_demo_scene
 # Always ignore Unreal's generated folders
 Demo/Saved/
 Demo/Intermediate/
